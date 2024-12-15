@@ -42,7 +42,7 @@ jobs:
         run: ./gradlew clean build --stacktrace
 
   publish:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'matt-ramotar/Clerk'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'matt-ramotar/storex'
     runs-on: macos-latest
     needs: build-and-test
     steps:

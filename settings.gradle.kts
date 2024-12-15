@@ -21,6 +21,6 @@ dependencyResolutionManagement {
         maven("https://oss.sonatype.org/content/repositories/snapshots/")
     }
 }
-rootProject.name = "clerk"
+rootProject.name = "storex"
 
-include(":core")
+include(":pager")

@@ -2,7 +2,7 @@ plugins {
     `kotlin-dsl`
 }
 
-group = "dev.mattramotar.clerk.tooling"
+group = "dev.mattramotar.storex.tooling"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -26,18 +26,18 @@ gradlePlugin {
     plugins {
 
         register("androidLibraryPlugin") {
-            id = "plugin.clerk.android.library"
-            implementationClass = "dev.mattramotar.clerk.tooling.plugins.AndroidLibraryConventionPlugin"
+            id = "plugin.storex.android.library"
+            implementationClass = "dev.mattramotar.storex.tooling.plugins.AndroidLibraryConventionPlugin"
         }
 
         register("kotlinAndroidLibraryPlugin") {
-            id = "plugin.clerk.kotlin.android.library"
-            implementationClass = "dev.mattramotar.clerk.tooling.plugins.KotlinAndroidLibraryConventionPlugin"
+            id = "plugin.storex.kotlin.android.library"
+            implementationClass = "dev.mattramotar.storex.tooling.plugins.KotlinAndroidLibraryConventionPlugin"
         }
 
         register("kotlinMultiplatformPlugin") {
-            id = "plugin.clerk.kotlin.multiplatform"
-            implementationClass = "dev.mattramotar.clerk.tooling.plugins.KotlinMultiplatformConventionPlugin"
+            id = "plugin.storex.kotlin.multiplatform"
+            implementationClass = "dev.mattramotar.storex.tooling.plugins.KotlinMultiplatformConventionPlugin"
         }
     }
 }
