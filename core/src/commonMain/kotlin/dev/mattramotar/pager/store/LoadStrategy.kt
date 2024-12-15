@@ -1,6 +1,11 @@
 package dev.mattramotar.pager.store
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filterNot
+import kotlinx.coroutines.flow.first
 import org.mobilenativefoundation.store.store5.Store
+import org.mobilenativefoundation.store.store5.StoreReadRequest
+import org.mobilenativefoundation.store.store5.StoreReadResponse
 
 /**
  * A LoadStrategy defines how a page should be loaded when the Pager requests it.
@@ -36,7 +41,7 @@ interface LoadStrategy {
  */
 object SkipCacheStrategy : LoadStrategy {
     override suspend fun <Key : Any, Value : Any> loadPage(
-        store: Store<Key, Value>,
+        store: Store<Key, List<Value>>,
         request: StorePageLoadRequest<Key>
     ): StorePageLoadResponse<Value> {
         // For "SkipCache", just ignore cache and load fresh data.
@@ -50,11 +55,11 @@ object SkipCacheStrategy : LoadStrategy {
  */
 object CacheThenNetworkStrategy : LoadStrategy {
     override suspend fun <Key : Any, Value : Any> loadPage(
-        store: Store<Key, Value>,
+        store: Store<Key, List<Value>>,
         request: StorePageLoadRequest<Key>
     ): StorePageLoadResponse<Value> {
         val cached = store.readFromCache(request)
-        return if (cached != null && cached.isNotEmpty()) {
+        return if (!cached.isNullOrEmpty()) {
             StorePageLoadResponse.Success(cached)
         } else {
             store.fetchFreshData(request)
@@ -67,9 +72,67 @@ object CacheThenNetworkStrategy : LoadStrategy {
  */
 object NetworkOnlyStrategy : LoadStrategy {
     override suspend fun <Key : Any, Value : Any> loadPage(
-        store: Store<Key, Value>,
+        store: Store<Key, List<Value>>,
         request: StorePageLoadRequest<Key>
     ): StorePageLoadResponse<Value> {
         return store.fetchFreshData(request)
+    }
+}
+
+
+/**
+ * Extension function: Fetch fresh data from the store, ignoring caches.
+ */
+private suspend fun <Key : Any, Value : Any> Store<Key, List<Value>>.fetchFreshData(
+    request: StorePageLoadRequest<Key>
+): StorePageLoadResponse<Value> {
+    val response = stream(StoreReadRequest.fresh(request.key)).firstLoaded()
+    return response.toPageLoadResponse()
+}
+
+/**
+ * Extension function: Attempt to read data from cache. If no cached data, return null.
+ */
+private suspend fun <Key : Any, Value : Any> Store<Key, List<Value>>.readFromCache(
+    request: StorePageLoadRequest<Key>
+): List<Value>? {
+    return when (val response = stream(StoreReadRequest.cached(request.key, refresh = false)).firstLoaded()) {
+        is StoreReadResponse.Data -> response.value
+
+        StoreReadResponse.Initial,
+        is StoreReadResponse.Loading,
+        is StoreReadResponse.NoNewData,
+        is StoreReadResponse.Error.Exception,
+        is StoreReadResponse.Error.Message,
+        is StoreReadResponse.Error.Custom<*> -> null
+    }
+}
+
+/**
+ * Helper to skip loading states and get the first non-loading emission from the store.
+ */
+private suspend fun <T> Flow<StoreReadResponse<T>>.firstLoaded(): StoreReadResponse<T> {
+    return this.filterNot {
+        it is StoreReadResponse.Initial ||
+        it is StoreReadResponse.Loading }.first()
+}
+
+/**
+ * Convert StoreReadResponse to our StorePageLoadResponse.
+ */
+private fun <Value> StoreReadResponse<List<Value>>.toPageLoadResponse(): StorePageLoadResponse<Value> {
+    return when (this) {
+        is StoreReadResponse.Data -> StorePageLoadResponse.Success(value)
+        is StoreReadResponse.Error.Exception -> StorePageLoadResponse.Failure(error)
+        is StoreReadResponse.Error.Message -> StorePageLoadResponse.Failure(Throwable(message))
+
+        is StoreReadResponse.NoNewData -> StorePageLoadResponse.Success(emptyList())
+        is StoreReadResponse.Error.Custom<*> -> StorePageLoadResponse.Failure(Throwable(this.error.toString()))
+
+        is StoreReadResponse.Loading,
+            StoreReadResponse.Initial -> {
+            // Ideally, we never hit this due to firstLoaded(), but handle just in case:
+            StorePageLoadResponse.Failure(Throwable("Unexpected loading state"))
+        }
     }
 }
