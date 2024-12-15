@@ -1,4 +1,6 @@
-# Pager
+# Clerk
+
+A Kotlin Multiplatform paging library built on top of Store5, acting like a helpful store clerk to retrieve, organize, and deliver your data one page at a time.
 
 ```text
 Copyright 2024 Matthew Ramotar

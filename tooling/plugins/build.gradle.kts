@@ -2,7 +2,7 @@ plugins {
     `kotlin-dsl`
 }
 
-group = "dev.mattramotar.updatingitem.tooling"
+group = "dev.mattramotar.clerk.tooling"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -26,18 +26,18 @@ gradlePlugin {
     plugins {
 
         register("androidLibraryPlugin") {
-            id = "plugin.pager.android.library"
-            implementationClass = "dev.mattramotar.pager.tooling.plugins.AndroidLibraryConventionPlugin"
+            id = "plugin.clerk.android.library"
+            implementationClass = "dev.mattramotar.clerk.tooling.plugins.AndroidLibraryConventionPlugin"
         }
 
         register("kotlinAndroidLibraryPlugin") {
-            id = "plugin.pager.kotlin.android.library"
-            implementationClass = "dev.mattramotar.pager.tooling.plugins.KotlinAndroidLibraryConventionPlugin"
+            id = "plugin.clerk.kotlin.android.library"
+            implementationClass = "dev.mattramotar.clerk.tooling.plugins.KotlinAndroidLibraryConventionPlugin"
         }
 
         register("kotlinMultiplatformPlugin") {
-            id = "plugin.pager.kotlin.multiplatform"
-            implementationClass = "dev.mattramotar.pager.tooling.plugins.KotlinMultiplatformConventionPlugin"
+            id = "plugin.clerk.kotlin.multiplatform"
+            implementationClass = "dev.mattramotar.clerk.tooling.plugins.KotlinMultiplatformConventionPlugin"
         }
     }
 }

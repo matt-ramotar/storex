@@ -1,18 +1,18 @@
 @file:Suppress("UnstableApiUsage")
 
 import com.vanniktech.maven.publish.SonatypeHost.Companion.CENTRAL_PORTAL
-import dev.mattramotar.pager.tooling.extensions.android
+import dev.mattramotar.clerk.tooling.extensions.android
 
 plugins {
     alias(libs.plugins.compose)
     alias(libs.plugins.compose.compiler)
-    id("plugin.pager.android.library")
-    id("plugin.pager.kotlin.multiplatform")
+    id("plugin.clerk.android.library")
+    id("plugin.clerk.kotlin.multiplatform")
     alias(libs.plugins.maven.publish)
 }
 
 android {
-    namespace = "dev.mattramotar.pager.core"
+    namespace = "dev.mattramotar.clerk.core"
 
     testOptions {
         unitTests {
