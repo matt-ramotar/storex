@@ -7,6 +7,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.mobilenativefoundation.store.store5.Store
 import org.mobilenativefoundation.store.store5.StoreBuilder
+import kotlin.jvm.JvmName
 
 /**
  * A builder for creating a Pager from a Store (or StoreBuilder).
@@ -121,6 +122,7 @@ fun <Key : Any, Value : Any> Store<Key, List<Value>>.toPager(
 }
 
 
+@JvmName("toIntPager")
 fun <Value : Any> Store<Int, List<Value>>.toPager(
     pagingConfig: PagingConfig<Int>,
     nextKeyProvider: NextKeyProvider<Int, Value> = IntNextKeyProvider(),
@@ -134,7 +136,7 @@ fun <Value : Any> Store<Int, List<Value>>.toPager(
     ).apply(builder).build()
 }
 
-
+@JvmName("toLongPager")
 fun <Value : Any> Store<Long, List<Value>>.toPager(
     pagingConfig: PagingConfig<Long>,
     nextKeyProvider: NextKeyProvider<Long, Value> = LongNextKeyProvider(),
@@ -148,6 +150,7 @@ fun <Value : Any> Store<Long, List<Value>>.toPager(
     ).apply(builder).build()
 }
 
+@JvmName("toDoublePager")
 fun <Value : Any> Store<Double, List<Value>>.toPager(
     pagingConfig: PagingConfig<Double>,
     nextKeyProvider: NextKeyProvider<Double, Value> = DoubleNextKeyProvider(),

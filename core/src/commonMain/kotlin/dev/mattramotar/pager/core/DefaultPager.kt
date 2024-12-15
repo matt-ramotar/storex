@@ -51,7 +51,7 @@ import org.mobilenativefoundation.store.store5.Store
  * @property telemetryCollector Optional collector for telemetry events, defaults to no-op.
  */
 
-class DefaultPager<Key : Any, Value : Any>(
+internal class DefaultPager<Key : Any, Value : Any>(
     private val store: Store<Key, List<Value>>,
     private val pagingConfig: PagingConfig<Key>,
     private val nextKeyProvider: NextKeyProvider<Key, Value>,
