@@ -42,7 +42,7 @@ interface Pager<Key : Any, Value : Any> {
      *   or [PagerResult.Error] with a retry function.
      * - If the result is an error, you can invoke `result.retry()` to attempt the same refresh operation again.
      */
-    suspend fun refresh(): PagerResult<List<Value>>
+    suspend fun refresh(): PagerResult<Value>
 
     /**
      * Invalidates all currently loaded data and resets the pager to its initial state.
@@ -61,7 +61,7 @@ interface Pager<Key : Any, Value : Any> {
      *   or [PagerResult.Error] with a retry function.
      * - On error, calling `result.retry()` will attempt to invalidate and reload again.
      */
-    suspend fun invalidate(): PagerResult<List<Value>>
+    suspend fun invalidate(): PagerResult<Value>
 
 
     /**
@@ -84,7 +84,7 @@ interface Pager<Key : Any, Value : Any> {
         direction: LoadDirection,
         strategy: LoadStrategy,
         jumpKey: Key? = null
-    ): PagerResult<List<Value>>
+    ): PagerResult<Value>
 }
 
 

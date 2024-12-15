@@ -8,24 +8,24 @@ package dev.mattramotar.pager.core
  */
 interface PagerEventsListener<Key: Any, Value: Any> {
     // Called after the initial load (success, partial success, or error).
-    fun onInitialLoadComplete(result: PagerResult<List<Value>>)
+    fun onInitialLoadComplete(result: PagerResult<Value>)
 
     // Called when a refresh operation starts.
     fun onRefreshStart()
 
     // Called when a refresh operation ends (success, partial, or error).
-    fun onRefreshEnd(result: PagerResult<List<Value>>)
+    fun onRefreshEnd(result: PagerResult<Value>)
 
     // Called when an append load operation starts.
     fun onAppendStart()
 
     // Called when an append load operation ends (success, partial, or error).
-    fun onAppendEnd(result: PagerResult<List<Value>>)
+    fun onAppendEnd(result: PagerResult<Value>)
 
     // Called when a prepend load operation starts.
     fun onPrependStart()
 
     // Called when a prepend load operation ends (success, partial, or error).
-    fun onPrependEnd(result: PagerResult<List<Value>>)
+    fun onPrependEnd(result: PagerResult<Value>)
 }
 

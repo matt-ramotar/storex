@@ -12,7 +12,7 @@ sealed class PagerResult<out T> {
     /**
      * Complete success - all data requested was successfully loaded.
      */
-    data class Success<T>(val data: T) : PagerResult<T>() // TODO: Support PartialSuccess where some data could be loaded, but there were failures for part of the data
+    data class Success<T>(val items: List<T>) : PagerResult<T>() // TODO: Support PartialSuccess where some data could be loaded, but there were failures for part of the data
 
     /**
      * A complete error - no new data is loaded.

@@ -25,7 +25,7 @@ interface LoadStrategy {
      * @return A [StorePageLoadResponse] that contains either the successfully loaded items or an error.
      */
     suspend fun <Key : Any, Value : Any> loadPage(
-        store: Store<Key, Value>,
+        store: Store<Key, List<Value>>,
         request: StorePageLoadRequest<Key>
     ): StorePageLoadResponse<Value>
 }
