@@ -22,8 +22,6 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
             apply("org.jetbrains.kotlinx.kover")
         }
 
-        version = libs.findVersion("storex")
-
         extensions.configure<KotlinMultiplatformExtension> {
             applyDefaultHierarchyTemplate()
 

@@ -40,3 +40,6 @@ mavenPublishing {
     publishToMavenCentral(CENTRAL_PORTAL, automaticRelease = true)
     signAllPublications()
 }
+
+group = "dev.mattramotar.storex.pager"
+version = libs.versions.storex.pager.get()
