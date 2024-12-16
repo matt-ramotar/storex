@@ -23,4 +23,5 @@ dependencyResolutionManagement {
 }
 rootProject.name = "storex"
 
-include(":pager")
+include(":pager:pager-core")
+include(":pager:pager-compose")
