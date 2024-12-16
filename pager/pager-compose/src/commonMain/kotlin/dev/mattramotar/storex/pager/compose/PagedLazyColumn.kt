@@ -126,3 +126,69 @@ fun <Key : Any, Value : Any> PagedLazyColumn(
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun <Key : Any, Value : Any> PagedLazyColumn(
+    pagingState: PagingState<Key, Value>,
+    loadMore: suspend () -> Unit,
+    onRefresh: (suspend () -> Unit)? = null,
+    loadMoreThreshold: Int = 5,
+    shouldLoadMore: (lastVisibleIndex: Int, items: List<Value>, threshold: Int) -> Boolean = { lastVisible, allItems, threshold ->
+        allItems.isNotEmpty() && lastVisible >= allItems.size - threshold
+    },
+    headerContent: (LazyListScope.() -> Unit)? = null,
+    emptyContent: (LazyListScope.() -> Unit)? = null,
+    loadingFooterContent: (LazyListScope.() -> Unit)? = null,
+    content: LazyListScope.(List<Value>) -> Unit
+) {
+    val items = pagingState.items
+    val lazyListState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+
+    // Automatically load more data when nearing the bottom
+    LaunchedEffect(lazyListState, items) {
+        snapshotFlow { lazyListState.layoutInfo.visibleItemsInfo }
+            .distinctUntilChangedBy { it.lastOrNull()?.index }
+            .collect { visibleItems ->
+                val lastVisibleIndex = visibleItems.lastOrNull()?.index ?: 0
+                if (shouldLoadMore(lastVisibleIndex, items, loadMoreThreshold)) {
+                    coroutineScope.launch { loadMore() }
+                }
+            }
+    }
+
+    val isRefreshing = pagingState.loadStates.refresh.isLoading()
+    val pullToRefreshState = rememberPullToRefreshState()
+
+    Box(
+        modifier = if (onRefresh != null) {
+            Modifier.pullToRefresh(
+                isRefreshing = isRefreshing,
+                state = pullToRefreshState,
+                onRefresh = { coroutineScope.launch { onRefresh() } }
+            )
+        } else {
+            Modifier
+        }
+    ) {
+        LazyColumn(state = lazyListState) {
+            // Optional header
+            headerContent?.invoke(this)
+
+            if (items.isEmpty()) {
+                // If empty, show empty content if provided
+                emptyContent?.invoke(this)
+            } else {
+                // Populate list items
+                content(items)
+            }
+
+            // If appending is loading, show loading footer if provided
+            val appendState = pagingState.loadStates.append
+            if (appendState.isLoading() && loadingFooterContent != null) {
+                loadingFooterContent()
+            }
+        }
+    }
+}
