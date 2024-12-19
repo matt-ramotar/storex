@@ -25,3 +25,6 @@ rootProject.name = "storex"
 
 include(":pager:pager-core")
 include(":pager:pager-compose")
+include(":repository:repository-runtime")
+include(":repository:repository-compiler:ksp")
+include(":sample")
