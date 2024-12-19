@@ -14,9 +14,9 @@ jobs:
     strategy:
       matrix:
         module-config:
-          - name: "repository-compiler"
+          - name: "repository-compiler-ksp"
             version_env: "REPOSITORY_VERSION_NAME"
-            path: ":repository:repository-compiler"
+            path: ":repository:repository-compiler:ksp"
           - name: "repository-runtime"
             version_env: "REPOSITORY_VERSION_NAME"
             path: ":repository:repository-runtime"
