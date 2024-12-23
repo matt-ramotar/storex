@@ -26,6 +26,15 @@ jobs:
           - name: "pager-core"
             version_env: "PAGER_VERSION_NAME"
             path: ":pager:pager-core"
+          - name: "mutablestore-core"
+            version_env: "MUTABLE_STORE_VERSION_NAME"
+            path: ":mutablestore:mutablestore-core"
+          - name: "store-extensions"
+            version_env: "STORE_EXTENSIONS_VERSION_NAME"
+            path: ":store:store-extensions"
+          - name: "store-core"
+            version_env: "STORE_CORE_VERSION_NAME"
+            path: ":store:store-core"
 
     steps:
       - name: Checkout
@@ -47,6 +56,15 @@ jobs:
 
           PAGER_VERSION=$(grep "^PAGER_VERSION_NAME=" gradle.properties | cut -d'=' -f2)
           echo "PAGER_VERSION_NAME=$PAGER_VERSION" >> $GITHUB_ENV
+          
+          MUTABLE_STORE_VERSION=$(grep "^MUTABLE_STORE_VERSION_NAME=" gradle.properties | cut -d'=' -f2)
+          echo "MUTABLE_STORE_VERSION_NAME=$MUTABLE_STORE_VERSION" >> $GITHUB_ENV
+          
+          STORE_EXTENSIONS_VERSION=$(grep "^STORE_EXTENSIONS_VERSION_NAME=" gradle.properties | cut -d'=' -f2)
+          echo "STORE_EXTENSIONS_VERSION_NAME=$STORE_EXTENSIONS_VERSION" >> $GITHUB_ENV
+          
+          STORE_CORE_VERSION=$(grep "^STORE_CORE_VERSION_NAME=" gradle.properties | cut -d'=' -f2)
+          echo "STORE_CORE_VERSION_NAME=$STORE_CORE_VERSION" >> $GITHUB_ENV
 
       - name: Publish Artifacts to Maven Central
         if: ${{ !endsWith(env[matrix.module-config.version_env], '-SNAPSHOT') }}

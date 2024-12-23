@@ -10,7 +10,8 @@ import dev.mattramotar.storex.repository.runtime.annotations.RepositoryConfig
     propertiesType = User.Properties::class,
     nodeType = User.Node::class,
     compositeType = User.Composite::class,
-    operations = [OperationType.FindOneOperation, OperationType.FindAll]
+    errorType = CustomError::class,
+    operations = [OperationType.FindOne, OperationType.CreateOne, OperationType.UpdateOne, OperationType.FindOneComposite]
 )
 object UserRepositoryConfig
 

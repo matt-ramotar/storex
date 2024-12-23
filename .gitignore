@@ -15,6 +15,7 @@ out/
 
 ### Kotlin ###
 .kotlin
+kotlin-js-store/
 
 ### Eclipse ###
 .apt_generated

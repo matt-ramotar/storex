@@ -29,7 +29,7 @@ kotlin {
                 api(compose.foundation)
                 api(compose.material3)
                 api(libs.kotlinx.coroutines.core)
-                api(libs.store5)
+                api(libs.store5.store)
                 api(projects.pager.pagerCore)
             }
         }

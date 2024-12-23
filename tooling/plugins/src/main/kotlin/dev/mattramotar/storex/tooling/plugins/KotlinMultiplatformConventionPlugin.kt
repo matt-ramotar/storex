@@ -18,16 +18,13 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) = with(target) {
         with(pluginManager) {
             apply("org.jetbrains.kotlin.multiplatform")
-            apply("dev.mokkery")
             apply("org.jetbrains.kotlinx.kover")
         }
 
         extensions.configure<KotlinMultiplatformExtension> {
             applyDefaultHierarchyTemplate()
 
-            if (pluginManager.hasPlugin("com.android.library")) {
-                androidTarget()
-            }
+            androidTarget()
 
             jvm()
 
@@ -75,8 +72,6 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
                     }
                 }
             }
-
-            configureKotlin()
         }
 
         extensions.configure<KoverProjectExtension> {
@@ -89,6 +84,8 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
                 }
             }
         }
+
+        configureKotlin()
     }
 }
 

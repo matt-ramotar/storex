@@ -1,37 +1,34 @@
 package dev.mattramotar.storex.sample
 
-import dev.mattramotar.storex.repository.runtime.DataSource
-import dev.mattramotar.storex.repository.runtime.DataSources
-import dev.mattramotar.storex.repository.runtime.Result
-import dev.mattramotar.storex.repository.runtime.operations.query.FindAllOperation
-import dev.mattramotar.storex.repository.runtime.operations.query.FindOneOperation
+import dev.mattramotar.storex.mutablestore.core.api.MutableStore
+import dev.mattramotar.storex.store.core.api.Store
 
 class UserRepositoryFactory {
-    fun create(): UserRepository {
-        return UserRepositoryBuilder()
-            .withFindOneOperation(findOneOperation())
-            .withFindAllOperation(findAllOperation())
+    fun create(
+        store: Store<User.Key, User.Node>,
+        compositeStore: Store<User.Key, User.Composite>,
+        mutableStore: MutableStore<User.Key, User.Properties, User.Node, CustomError>
+    ): UserRepository {
+        return UserRepositoryBuilder(
+            store,
+            compositeStore,
+            mutableStore
+        ) { CustomError.Message(it.message.orEmpty()) }
             .build()
-    }
-
-    private fun findOneOperation(): FindOneOperation<User.Key, User.Node, Throwable> {
-        TODO()
-    }
-
-    private fun findAllOperation(): FindAllOperation<User.Node, Throwable> {
-        TODO()
     }
 }
 
 
 suspend fun sample(userRepository: UserRepository) {
-    val user: Result<User.Node, Throwable> =
-        userRepository.findOne(
-            key = User.Key("1"),
-            dataSources = DataSources(listOf(DataSource.CACHE, DataSource.DISK))
-        )
+    val user = userRepository.findOne(User.Key(""))
+    val createdUser = userRepository.createOne(
+        key = User.Key(""),
+        properties = User.Properties("")
+    )
 
-    val allUsers: Result<List<User.Node>, Throwable> = userRepository.findAll(
-        dataSources = DataSources(listOf(DataSource.REMOTE))
+    val compositeUser = userRepository.findOneComposite(User.Key(""))
+    val updatedUser = userRepository.updateOne(
+        User.Key(""),
+        user.getOrThrow()
     )
 }

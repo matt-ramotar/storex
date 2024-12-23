@@ -5,8 +5,13 @@ import dev.mattramotar.storex.pager.store.LoadDirection
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import org.mobilenativefoundation.store.core5.ExperimentalStoreApi
+import org.mobilenativefoundation.store.store5.MutableStore
 import org.mobilenativefoundation.store.store5.Store
 import org.mobilenativefoundation.store.store5.StoreBuilder
+import org.mobilenativefoundation.store.store5.StoreReadRequest
+import org.mobilenativefoundation.store.store5.StoreReadResponse
 import kotlin.jvm.JvmName
 
 /**
@@ -77,7 +82,7 @@ class PagerBuilder<Key : Any, Value : Any> internal constructor(
 /**
  * Extension function on StoreBuilder to start constructing a Pager.
  *
- * The user does not need to manually build the store first; this builder will handle that.
+ * The user does not need to manually build the store first, this builder will handle that.
  */
 fun <Key : Any, Value : Any> StoreBuilder<Key, List<Value>>.toPagerBuilder(
     pagingConfig: PagingConfig<Key>,
@@ -259,4 +264,25 @@ fun <Value : Any> pagerForIntStore(
         nextKeyProvider = IntNextKeyProvider(),
         builder = builder
     )
+}
+
+@OptIn(ExperimentalStoreApi::class)
+fun <Key: Any, Value: Any, Response: Any> MutableStore<Key, Value>.toStore(): Store<Key, Value> {
+
+    val mutableStore = this
+
+    return object : Store<Key, Value> {
+        override suspend fun clear(key: Key) {
+            return mutableStore.clear(key)
+        }
+
+        @ExperimentalStoreApi
+        override suspend fun clear() {
+            // Not supported
+        }
+
+        override fun stream(request: StoreReadRequest<Key>): Flow<StoreReadResponse<Value>> {
+            return mutableStore.stream<Response>(request)
+        }
+    }
 }

@@ -1,9 +1,8 @@
 package dev.mattramotar.storex.repository.runtime.operations.query
 
-import dev.mattramotar.storex.repository.runtime.DataSources
-import dev.mattramotar.storex.repository.runtime.Result
+import dev.mattramotar.storex.result.Result
 
-interface QueryOneOperation<Query, Node, Error> {
-    suspend fun queryOne(query: Query, dataSources: DataSources): Result<Node?, Error>
+interface QueryOneOperation<Query : Any, Node : Any, Error : Any> {
+    suspend fun queryOne(query: Query): Result<Node?, Error>
 }
 

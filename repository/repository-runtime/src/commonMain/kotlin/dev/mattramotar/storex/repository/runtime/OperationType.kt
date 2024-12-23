@@ -5,7 +5,7 @@ enum class OperationType {
     FindAll,
     FindManyComposite,
     FindOneComposite,
-    FindOneOperation,
+    FindOne,
     QueryManyComposite,
     QueryMany,
     QueryOneComposite,
@@ -13,7 +13,7 @@ enum class OperationType {
 
     // Mutation
     DeleteOne,
-    InsertOne,
+    CreateOne,
     ReplaceOne,
     UpdateOne,
     UpsertOne,
@@ -28,5 +28,5 @@ enum class OperationType {
     // Bulk
     DeleteAll,
     DeleteMany,
-    InsertMany
+    CreateMany
 }
