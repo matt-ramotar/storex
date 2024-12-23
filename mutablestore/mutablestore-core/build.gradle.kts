@@ -26,7 +26,7 @@ kotlin {
                 api(libs.kotlinx.coroutines.core)
                 api(projects.store.storeCoreApi)
                 api(projects.store.storeCore)
-                implementation(projects.storex.mutablestore.mutablestoreCoreApi)
+                api(projects.storex.mutablestore.mutablestoreCoreApi)
                 implementation(projects.storex.mutablestore.mutablestoreCoreImpl)
                 implementation(projects.store.storeInternalHooks)
                 api(projects.storexTelemetry)
