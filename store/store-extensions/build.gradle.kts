@@ -25,7 +25,7 @@ kotlin {
             dependencies {
                 api(libs.kotlinx.coroutines.core)
                 api(projects.store.storeCoreApi)
-                api(projects.store.storeInternalHooks)
+                implementation(projects.store.storeInternalHooks)
                 api(projects.storexTelemetry)
             }
         }
