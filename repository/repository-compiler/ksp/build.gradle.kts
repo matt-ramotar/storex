@@ -9,6 +9,8 @@ plugins {
 dependencies {
     implementation(libs.symbol.processing.api)
     implementation(projects.storex.repository.repositoryRuntime)
+    implementation(libs.kotlinpoet)
+    implementation(libs.kotlinpoet.ksp)
 }
 
 mavenPublishing {

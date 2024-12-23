@@ -1,8 +1,7 @@
 package dev.mattramotar.storex.repository.runtime.operations.mutation
 
-import dev.mattramotar.storex.repository.runtime.DataSources
-import dev.mattramotar.storex.repository.runtime.Result
+import dev.mattramotar.storex.result.Result
 
-interface ReplaceOneOperation<Node, Error> {
-    suspend fun replaceOne(node: Node, dataSources: DataSources? = null): Result<Int, Error>
+interface ReplaceOneOperation<Key: Any, Node : Any, Error : Any> {
+    suspend fun replaceOne(key: Key, node: Node): Result<Node, Error>
 }

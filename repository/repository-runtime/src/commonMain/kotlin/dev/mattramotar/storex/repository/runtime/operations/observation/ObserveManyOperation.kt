@@ -1,9 +1,8 @@
 package dev.mattramotar.storex.repository.runtime.operations.observation
 
-import dev.mattramotar.storex.repository.runtime.DataSources
-import dev.mattramotar.storex.repository.runtime.Result
+import dev.mattramotar.storex.result.Result
 import kotlinx.coroutines.flow.Flow
 
-interface ObserveManyOperation<Key, Node, Error> {
-    fun observeMany(keys: List<Key>, dataSources: DataSources): Flow<Result<List<Node>, Error>>
+interface ObserveManyOperation<Key : Any, Node : Any, Error : Any> {
+    fun observeMany(keys: List<Key>): Flow<Result<List<Node>, Error>>
 }

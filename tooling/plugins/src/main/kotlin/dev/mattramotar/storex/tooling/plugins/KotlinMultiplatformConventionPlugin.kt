@@ -25,9 +25,7 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
         extensions.configure<KotlinMultiplatformExtension> {
             applyDefaultHierarchyTemplate()
 
-            if (pluginManager.hasPlugin("com.android.library")) {
-                androidTarget()
-            }
+            androidTarget()
 
             jvm()
 
@@ -75,8 +73,6 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
                     }
                 }
             }
-
-            configureKotlin()
         }
 
         extensions.configure<KoverProjectExtension> {
@@ -89,6 +85,8 @@ class KotlinMultiplatformConventionPlugin : Plugin<Project> {
                 }
             }
         }
+
+        configureKotlin()
     }
 }
 

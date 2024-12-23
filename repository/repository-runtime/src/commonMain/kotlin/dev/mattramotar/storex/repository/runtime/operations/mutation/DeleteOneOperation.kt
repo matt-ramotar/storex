@@ -1,8 +1,7 @@
 package dev.mattramotar.storex.repository.runtime.operations.mutation
 
-import dev.mattramotar.storex.repository.runtime.DataSources
-import dev.mattramotar.storex.repository.runtime.Result
+import dev.mattramotar.storex.result.Result
 
-interface DeleteOneOperation<Key, Error> {
-    suspend fun deleteOne(key: Key, dataSources: DataSources? = null): Result<Int, Error>
+interface DeleteOneOperation<Key : Any, Error : Any> {
+    suspend fun deleteOne(key: Key): Result<Int, Error>
 }

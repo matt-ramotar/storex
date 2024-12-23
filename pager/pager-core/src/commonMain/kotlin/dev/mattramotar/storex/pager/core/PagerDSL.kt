@@ -121,7 +121,7 @@ class PagerDSL<Key: Any, Value: Any> {
             StoreBuilder.from(Fetcher.of(fetch = fetch))
         }
 
-        // If user hasn't provided a nextKeyProvider and the key is a known type, pick a default:
+        // If no nextKeyProvider provided and key is a known type, use default
         val finalNextKeyProvider = nextKeyProvider ?: defaultNextKeyProviderForNumericKey(config.initialKey)
 
         val store = storeBuilder.build()
@@ -160,7 +160,6 @@ class PagingConfigBuilder<Key: Any> {
     }
 }
 
-// A simple SourceOfTruth adapter to keep the DSL straightforward
 class SimpleSourceOfTruth<Key: Any, Value: Any>(
     private val read: suspend (Key) -> Value?,
     private val writer: suspend (Key, Value) -> Unit,

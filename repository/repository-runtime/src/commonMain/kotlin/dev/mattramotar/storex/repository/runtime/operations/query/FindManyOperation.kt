@@ -1,8 +1,7 @@
 package dev.mattramotar.storex.repository.runtime.operations.query
 
-import dev.mattramotar.storex.repository.runtime.DataSources
-import dev.mattramotar.storex.repository.runtime.Result
+import dev.mattramotar.storex.result.Result
 
-interface FindManyOperation<Key, Node, Error> {
-    suspend fun findMany(keys: List<Key>, dataSources: DataSources): Result<List<Node>, Error>
+interface FindManyOperation<Key : Any, Node : Any, Error : Any> {
+    suspend fun findMany(keys: List<Key>): Result<List<Node>, Error>
 }

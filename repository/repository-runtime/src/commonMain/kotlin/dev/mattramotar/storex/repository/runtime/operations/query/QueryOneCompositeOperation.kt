@@ -1,8 +1,7 @@
 package dev.mattramotar.storex.repository.runtime.operations.query
 
-import dev.mattramotar.storex.repository.runtime.DataSources
-import dev.mattramotar.storex.repository.runtime.Result
+import dev.mattramotar.storex.result.Result
 
-interface QueryOneCompositeOperation<Query, Composite, Error> {
-    suspend fun queryOneComposite(query: Query, dataSources: DataSources): Result<Composite?, Error>
+interface QueryOneCompositeOperation<Query : Any, Composite : Any, Error : Any> {
+    suspend fun queryOneComposite(query: Query): Result<Composite?, Error>
 }

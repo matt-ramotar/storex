@@ -1,8 +1,7 @@
 package dev.mattramotar.storex.repository.runtime.operations.bulk
 
-import dev.mattramotar.storex.repository.runtime.DataSources
-import dev.mattramotar.storex.repository.runtime.Result
+import dev.mattramotar.storex.result.Result
 
-interface DeleteManyOperation<Key, Error> {
-    suspend fun deleteMany(keys: List<Key>, dataSources: DataSources? = null): Result<Int, Error>
+interface DeleteManyOperation<Key : Any, Error : Any> {
+    suspend fun deleteMany(keys: List<Key>): Result<Int, Error>
 }

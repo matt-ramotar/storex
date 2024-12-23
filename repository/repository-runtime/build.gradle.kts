@@ -25,7 +25,9 @@ kotlin {
         commonMain {
             dependencies {
                 api(libs.kotlinx.coroutines.core)
-                api(libs.store5)
+                api(projects.store.storeCore)
+                api(projects.mutablestore.mutablestoreCore)
+                api(projects.storexResult)
             }
         }
     }
