@@ -26,6 +26,7 @@ kotlin {
                 api(projects.storex.mutablestore.mutablestoreCoreApi)
                 implementation(projects.store.storeInternalHooks)
                 api(projects.storexTelemetry)
+                implementation(projects.storexResult)
             }
         }
     }
