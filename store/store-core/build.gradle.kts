@@ -23,7 +23,7 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation(projects.store.storeCoreApi)
+                api(projects.store.storeCoreApi)
                 implementation(projects.store.storeCoreImpl)
                 implementation(projects.storexTelemetry)
             }

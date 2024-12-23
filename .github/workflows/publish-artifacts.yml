@@ -29,13 +29,24 @@ jobs:
           - name: "mutablestore-core"
             version_env: "MUTABLE_STORE_VERSION_NAME"
             path: ":mutablestore:mutablestore-core"
+          - name: "mutablestore-core-api"
+            version_env: "MUTABLE_STORE_VERSION_NAME"
+            path: ":mutablestore:mutablestore-core-api"
           - name: "store-extensions"
             version_env: "STORE_EXTENSIONS_VERSION_NAME"
             path: ":store:store-extensions"
           - name: "store-core"
             version_env: "STORE_CORE_VERSION_NAME"
             path: ":store:store-core"
-
+          - name: "store-core-api"
+            version_env: "STORE_CORE_VERSION_NAME"
+            path: ":store:store-core-api"
+          - name: "storex-result"
+            version_env: "STOREX_RESULT_VERSION_NAME"
+            path: ":storex-result"
+          - name: "storex-telemetry"
+            version_env: "STOREX_TELEMETRY_VERSION_NAME"
+            path: ":storex-telemetry"
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -65,6 +76,12 @@ jobs:
           
           STORE_CORE_VERSION=$(grep "^STORE_CORE_VERSION_NAME=" gradle.properties | cut -d'=' -f2)
           echo "STORE_CORE_VERSION_NAME=$STORE_CORE_VERSION" >> $GITHUB_ENV
+          
+          STOREX_RESULT_VERSION=$(grep "^STOREX_RESULT_VERSION_NAME=" gradle.properties | cut -d'=' -f2)
+          echo "STOREX_RESULT_VERSION_NAME=$STOREX_RESULT_VERSION" >> $GITHUB_ENV
+          
+          STOREX_TELEMETRY_VERSION=$(grep "^STOREX_TELEMETRY_VERSION_NAME=" gradle.properties | cut -d'=' -f2)
+          echo "STOREX_TELEMETRY_VERSION_NAME=$STOREX_TELEMETRY_VERSION" >> $GITHUB_ENV          
 
       - name: Publish Artifacts to Maven Central
         if: ${{ !endsWith(env[matrix.module-config.version_env], '-SNAPSHOT') }}
