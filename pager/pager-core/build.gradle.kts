@@ -24,7 +24,7 @@ kotlin {
         commonMain {
             dependencies {
                 api(libs.kotlinx.coroutines.core)
-                api(libs.store5)
+                api(libs.store5.store)
             }
         }
     }

@@ -22,6 +22,7 @@ kotlin {
         commonMain {
             dependencies {
                 api(libs.kotlinx.coroutines.core)
+                implementation(libs.store5.cache)
                 implementation(projects.store.storeInternalHooks)
                 api(libs.kotlinx.datetime)
                 implementation(projects.storexTelemetry)
