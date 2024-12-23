@@ -1,10 +1,16 @@
 package dev.mattramotar.storex.mutablestore.core.api
 
 /**
- * Introduce a “read strategy” that runs before we do a network refresh.
- * For example, this strategy can for example check if local data is unsynced. If so, it attempts to push it to the server first.
+ * A strategy that runs before fetching fresh data from the network, allowing unresolved local changes
+ * to be pushed first. This ensures that local changes are not overwritten by network responses.
  *
+ * @param Key the type of the key used to identify data entries.
  */
 interface ConflictResolutionReadStrategy<Key: Any> {
+
+    /**
+     * Called immediately before a network read. Return `true` to proceed with the network fetch,
+     * or `false` to abort (e.g., if sync fails).
+     */
     suspend fun handleUnresolvedSyncBeforeReading(key: Key): Boolean
 }

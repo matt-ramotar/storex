@@ -71,12 +71,6 @@ class RealStore<Key : Any, Value : Any>(
         return get(key, ReadPolicyContext())
     }
 
-    override suspend fun invalidate(key: Key) {
-        onEvent(StoreTelemetryEvent.Invalidate(key))
-        removeFromMemory(key)
-        // Next get or stream will refetch if needed
-    }
-
     override suspend fun clear(key: Key) {
         removeFromMemory(key)
         removeFromSOT(key)

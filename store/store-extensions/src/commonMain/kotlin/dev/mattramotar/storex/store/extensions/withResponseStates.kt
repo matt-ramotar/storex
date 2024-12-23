@@ -22,11 +22,6 @@ fun <Key : Any, Value : Any> Store<Key, Value>.withResponseStates(): Store<Key, 
         override suspend fun clearAll() {
             delegate.clearAll()
         }
-
-        override suspend fun invalidate(key: Key) {
-            delegate.invalidate(key)
-        }
-
     }
 }
 
@@ -70,10 +65,5 @@ fun <Key : Any, Value : Any, Error : Any> Store<Key, Value>.withResponseStates(
         override suspend fun clearAll() {
             delegate.clearAll()
         }
-
-        override suspend fun invalidate(key: Key) {
-            delegate.invalidate(key)
-        }
-
     }
 }

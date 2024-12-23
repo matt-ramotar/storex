@@ -4,13 +4,19 @@ import dev.mattramotar.storex.mutablestore.core.api.ConflictResolutionReadStrate
 import dev.mattramotar.storex.result.Result
 
 /**
- * syncTracker(key): e.g., a local DB check to see if we have unsynced local data for this key.
- * networkPusher(key): if we do, push it to the server.
- * If pushing fails, we can fail the read or do something else (like keep showing stale data). This logic is up to you.
+ * Default implementation of [ConflictResolutionReadStrategy] that checks for un-synced local data
+ * and attempts to push it before a network read.
+ *
+ * @param syncTracker A function to detect un-synced local data for a given key.
+ * @param networkPusher Pushes local changes to the server if un-synced data is detected.
+ * @param errorAdapter Converts [Throwable] to the custom [Error] type.
+ * @param onSyncSuccess Called upon successful sync; can be used for logging or local side effects.
+ * @param onSyncFailure Called if sync fails; implement fallback behavior or error handling here.
+ * @param onNoOp Called if networkPusher signals no change needed (e.g., result is [Result.NoOp]).
  */
 internal class UnresolvedSyncReadStrategy<Key : Any, Response : Any, Error : Any>(
-    private val syncTracker: suspend (Key) -> Boolean,            // checks if there’s unsynced local changes
-    private val networkPusher: suspend (Key) -> Result<Response, Error>, // pushes local changes to network
+    private val syncTracker: suspend (Key) -> Boolean,
+    private val networkPusher: suspend (Key) -> Result<Response, Error>,
     private val errorAdapter: (Throwable) -> Error,
     private val onSyncSuccess: suspend (Key, Response) -> Unit = { _, _ -> },
     private val onSyncFailure: suspend (Key, Error) -> Unit = { _, _ -> },
@@ -18,9 +24,8 @@ internal class UnresolvedSyncReadStrategy<Key : Any, Response : Any, Error : Any
 ) : ConflictResolutionReadStrategy<Key> {
 
     /**
-     * This function is called right before we fetch from the network.
-     * If there's an unresolved local state, we try to push it.
-     * Return `true` if the read can proceed, `false` if we should abort or fail.
+     * Called before fetching from the network. If local un-synced data is found, we try to sync it.
+     * Returns `true` to continue the network read, or `false` to cancel (e.g., on sync failure).
      */
     override suspend fun handleUnresolvedSyncBeforeReading(key: Key): Boolean {
         val hasUnresolvedSync = syncTracker(key)

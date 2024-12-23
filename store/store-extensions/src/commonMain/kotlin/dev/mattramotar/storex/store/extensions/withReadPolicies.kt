@@ -88,15 +88,6 @@ fun <Key : Any, Value : Any> Store<Key, Value>.withReadPolicies(
             return pipeline.start(key).firstOrNull()
         }
 
-        /**
-         * Pass-through invalidation and clearing calls to the original store.
-         * Typically these don't need to be intercepted by a read policy,
-         * but if you want them to be, you could adapt similarly.
-         */
-        override suspend fun invalidate(key: StoreRequest<Key, Value>) {
-            delegate.invalidate(key.key)
-        }
-
         override suspend fun clear(key: StoreRequest<Key, Value>) {
             delegate.clear(key.key)
         }

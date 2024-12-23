@@ -131,7 +131,7 @@ class RealMutableStore<Key : Any, Partial : Any, Value : Any, Error : Any>(
         if (!canProceed()) return@flow
 
         // 4) Invalidate so the delegate store does a fresh network fetch
-        delegateStore.invalidate(key)
+        delegateStore.clear(key)
 
         // 5) Emit updated data from the delegate store
         emitAll(delegateStore.stream(key))
@@ -154,7 +154,7 @@ class RealMutableStore<Key : Any, Partial : Any, Value : Any, Error : Any>(
         }
 
         // 3) Force a fresh fetch by invalidating the delegate store
-        delegateStore.invalidate(key)
+        delegateStore.clear(key)
 
         // 4) Return the newly fetched data
         return delegateStore.get(key)

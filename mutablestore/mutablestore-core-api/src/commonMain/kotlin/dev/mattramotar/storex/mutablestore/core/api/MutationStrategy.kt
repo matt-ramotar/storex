@@ -1,33 +1,65 @@
 package dev.mattramotar.storex.mutablestore.core.api
 
 /**
+ * Represents a pure function that intercepts a [Mutation] in a pipeline to transform or handle it.
  *
- * A MutationStrategy is a pure function that intercepts a Mutation plus read-only Metadata—and decides whether to pass the mutation on, transform it, or fail/queue it. It cannot call the network or SOT directly, preserving unidirectional flow.
+ * Each [MutationStrategy] can:
+ * - Inspect the mutation and any read-only metadata.
+ * - Transform the mutation.
+ * - Fail/queue the mutation if conflict resolution is not possible.
  *
- * StoreX runs a pipeline (chain) of Mutation Strategies. Each strategy can:
- * Inspect the mutation and metadata (like offline status).
- * Transform the mutation or attach flags (e.g., queue if offline).
- * Stop the mutation or fail early (e.g., conflict cannot be resolved).
- * Or simply pass it through.
- *
- * Composability of mutation strategies (offline queueing, conflict resolution, batching, etc.) without letting them directly perform network or SOT writes (preserves unidirectional data flow and avoids redundant calls).
- *
+ * Strategies must not call the network or write to the SOT directly, preserving unidirectional flow.
  */
 interface MutationStrategy<Key, Partial, Value, Error> {
+
+    /**
+     * Intercepts a [mutation] and decides whether to transform, fail, or pass it along to the rest of the chain.
+     *
+     * @param mutation The input mutation (create, update, or delete).
+     * @param chain Provides a way to continue the pipeline.
+     * @return An [Outcome] describing how the pipeline should continue or terminate.
+     */
     suspend fun intercept(
         mutation: Mutation<Key, Partial, Value>,
         chain: Chain<Key, Partial, Value, Error>
     ): Outcome<Key, Partial, Value, Error>
 
+    /**
+     * Represents the next stage in the mutation pipeline. Calling [proceed] continues the chain.
+     */
     interface Chain<Key, Partial, Value, Error> {
+        /**
+         * Continues execution of the pipeline with the given [mutation].
+         */
         suspend fun proceed(mutation: Mutation<Key, Partial, Value>): Outcome<Key, Partial, Value, Error>
     }
 
+    /**
+     * Possible outcomes of a [MutationStrategy] intercept.
+     */
     sealed class Outcome<out Key, out Partial, out Value, out Error> {
-        data class Continue<Key, Partial, Value, Error>(val mutation: Mutation<Key, Partial, Value>) :
-            Outcome<Key, Partial, Value, Error>()
 
-        data class Fail<Key, Value, Error>(val error: Error) : Outcome<Key, Nothing, Value, Error>()
-        data class NoOp<Key, Value, Error>(val reason: String? = null) : Outcome<Key, Nothing, Value, Error>()
+        /**
+         * Continues the mutation pipeline with the provided [mutation].
+         */
+        data class Continue<Key, Partial, Value, Error>(
+            val mutation: Mutation<Key, Partial, Value>
+        ) : Outcome<Key, Partial, Value, Error>()
+
+        /**
+         * Fails the mutation pipeline with the given [error].
+         */
+        data class Fail<Key, Value, Error>(
+            val error: Error
+        ) : Outcome<Key, Nothing, Value, Error>()
+
+        /**
+         * Exits the mutation pipeline with no further actions.
+         *
+         * @param reason Optional rationale for why this outcome occurred.
+         */
+        data class NoOp<Key, Value, Error>(
+            val reason: String? = null
+        ) : Outcome<Key, Nothing, Value, Error>()
     }
 }

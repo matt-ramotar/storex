@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.transform
 
 fun <Key : Any, Value : Any> Store<Key, Value>.withValidation(
     validator: suspend (Value) -> Boolean,
-    onInvalid: suspend (Key) -> Unit = { invalidate(it) }
+    onInvalid: suspend (Key) -> Unit = { clear(it) }
 ): Store<Key, Value> {
 
     val delegate = this
@@ -39,10 +39,6 @@ fun <Key : Any, Value : Any> Store<Key, Value>.withValidation(
 
         override suspend fun clearAll() {
             delegate.clearAll()
-        }
-
-        override suspend fun invalidate(key: Key) {
-            delegate.invalidate(key)
         }
 
     }

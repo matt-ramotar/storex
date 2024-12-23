@@ -1,39 +1,37 @@
 package dev.mattramotar.storex.store.core.api
 
+
 import kotlinx.coroutines.flow.Flow
 
-
+/**
+ * Core Store interface for read-only operations: streaming, one-shot [get], invalidation, and clearing.
+ *
+ * @param Key The key type used to identify items in the store.
+ * @param Value The stored value type.
+ */
 interface Store<Key : Any, Value : Any> {
+
     /**
-     * Returns a flow that:
-     * - Immediately emits cached data if available (memory or SOT).
-     * - If data is not available or invalidated, fetches from the fetcher.
-     * - Emits updated data when SOT changes.
+     * Streams the data for [key], emitting:
+     * - Cached or SOT data immediately if available.
+     * - Updated data after a network fetch if needed.
+     * - Subsequent changes if the SOT is updated.
      */
     fun stream(key: Key): Flow<Value>
 
     /**
-     * Returns a single value, fetching from SOT or network if needed.
-     * Can return null if fetcher returns null and no data is cached.
+     * Returns a single [Value] by reading from the store's caches or fetching from the network if needed.
+     * May return `null` if no data is found.
      */
     suspend fun get(key: Key): Value?
 
     /**
-     * Invalidate cached data for a key, causing future requests to fetch fresh data.
-     */
-    suspend fun invalidate(key: Key)
-
-    /**
-     * Clear a single key from all caches (memory & SOT).
+     * Removes all data for [key] from memory and the source of truth.
      */
     suspend fun clear(key: Key)
 
     /**
-     * Clear all data from all caches.
+     * Clears all data from all caches (memory, SOT, etc.).
      */
     suspend fun clearAll()
 }
-
-
-
-

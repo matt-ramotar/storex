@@ -13,47 +13,53 @@ import com.squareup.kotlinpoet.ksp.writeTo
 import dev.mattramotar.storex.repository.compiler.ksp.extensions.KSAnnotationExtensions.findEnumListArgument
 import dev.mattramotar.storex.repository.compiler.ksp.extensions.KSAnnotationExtensions.findKSTypeArgument
 import dev.mattramotar.storex.repository.compiler.ksp.extensions.KSAnnotationExtensions.findStringArgument
-import dev.mattramotar.storex.repository.compiler.ksp.poet.createRepositoryInterfaceAndBuilder
-import dev.mattramotar.storex.repository.compiler.ksp.poet.operations.mutation.createCreateOneFileSpec
-import dev.mattramotar.storex.repository.compiler.ksp.poet.operations.mutation.createUpdateOneFileSpec
-import dev.mattramotar.storex.repository.compiler.ksp.poet.operations.query.createFindOneCompositeFileSpec
-import dev.mattramotar.storex.repository.compiler.ksp.poet.operations.query.createFindOneOperationFileSpec
+import dev.mattramotar.storex.repository.compiler.ksp.poet.*
+import dev.mattramotar.storex.repository.compiler.ksp.poet.operations.mutation.*
+import dev.mattramotar.storex.repository.compiler.ksp.poet.operations.query.*
 import dev.mattramotar.storex.repository.runtime.OperationType
 import dev.mattramotar.storex.repository.runtime.annotations.RepositoryConfig
 
+/**
+ * Processes classes annotated with [RepositoryConfig], generating repository interfaces
+ * and operations (like [createCreateOneFileSpec], [createUpdateOneFileSpec]).
+ */
 class RepositorySymbolProcessor(
     private val codeGenerator: CodeGenerator,
     private val packageName: String?
 ) : SymbolProcessor {
 
-
+    /**
+     * Main entry point for KSP. Scans for annotated classes and generates code.
+     *
+     * @return a list of any deferred symbols that couldn't be processed (usually empty).
+     */
     override fun process(resolver: Resolver): List<KSAnnotated> {
-        // 1) Find all symbols annotated with @RepositoryConfig
+        // Find all symbols annotated with @RepositoryConfig
         val symbols = resolver
             .getSymbolsWithAnnotation(RepositoryConfig::class.qualifiedName!!)
             .filterIsInstance<KSClassDeclaration>()
 
-        // For each annotated class/object, generate the repository code
+        // Generate the repository code for each annotated class
         symbols.forEach { ksClass ->
             generateRepositoryFromConfig(ksClass)
         }
 
-        // Return empty — no deferred symbols
+        // No deferred symbols in typical usage
         return emptyList()
     }
 
     /**
-     * Reads annotation arguments and generates the corresponding source files.
+     * Examines a single annotated class, extracts config details, and generates source files.
      */
     private fun generateRepositoryFromConfig(ksClass: KSClassDeclaration) {
-        val packageName = packageName ?: ksClass.packageName.asString()
+        val resolvedPackageName = packageName ?: ksClass.packageName.asString()
 
-        // Parse the @RepositoryConfig annotation
+        // The @RepositoryConfig annotation, if present.
         val annotation: KSAnnotation = ksClass.annotations.firstOrNull {
             it.shortName.asString() == RepositoryConfig::class.simpleName
         } ?: return
 
-        // Retrieve annotation arguments
+        // Parse annotation arguments
         val nameArg = annotation.findStringArgument("name") ?: return
         val keyTypeArg = annotation.findKSTypeArgument("keyType") ?: return
         val nodeTypeArg = annotation.findKSTypeArgument("nodeType") ?: return
@@ -62,48 +68,43 @@ class RepositorySymbolProcessor(
         val errorTypeArg = annotation.findKSTypeArgument("errorType")
         val opsArg = annotation.findEnumListArgument("operations", OperationType::class)
 
-        // Convert to KotlinPoet TypeNames
+        // Convert them to KotlinPoet TypeName
         val keyTypeName = keyTypeArg.toTypeName()
         val nodeTypeName = nodeTypeArg.toTypeName()
         val partialTypeName = propertiesTypeArg?.toTypeName() ?: ANY
         val compositeTypeName = compositeTypeArg?.toTypeName() ?: ANY
         val errorTypeName = errorTypeArg?.toTypeName() ?: ClassName("kotlin", "Throwable")
 
-        // We'll generate everything into this package:
-
-        // Generate each requested operation
+        // Generate code for each requested operation
         if (OperationType.FindOne in opsArg) {
             createFindOneOperationFileSpec(
-                packageName,
+                resolvedPackageName,
                 ksClass.containingFile
             ).writeTo(codeGenerator, aggregating = false)
         }
-
         if (OperationType.FindOneComposite in opsArg) {
             createFindOneCompositeFileSpec(
-                packageName,
+                resolvedPackageName,
                 keyTypeName,
                 ksClass.containingFile
             ).writeTo(codeGenerator, aggregating = false)
         }
-
         if (OperationType.UpdateOne in opsArg) {
             createUpdateOneFileSpec(
-                packageName,
+                resolvedPackageName,
                 ksClass.containingFile
             ).writeTo(codeGenerator, aggregating = false)
         }
-
         if (OperationType.CreateOne in opsArg) {
             createCreateOneFileSpec(
-                packageName,
+                resolvedPackageName,
                 ksClass.containingFile
             ).writeTo(codeGenerator, aggregating = false)
         }
 
-        // Finally, create the repository interface + builder
+        // Finally, create the repository interface and builder
         createRepositoryInterfaceAndBuilder(
-            packageName,
+            resolvedPackageName,
             nameArg,
             opsArg,
             keyTypeName,
@@ -115,7 +116,3 @@ class RepositorySymbolProcessor(
         ).writeTo(codeGenerator, aggregating = false)
     }
 }
-
-
-
-
