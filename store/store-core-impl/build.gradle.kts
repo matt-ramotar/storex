@@ -31,3 +31,6 @@ kotlin {
         }
     }
 }
+
+group = "dev.mattramotar.storex.store"
+version = libs.versions.storex.store.core.get()
