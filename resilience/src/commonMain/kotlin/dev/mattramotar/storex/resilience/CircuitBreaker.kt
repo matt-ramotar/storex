@@ -62,6 +62,9 @@ interface CircuitBreaker {
   }
 
     companion object {
-        val Default: CircuitBreaker = DefaultCircuitBreaker()
+
+        /** Creates a new circuit breaker with default settings. */
+        val Default: CircuitBreaker
+            get() = DefaultCircuitBreaker()
     }
 }
