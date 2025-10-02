@@ -7,6 +7,7 @@ plugins {
     id("plugin.storex.android.library")
     id("plugin.storex.kotlin.multiplatform")
     alias(libs.plugins.maven.publish)
+    alias(libs.plugins.mokkery)
 }
 
 android {

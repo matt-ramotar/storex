@@ -86,6 +86,8 @@ class DefaultCircuitBreakerTest {
 
         // Then
         assertFalse(result)
+
+
     }
 
     @Test
@@ -171,7 +173,7 @@ class DefaultCircuitBreakerTest {
     fun onFailure_givenClosedAtThreshold_thenTransitionsToOpenAndSchedules() = runTest {
         // Given
         val events = FakeOperationEvents()
-        val clock = RecordingTestClock()
+        val clock = SuspendingRecordingTestClock()
         val breaker = createBreaker(
             events = events,
             failureThreshold = 2,

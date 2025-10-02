@@ -22,7 +22,7 @@ import kotlin.coroutines.cancellation.CancellationException
  * resilience events.
  */
 internal class DefaultResilience(
-    private val clock: Clock = Clock.Companion.SYSTEM,
+    private val clock: Clock = Clock.SYSTEM,
     operationEventsFactory: () -> MutableOperationEvents = { DefaultOperationEvents() }
 ) : Resilience {
 
