@@ -4,6 +4,7 @@ import dev.mattramotar.storex.resilience.CircuitBreaker
 import dev.mattramotar.storex.resilience.CircuitBreakerEvent
 import dev.mattramotar.storex.resilience.Clock
 import dev.mattramotar.storex.resilience.OperationEvent
+import dev.mattramotar.storex.resilience.internal.utils.SuspendingRecordingTestClock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

@@ -1,4 +1,4 @@
-package dev.mattramotar.storex.resilience.internal
+package dev.mattramotar.storex.resilience.internal.utils
 
 import dev.mattramotar.storex.resilience.Clock
 import kotlinx.coroutines.suspendCancellableCoroutine
