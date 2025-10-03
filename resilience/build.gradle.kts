@@ -8,6 +8,7 @@ plugins {
     id("plugin.storex.kotlin.multiplatform")
     alias(libs.plugins.maven.publish)
     alias(libs.plugins.mokkery)
+    alias(libs.plugins.kover)
 }
 
 android {
@@ -33,6 +34,17 @@ kotlin {
 mavenPublishing {
     publishToMavenCentral(CENTRAL_PORTAL, automaticRelease = true)
     signAllPublications()
+}
+
+kover {
+    reports {
+        total {
+            xml {
+                onCheck = true
+                xmlFile.set(file("${layout.buildDirectory}/reports/kover/coverage.xml"))
+            }
+        }
+    }
 }
 
 group = "dev.mattramotar.storex"
