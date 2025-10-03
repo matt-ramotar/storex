@@ -1,7 +1,9 @@
 # StoreX
 
+[![codecov](https://codecov.io/gh/matt-ramotar/storex/graph/badge.svg?token=75WSVG106G)](https://codecov.io/gh/matt-ramotar/storex)
+
 ```text
-Copyright 2024 Matthew Ramotar
+Copyright 2025 Matthew Ramotar
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
