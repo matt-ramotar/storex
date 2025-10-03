@@ -57,8 +57,12 @@ fun interface RetryPolicy {
     }
 
     /** Inclusive variant of [Random.nextLong]. */
-    private fun Random.nextLongInclusive(from: Long, untilInclusive: Long): Long =
-        if (untilInclusive == Long.MAX_VALUE) nextLong(from, Long.MAX_VALUE)
-        else nextLong(from, untilInclusive + 1)
+    private fun Random.nextLongInclusive(from: Long, untilInclusive: Long): Long {
+        return when {
+            from == Long.MAX_VALUE -> Long.MAX_VALUE
+            untilInclusive == Long.MIN_VALUE -> nextLong(from, Long.MAX_VALUE)
+            else -> nextLong(from, untilInclusive + 1)
+        }
+    }
   }
 }
