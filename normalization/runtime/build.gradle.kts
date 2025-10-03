@@ -9,10 +9,11 @@ plugins {
     alias(libs.plugins.maven.publish)
     alias(libs.plugins.mokkery)
     alias(libs.plugins.kover)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 android {
-    namespace = "dev.mattramotar.storex.resilience"
+    namespace = "dev.mattramotar.storex.normalization.runtime"
 
     testOptions {
         unitTests {
@@ -26,6 +27,8 @@ kotlin {
         commonMain {
             dependencies {
                 api(libs.kotlinx.coroutines.core)
+                api(libs.kotlinx.datetime)
+                implementation(libs.kotlinx.serialization.json)
             }
         }
     }
@@ -48,4 +51,4 @@ kover {
 }
 
 group = "dev.mattramotar.storex"
-version = libs.versions.storex.resilience.get()
+version = libs.versions.storex.normalization.get()

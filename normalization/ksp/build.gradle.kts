@@ -1,32 +1,27 @@
 @file:Suppress("UnstableApiUsage")
 
 import com.vanniktech.maven.publish.SonatypeHost.Companion.CENTRAL_PORTAL
-import dev.mattramotar.storex.tooling.extensions.android
+
 
 plugins {
-    id("plugin.storex.android.library")
-    id("plugin.storex.kotlin.multiplatform")
+    kotlin("multiplatform")
     alias(libs.plugins.maven.publish)
     alias(libs.plugins.mokkery)
     alias(libs.plugins.kover)
 }
 
-android {
-    namespace = "dev.mattramotar.storex.resilience"
-
-    testOptions {
-        unitTests {
-            isReturnDefaultValues = true
-        }
-    }
-}
-
 kotlin {
+    jvm()
     sourceSets {
-        commonMain {
+        jvmMain {
             dependencies {
-                api(libs.kotlinx.coroutines.core)
+                implementation(libs.symbol.processing.api)
+                implementation(libs.kotlinpoet.ksp)
+                api(projects.normalization.runtime)
             }
+
+            kotlin.srcDir("src/main/kotlin")
+            resources.srcDir("src/main/resources")
         }
     }
 }
@@ -48,4 +43,4 @@ kover {
 }
 
 group = "dev.mattramotar.storex"
-version = libs.versions.storex.resilience.get()
+version = libs.versions.storex.normalization.get()

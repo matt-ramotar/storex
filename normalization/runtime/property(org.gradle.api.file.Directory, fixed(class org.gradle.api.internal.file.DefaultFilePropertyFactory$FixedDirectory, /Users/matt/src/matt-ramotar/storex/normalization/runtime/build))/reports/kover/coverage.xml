@@ -1,0 +1,196 @@
+<?xml version="1.0" ?>
+<report name="Kover Gradle Plugin XML report for :normalization:runtime">
+<package name="dev/mattramotar/storex/normalization/format">
+<class name="dev/mattramotar/storex/normalization/format/NormalizedValue" sourcefilename="NormalizedValue.kt">
+<method name="&lt;init&gt;" desc="()V">
+<counter type="INSTRUCTION" missed="2" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="2" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/format/NormalizedValue$EmbeddedObject" sourcefilename="NormalizedValue.kt">
+<method name="&lt;init&gt;" desc="(Ljava/util/Map;)V">
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/format/NormalizedValue$Ref" sourcefilename="NormalizedValue.kt">
+<method name="&lt;init&gt;" desc="(Ldev/mattramotar/storex/normalization/keys/EntityKey;)V">
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/format/NormalizedValue$RefList" sourcefilename="NormalizedValue.kt">
+<method name="&lt;init&gt;" desc="(Ljava/util/List;)V">
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/format/NormalizedValue$Scalar" sourcefilename="NormalizedValue.kt">
+<method name="&lt;init&gt;" desc="(Ljava/lang/Object;)V">
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/format/NormalizedValue$ScalarList" sourcefilename="NormalizedValue.kt">
+<method name="&lt;init&gt;" desc="(Ljava/util/List;)V">
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<sourcefile name="NormalizedValue.kt">
+<line nr="5" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="7" mi="8" ci="0" mb="0" cb="0"/>
+<line nr="10" mi="8" ci="0" mb="0" cb="0"/>
+<line nr="13" mi="8" ci="0" mb="0" cb="0"/>
+<line nr="16" mi="8" ci="0" mb="0" cb="0"/>
+<line nr="22" mi="8" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="42" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="6" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="42" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="6" covered="0"/>
+<counter type="METHOD" missed="6" covered="0"/>
+<counter type="CLASS" missed="6" covered="0"/>
+</package>
+<package name="dev/mattramotar/storex/normalization/keys">
+<class name="dev/mattramotar/storex/normalization/keys/EntityKey" sourcefilename="EntityKey.kt">
+<method name="toString" desc="()Ljava/lang/String;">
+<counter type="INSTRUCTION" missed="5" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="&lt;init&gt;" desc="(Ljava/lang/String;Ljava/lang/String;)V">
+<counter type="INSTRUCTION" missed="12" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="17" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+<counter type="METHOD" missed="2" covered="0"/>
+</class>
+<sourcefile name="EntityKey.kt">
+<line nr="6" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="7" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="8" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="10" mi="5" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="17" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="17" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+<counter type="METHOD" missed="2" covered="0"/>
+<counter type="CLASS" missed="1" covered="0"/>
+</package>
+<package name="dev/mattramotar/storex/normalization/schema">
+<class name="dev/mattramotar/storex/normalization/schema/EntityAdapter$DefaultImpls" sourcefilename="EntityAdapter.kt">
+<method name="key" desc="(Ldev/mattramotar/storex/normalization/schema/EntityAdapter;Ljava/lang/Object;)Ldev/mattramotar/storex/normalization/keys/EntityKey;">
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/schema/SchemaRegistry" sourcefilename="EntityAdapter.kt">
+<method name="&lt;init&gt;" desc="(Ljava/util/Map;)V">
+<counter type="INSTRUCTION" missed="5" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="getAdapter" desc="(Ljava/lang/String;)Ldev/mattramotar/storex/normalization/schema/EntityAdapter;">
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="getAdapter" desc="(Lkotlin/reflect/KClass;)Ldev/mattramotar/storex/normalization/schema/EntityAdapter;">
+<counter type="INSTRUCTION" missed="20" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="33" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+<counter type="METHOD" missed="3" covered="0"/>
+</class>
+<sourcefile name="EntityAdapter.kt">
+<line nr="10" mi="8" ci="0" mb="0" cb="0"/>
+<line nr="33" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="35" mi="8" ci="0" mb="0" cb="0"/>
+<line nr="39" mi="20" ci="0" mb="2" cb="0"/>
+<counter type="INSTRUCTION" missed="41" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="41" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+<counter type="METHOD" missed="4" covered="0"/>
+<counter type="CLASS" missed="2" covered="0"/>
+</package>
+<package name="dev/mattramotar/storex/normalization">
+<class name="dev/mattramotar/storex/normalization/EmbeddedMode" sourcefilename="Normalizable.kt">
+<method name="&lt;clinit&gt;" desc="()V">
+<counter type="INSTRUCTION" missed="18" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="18" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<sourcefile name="Normalizable.kt">
+<line nr="62" mi="18" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="18" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="18" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+<counter type="CLASS" missed="1" covered="0"/>
+</package>
+<counter type="INSTRUCTION" missed="118" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="15" covered="0"/>
+<counter type="METHOD" missed="13" covered="0"/>
+<counter type="CLASS" missed="10" covered="0"/>
+</report>

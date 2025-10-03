@@ -1,0 +1,751 @@
+<?xml version="1.0" ?>
+<report name="Kover Gradle Plugin XML report for :normalization:ksp">
+<package name="Comment">
+<class name="Comment" sourcefilename="NormalizationProcessor.kt">
+<method name="&lt;init&gt;" desc="(Ljava/lang/String;Ljava/lang/String;LUser;)V">
+<counter type="INSTRUCTION" missed="17" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="17" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<sourcefile name="NormalizationProcessor.kt">
+<line nr="551" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="552" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="553" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="554" mi="5" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="17" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="17" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+<counter type="CLASS" missed="1" covered="0"/>
+</package>
+<package name="User">
+<class name="User" sourcefilename="NormalizationProcessor.kt">
+<method name="&lt;init&gt;" desc="(Ljava/lang/String;Ljava/lang/String;)V">
+<counter type="INSTRUCTION" missed="12" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="12" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<sourcefile name="NormalizationProcessor.kt">
+<line nr="545" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="546" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="547" mi="5" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="12" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="12" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+<counter type="CLASS" missed="1" covered="0"/>
+</package>
+<package name="NormalizationProcessorProvider">
+<class name="NormalizationProcessorProvider" sourcefilename="NormalizationProcessorProvider.kt">
+<method name="create" desc="(Lcom/google/devtools/ksp/processing/SymbolProcessorEnvironment;)Lcom/google/devtools/ksp/processing/SymbolProcessor;">
+<counter type="INSTRUCTION" missed="5" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="&lt;init&gt;" desc="()V">
+<counter type="INSTRUCTION" missed="2" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="7" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="2" covered="0"/>
+<counter type="METHOD" missed="2" covered="0"/>
+</class>
+<sourcefile name="NormalizationProcessorProvider.kt">
+<line nr="5" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="7" mi="5" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="7" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="2" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="7" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="2" covered="0"/>
+<counter type="METHOD" missed="2" covered="0"/>
+<counter type="CLASS" missed="1" covered="0"/>
+</package>
+<package name="PropKind$Scalar">
+<class name="PropKind$Scalar" sourcefilename="NormalizationProcessor.kt">
+<method name="&lt;init&gt;" desc="(Ljava/lang/String;Z)V">
+<counter type="INSTRUCTION" missed="13" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="13" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<sourcefile name="NormalizationProcessor.kt">
+<line nr="534" mi="13" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="13" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="13" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+<counter type="CLASS" missed="1" covered="0"/>
+</package>
+<package name="NormalizationProcessorKt">
+<class name="NormalizationProcessorKt" sourcefilename="NormalizationProcessor.kt">
+<method name="derivedTypeName" desc="(Lcom/google/devtools/ksp/symbol/KSClassDeclaration;LDeriveConfig;)Ljava/lang/String;">
+<counter type="INSTRUCTION" missed="67" covered="0"/>
+<counter type="BRANCH" missed="14" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="67" covered="0"/>
+<counter type="BRANCH" missed="14" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<sourcefile name="NormalizationProcessor.kt">
+<line nr="59" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="60" mi="36" ci="0" mb="10" cb="0"/>
+<line nr="61" mi="12" ci="0" mb="4" cb="0"/>
+<line nr="62" mi="5" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="67" covered="0"/>
+<counter type="BRANCH" missed="14" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="67" covered="0"/>
+<counter type="BRANCH" missed="14" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+<counter type="CLASS" missed="1" covered="0"/>
+</package>
+<package name="PropKind$ScalarList">
+<class name="PropKind$ScalarList" sourcefilename="NormalizationProcessor.kt">
+<method name="&lt;init&gt;" desc="(Ljava/lang/String;)V">
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<sourcefile name="NormalizationProcessor.kt">
+<line nr="535" mi="8" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+<counter type="CLASS" missed="1" covered="0"/>
+</package>
+<package name="NormalizationProcessor">
+<class name="NormalizationProcessor" sourcefilename="NormalizationProcessor.kt">
+<method name="emitResolveRefsFromProperty" desc="(Ljava/lang/String;Ljava/lang/String;)Lcom/squareup/kotlinpoet/CodeBlock;">
+<counter type="INSTRUCTION" missed="29" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="6" covered="0"/>
+</method>
+<method name="process" desc="(Lcom/google/devtools/ksp/processing/Resolver;)Ljava/util/List;">
+<counter type="INSTRUCTION" missed="46" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="11" covered="0"/>
+</method>
+<method name="isDataClass" desc="(Lcom/google/devtools/ksp/symbol/KSClassDeclaration;)Z">
+<counter type="INSTRUCTION" missed="9" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="emitResolveRefFromProperty" desc="(Ljava/lang/String;Ljava/lang/String;)Lcom/squareup/kotlinpoet/CodeBlock;">
+<counter type="INSTRUCTION" missed="29" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="6" covered="0"/>
+</method>
+<method name="generateAdapterFor" desc="(Lcom/google/devtools/ksp/symbol/KSClassDeclaration;)V">
+<counter type="INSTRUCTION" missed="295" covered="0"/>
+<counter type="BRANCH" missed="6" covered="0"/>
+<counter type="LINE" missed="48" covered="0"/>
+</method>
+<method name="normalizableTypeNameOrNull" desc="(Lcom/google/devtools/ksp/symbol/KSType;LDeriveConfig;)Ljava/lang/String;">
+<counter type="INSTRUCTION" missed="27" covered="0"/>
+<counter type="BRANCH" missed="6" covered="0"/>
+<counter type="LINE" missed="2" covered="0"/>
+</method>
+<method name="&lt;init&gt;" desc="(Lcom/google/devtools/ksp/processing/SymbolProcessorEnvironment;)V">
+<counter type="INSTRUCTION" missed="329" covered="0"/>
+<counter type="BRANCH" missed="14" covered="0"/>
+<counter type="LINE" missed="29" covered="0"/>
+</method>
+<method name="isAnnotatedNormalizable" desc="(Lcom/google/devtools/ksp/symbol/KSType;)Z">
+<counter type="INSTRUCTION" missed="31" covered="0"/>
+<counter type="BRANCH" missed="8" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+</method>
+<method name="buildNormalizeBody" desc="(Ljava/util/List;Lcom/google/devtools/ksp/symbol/KSPropertyDeclaration;)Lcom/squareup/kotlinpoet/CodeBlock;">
+<counter type="INSTRUCTION" missed="471" covered="0"/>
+<counter type="BRANCH" missed="18" covered="0"/>
+<counter type="LINE" missed="41" covered="0"/>
+</method>
+<method name="classify" desc="(Lcom/google/devtools/ksp/symbol/KSPropertyDeclaration;)LPropKind;">
+<counter type="INSTRUCTION" missed="193" covered="0"/>
+<counter type="BRANCH" missed="22" covered="0"/>
+<counter type="LINE" missed="21" covered="0"/>
+</method>
+<method name="buildDenormalizeBody" desc="(Lcom/squareup/kotlinpoet/ClassName;Ljava/util/List;Lcom/google/devtools/ksp/symbol/KSPropertyDeclaration;)Lcom/squareup/kotlinpoet/CodeBlock;">
+<counter type="INSTRUCTION" missed="429" covered="0"/>
+<counter type="BRANCH" missed="18" covered="0"/>
+<counter type="LINE" missed="64" covered="0"/>
+</method>
+<method name="isEntityKey" desc="(Lcom/google/devtools/ksp/symbol/KSType;)Z">
+<counter type="INSTRUCTION" missed="11" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="generateRegistry" desc="()V">
+<counter type="INSTRUCTION" missed="140" covered="0"/>
+<counter type="BRANCH" missed="6" covered="0"/>
+<counter type="LINE" missed="24" covered="0"/>
+</method>
+<method name="isListLike" desc="(Lcom/google/devtools/ksp/symbol/KSPropertyDeclaration;)Z">
+<counter type="INSTRUCTION" missed="29" covered="0"/>
+<counter type="BRANCH" missed="8" covered="0"/>
+<counter type="LINE" missed="5" covered="0"/>
+</method>
+<method name="listElementTypeNameOrAny" desc="(Lcom/google/devtools/ksp/symbol/KSPropertyDeclaration;)Lcom/squareup/kotlinpoet/TypeName;">
+<counter type="INSTRUCTION" missed="27" covered="0"/>
+<counter type="BRANCH" missed="4" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="resolveListArgTypeName" desc="(Lcom/google/devtools/ksp/symbol/KSTypeReference;)Lcom/squareup/kotlinpoet/TypeName;">
+<counter type="INSTRUCTION" missed="24" covered="0"/>
+<counter type="BRANCH" missed="6" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+</method>
+<method name="listElementKSType" desc="(Lcom/google/devtools/ksp/symbol/KSPropertyDeclaration;)Lcom/google/devtools/ksp/symbol/KSType;">
+<counter type="INSTRUCTION" missed="59" covered="0"/>
+<counter type="BRANCH" missed="13" covered="0"/>
+<counter type="LINE" missed="6" covered="0"/>
+</method>
+<method name="normalizedFieldName" desc="(Lcom/google/devtools/ksp/symbol/KSPropertyDeclaration;)Ljava/lang/String;">
+<counter type="INSTRUCTION" missed="16" covered="0"/>
+<counter type="BRANCH" missed="4" covered="0"/>
+<counter type="LINE" missed="2" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="2194" covered="0"/>
+<counter type="BRANCH" missed="139" covered="0"/>
+<counter type="LINE" missed="274" covered="0"/>
+<counter type="METHOD" missed="18" covered="0"/>
+</class>
+<sourcefile name="NormalizationProcessor.kt">
+<line nr="65" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="67" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="68" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="69" mi="12" ci="0" mb="2" cb="0"/>
+<line nr="71" mi="9" ci="0" mb="0" cb="0"/>
+<line nr="72" mi="31" ci="0" mb="2" cb="0"/>
+<line nr="73" mi="24" ci="0" mb="4" cb="0"/>
+<line nr="74" mi="17" ci="0" mb="2" cb="0"/>
+<line nr="75" mi="10" ci="0" mb="4" cb="0"/>
+<line nr="76" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="80" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="83" mi="12" ci="0" mb="0" cb="0"/>
+<line nr="84" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="85" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="87" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="89" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="91" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="93" mi="8" ci="0" mb="0" cb="0"/>
+<line nr="95" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="97" mi="5" ci="0" mb="2" cb="0"/>
+<line nr="98" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="100" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="104" mi="4" ci="0" mb="2" cb="0"/>
+<line nr="105" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="107" mi="4" ci="0" mb="2" cb="0"/>
+<line nr="108" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="111" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="113" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="114" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="115" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="116" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="118" mi="16" ci="0" mb="2" cb="0"/>
+<line nr="119" mi="12" ci="0" mb="0" cb="0"/>
+<line nr="121" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="122" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="123" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="126" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="127" mi="9" ci="0" mb="0" cb="0"/>
+<line nr="128" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="129" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="130" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="131" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="134" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="135" mi="13" ci="0" mb="0" cb="0"/>
+<line nr="136" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="137" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="138" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="139" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="141" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="142" mi="9" ci="0" mb="0" cb="0"/>
+<line nr="143" mi="8" ci="0" mb="0" cb="0"/>
+<line nr="144" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="145" mi="12" ci="0" mb="0" cb="0"/>
+<line nr="147" mi="8" ci="0" mb="0" cb="0"/>
+<line nr="148" mi="9" ci="0" mb="0" cb="0"/>
+<line nr="149" mi="10" ci="0" mb="0" cb="0"/>
+<line nr="150" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="152" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="153" mi="17" ci="0" mb="0" cb="0"/>
+<line nr="154" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="155" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="156" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="157" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="158" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="160" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="161" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="162" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="163" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="164" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="166" mi="8" ci="0" mb="0" cb="0"/>
+<line nr="171" mi="10" ci="0" mb="0" cb="0"/>
+<line nr="172" mi="13" ci="0" mb="2" cb="0"/>
+<line nr="173" mi="5" ci="0" mb="2" cb="0"/>
+<line nr="175" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="176" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="177" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="180" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="184" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="185" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="186" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="187" mi="16" ci="0" mb="0" cb="0"/>
+<line nr="188" mi="17" ci="0" mb="2" cb="0"/>
+<line nr="189" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="190" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="192" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="193" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="194" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="195" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="196" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="198" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="199" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="200" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="201" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="202" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="211" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="212" mi="13" ci="0" mb="0" cb="0"/>
+<line nr="213" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="215" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="218" mi="9" ci="0" mb="0" cb="0"/>
+<line nr="219" mi="3" ci="0" mb="2" cb="0"/>
+<line nr="220" mi="25" ci="0" mb="0" cb="0"/>
+<line nr="221" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="223" mi="3" ci="0" mb="2" cb="0"/>
+<line nr="224" mi="10" ci="0" mb="2" cb="0"/>
+<line nr="225" mi="19" ci="0" mb="0" cb="0"/>
+<line nr="226" mi="17" ci="0" mb="0" cb="0"/>
+<line nr="227" mi="12" ci="0" mb="0" cb="0"/>
+<line nr="229" mi="3" ci="0" mb="2" cb="0"/>
+<line nr="230" mi="6" ci="0" mb="2" cb="0"/>
+<line nr="232" mi="25" ci="0" mb="0" cb="0"/>
+<line nr="234" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="235" mi="19" ci="0" mb="0" cb="0"/>
+<line nr="237" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="239" mi="3" ci="0" mb="2" cb="0"/>
+<line nr="240" mi="6" ci="0" mb="2" cb="0"/>
+<line nr="241" mi="25" ci="0" mb="0" cb="0"/>
+<line nr="243" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="244" mi="19" ci="0" mb="0" cb="0"/>
+<line nr="246" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="248" mi="3" ci="0" mb="2" cb="0"/>
+<line nr="249" mi="4" ci="0" mb="2" cb="0"/>
+<line nr="250" mi="25" ci="0" mb="0" cb="0"/>
+<line nr="251" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="253" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="254" mi="25" ci="0" mb="0" cb="0"/>
+<line nr="255" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="256" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="259" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="260" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="261" mi="25" ci="0" mb="0" cb="0"/>
+<line nr="262" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="263" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="266" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="268" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="269" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="277" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="278" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="280" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="281" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="282" mi="15" ci="0" mb="4" cb="0"/>
+<line nr="284" mi="8" ci="0" mb="0" cb="0"/>
+<line nr="285" mi="8" ci="0" mb="0" cb="0"/>
+<line nr="286" mi="8" ci="0" mb="0" cb="0"/>
+<line nr="288" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="289" mi="2" ci="0" mb="2" cb="0"/>
+<line nr="290" mi="21" ci="0" mb="0" cb="0"/>
+<line nr="291" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="292" mi="3" ci="0" mb="2" cb="0"/>
+<line nr="293" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="294" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="295" mi="12" ci="0" mb="0" cb="0"/>
+<line nr="296" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="297" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="300" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="301" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="302" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="303" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="304" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="305" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="308" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="311" mi="2" ci="0" mb="2" cb="0"/>
+<line nr="312" mi="21" ci="0" mb="0" cb="0"/>
+<line nr="313" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="314" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="315" mi="3" ci="0" mb="2" cb="0"/>
+<line nr="316" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="317" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="318" mi="12" ci="0" mb="0" cb="0"/>
+<line nr="319" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="320" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="323" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="324" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="325" mi="12" ci="0" mb="0" cb="0"/>
+<line nr="326" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="327" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="330" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="333" mi="2" ci="0" mb="2" cb="0"/>
+<line nr="334" mi="11" ci="0" mb="2" cb="0"/>
+<line nr="335" mi="21" ci="0" mb="0" cb="0"/>
+<line nr="336" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="337" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="338" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="339" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="340" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="341" mi="12" ci="0" mb="0" cb="0"/>
+<line nr="343" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="347" mi="4" ci="0" mb="2" cb="0"/>
+<line nr="348" mi="21" ci="0" mb="0" cb="0"/>
+<line nr="349" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="350" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="351" mi="12" ci="0" mb="0" cb="0"/>
+<line nr="352" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="353" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="356" mi="21" ci="0" mb="0" cb="0"/>
+<line nr="357" mi="25" ci="0" mb="0" cb="0"/>
+<line nr="359" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="362" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="364" mi="27" ci="0" mb="0" cb="0"/>
+<line nr="365" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="370" mi="9" ci="0" mb="2" cb="0"/>
+<line nr="374" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="375" mi="11" ci="0" mb="4" cb="0"/>
+<line nr="376" mi="4" ci="0" mb="2" cb="0"/>
+<line nr="377" mi="4" ci="0" mb="2" cb="0"/>
+<line nr="378" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="383" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="384" mi="10" ci="0" mb="2" cb="0"/>
+<line nr="385" mi="16" ci="0" mb="3" cb="0"/>
+<line nr="387" mi="14" ci="0" mb="4" cb="0"/>
+<line nr="389" mi="14" ci="0" mb="4" cb="0"/>
+<line nr="390" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="396" mi="27" ci="0" mb="4" cb="0"/>
+<line nr="400" mi="11" ci="0" mb="2" cb="0"/>
+<line nr="404" mi="22" ci="0" mb="4" cb="0"/>
+<line nr="405" mi="5" ci="0" mb="2" cb="0"/>
+<line nr="406" mi="4" ci="0" mb="2" cb="0"/>
+<line nr="410" mi="15" ci="0" mb="4" cb="0"/>
+<line nr="411" mi="12" ci="0" mb="2" cb="0"/>
+<line nr="415" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="416" mi="16" ci="0" mb="6" cb="0"/>
+<line nr="417" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="422" mi="13" ci="0" mb="4" cb="0"/>
+<line nr="423" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="427" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="430" mi="7" ci="0" mb="2" cb="0"/>
+<line nr="431" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="433" mi="14" ci="0" mb="2" cb="0"/>
+<line nr="434" mi="31" ci="0" mb="2" cb="0"/>
+<line nr="436" mi="14" ci="0" mb="2" cb="0"/>
+<line nr="437" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="439" mi="14" ci="0" mb="2" cb="0"/>
+<line nr="440" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="444" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="447" mi="4" ci="0" mb="2" cb="0"/>
+<line nr="450" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="454" mi="12" ci="0" mb="2" cb="0"/>
+<line nr="455" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="459" mi="4" ci="0" mb="2" cb="0"/>
+<line nr="460" mi="11" ci="0" mb="2" cb="0"/>
+<line nr="461" mi="10" ci="0" mb="2" cb="0"/>
+<line nr="462" mi="15" ci="0" mb="2" cb="0"/>
+<line nr="464" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="468" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="469" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="475" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="476" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="481" mi="16" ci="0" mb="0" cb="0"/>
+<line nr="482" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="483" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="484" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="489" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="490" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="497" mi="16" ci="0" mb="0" cb="0"/>
+<line nr="498" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="499" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="500" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="506" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="507" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="508" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="509" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="510" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="511" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="512" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="513" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="514" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="515" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="516" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="517" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="518" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="519" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="520" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="521" mi="13" ci="0" mb="0" cb="0"/>
+<line nr="522" mi="39" ci="0" mb="0" cb="0"/>
+<line nr="523" mi="14" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="2194" covered="0"/>
+<counter type="BRANCH" missed="139" covered="0"/>
+<counter type="LINE" missed="274" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="2194" covered="0"/>
+<counter type="BRANCH" missed="139" covered="0"/>
+<counter type="LINE" missed="274" covered="0"/>
+<counter type="METHOD" missed="18" covered="0"/>
+<counter type="CLASS" missed="1" covered="0"/>
+</package>
+<package name="PropKind$RefList">
+<class name="PropKind$RefList" sourcefilename="NormalizationProcessor.kt">
+<method name="&lt;init&gt;" desc="(Ljava/lang/String;Ljava/lang/String;)V">
+<counter type="INSTRUCTION" missed="13" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="13" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<sourcefile name="NormalizationProcessor.kt">
+<line nr="533" mi="13" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="13" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="13" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+<counter type="CLASS" missed="1" covered="0"/>
+</package>
+<package name="PropKind">
+<class name="PropKind" sourcefilename="NormalizationProcessor.kt">
+<method name="&lt;init&gt;" desc="()V">
+<counter type="INSTRUCTION" missed="2" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="2" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<sourcefile name="NormalizationProcessor.kt">
+<line nr="529" mi="2" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="2" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="2" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+<counter type="CLASS" missed="1" covered="0"/>
+</package>
+<package name="PropKind$Embedded">
+<class name="PropKind$Embedded" sourcefilename="NormalizationProcessor.kt">
+<method name="&lt;init&gt;" desc="(Ljava/lang/String;Ldev/mattramotar/storex/normalization/EmbeddedMode;Ljava/lang/String;)V">
+<counter type="INSTRUCTION" missed="18" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="18" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<sourcefile name="NormalizationProcessor.kt">
+<line nr="531" mi="18" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="18" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="18" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+<counter type="CLASS" missed="1" covered="0"/>
+</package>
+<package name="NormalizationProcessor$process$$inlined$filterIsInstance$1">
+<class name="NormalizationProcessor$process$$inlined$filterIsInstance$1" sourcefilename="_Sequences.kt">
+<method name="invoke" desc="(Ljava/lang/Object;)Ljava/lang/Boolean;">
+<counter type="INSTRUCTION" missed="3" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="3" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<sourcefile name="_Sequences.kt">
+<line nr="477" mi="3" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="3" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="3" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+<counter type="CLASS" missed="1" covered="0"/>
+</package>
+<package name="PropKind$Id">
+<class name="PropKind$Id" sourcefilename="NormalizationProcessor.kt">
+<method name="&lt;init&gt;" desc="(Ljava/lang/String;)V">
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<sourcefile name="NormalizationProcessor.kt">
+<line nr="530" mi="8" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+<counter type="CLASS" missed="1" covered="0"/>
+</package>
+<package name="PropKind$Ref">
+<class name="PropKind$Ref" sourcefilename="NormalizationProcessor.kt">
+<method name="&lt;init&gt;" desc="(Ljava/lang/String;Ljava/lang/String;)V">
+<counter type="INSTRUCTION" missed="13" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="13" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<sourcefile name="NormalizationProcessor.kt">
+<line nr="532" mi="13" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="13" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="13" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+<counter type="CLASS" missed="1" covered="0"/>
+</package>
+<package name="DeriveConfig$Case">
+<class name="DeriveConfig$Case" sourcefilename="NormalizationProcessor.kt">
+<method name="&lt;clinit&gt;" desc="()V">
+<counter type="INSTRUCTION" missed="24" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="24" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<sourcefile name="NormalizationProcessor.kt">
+<line nr="45" mi="24" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="24" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="24" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+<counter type="CLASS" missed="1" covered="0"/>
+</package>
+<package name="DeriveConfig">
+<class name="DeriveConfig" sourcefilename="NormalizationProcessor.kt">
+<method name="&lt;init&gt;" desc="(Ljava/util/List;LDeriveConfig$Case;)V">
+<counter type="INSTRUCTION" missed="14" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="2" covered="0"/>
+</method>
+<method name="apply" desc="(Ljava/lang/String;)Ljava/lang/String;">
+<counter type="INSTRUCTION" missed="69" covered="4"/>
+<counter type="BRANCH" missed="7" covered="0"/>
+<counter type="LINE" missed="5" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="83" covered="4"/>
+<counter type="BRANCH" missed="7" covered="0"/>
+<counter type="LINE" missed="7" covered="0"/>
+<counter type="METHOD" missed="2" covered="0"/>
+</class>
+<sourcefile name="NormalizationProcessor.kt">
+<line nr="42" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="43" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="48" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="49" mi="18" ci="0" mb="2" cb="0"/>
+<line nr="50" mi="7" ci="4" mb="3" cb="0"/>
+<line nr="51" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="52" mi="38" ci="0" mb="2" cb="0"/>
+<counter type="INSTRUCTION" missed="83" covered="4"/>
+<counter type="BRANCH" missed="7" covered="0"/>
+<counter type="LINE" missed="7" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="83" covered="4"/>
+<counter type="BRANCH" missed="7" covered="0"/>
+<counter type="LINE" missed="7" covered="0"/>
+<counter type="METHOD" missed="2" covered="0"/>
+<counter type="CLASS" missed="1" covered="0"/>
+</package>
+<counter type="INSTRUCTION" missed="2482" covered="4"/>
+<counter type="BRANCH" missed="160" covered="0"/>
+<counter type="LINE" missed="303" covered="0"/>
+<counter type="METHOD" missed="34" covered="0"/>
+<counter type="CLASS" missed="15" covered="0"/>
+</report>

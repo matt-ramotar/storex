@@ -24,3 +24,7 @@ dependencyResolutionManagement {
 rootProject.name = "storex"
 
 include(":resilience")
+include(":store")
+include(":normalization:ksp")
+include(":normalization:runtime")
+include(":sample")
