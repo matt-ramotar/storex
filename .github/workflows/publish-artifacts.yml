@@ -14,51 +14,9 @@ jobs:
     strategy:
       matrix:
         module-config:
-          - name: "repository-compiler-ksp"
-            version_env: "REPOSITORY_VERSION_NAME"
-            path: ":repository:repository-compiler:ksp"
-          - name: "repository-runtime"
-            version_env: "REPOSITORY_VERSION_NAME"
-            path: ":repository:repository-runtime"
-          - name: "pager-compose"
-            version_env: "PAGER_VERSION_NAME"
-            path: ":pager:pager-compose"
-          - name: "pager-core"
-            version_env: "PAGER_VERSION_NAME"
-            path: ":pager:pager-core"
-          - name: "mutablestore-core"
-            version_env: "MUTABLE_STORE_VERSION_NAME"
-            path: ":mutablestore:mutablestore-core"
-          - name: "mutablestore-core-api"
-            version_env: "MUTABLE_STORE_VERSION_NAME"
-            path: ":mutablestore:mutablestore-core-api"
-          - name: "mutablestore-core-impl"
-            version_env: "MUTABLE_STORE_VERSION_NAME"
-            path: ":mutablestore:mutablestore-core-impl"
-          - name: "store-extensions"
-            version_env: "STORE_EXTENSIONS_VERSION_NAME"
-            path: ":store:store-extensions"
-          - name: "store-core"
-            version_env: "STORE_CORE_VERSION_NAME"
-            path: ":store:store-core"
-          - name: "store-core-api"
-            version_env: "STORE_CORE_VERSION_NAME"
-            path: ":store:store-core-api"
-          - name: "store-core-impl"
-            version_env: "STORE_CORE_VERSION_NAME"
-            path: ":store:store-core-impl"
-          - name: "store-extensions"
-            version_env: "STORE_CORE_VERSION_NAME"
-            path: ":store:store-extensions"
-          - name: "store-internal-hooks"
-            version_env: "STORE_CORE_VERSION_NAME"
-            path: ":store:store-internal-hooks"
-          - name: "storex-result"
-            version_env: "STOREX_RESULT_VERSION_NAME"
-            path: ":storex-result"
-          - name: "storex-telemetry"
-            version_env: "STOREX_TELEMETRY_VERSION_NAME"
-            path: ":storex-telemetry"
+          - name: "resilience"
+            version_env: "RESILIENCE_VERSION_NAME"
+            path: ":resilience"
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -74,26 +32,8 @@ jobs:
 
       - name: Set Version Environment Variables
         run: |
-          REPO_VERSION=$(grep "^REPOSITORY_VERSION_NAME=" gradle.properties | cut -d'=' -f2)
-          echo "REPOSITORY_VERSION_NAME=$REPO_VERSION" >> $GITHUB_ENV
-
-          PAGER_VERSION=$(grep "^PAGER_VERSION_NAME=" gradle.properties | cut -d'=' -f2)
-          echo "PAGER_VERSION_NAME=$PAGER_VERSION" >> $GITHUB_ENV
-          
-          MUTABLE_STORE_VERSION=$(grep "^MUTABLE_STORE_VERSION_NAME=" gradle.properties | cut -d'=' -f2)
-          echo "MUTABLE_STORE_VERSION_NAME=$MUTABLE_STORE_VERSION" >> $GITHUB_ENV
-          
-          STORE_EXTENSIONS_VERSION=$(grep "^STORE_EXTENSIONS_VERSION_NAME=" gradle.properties | cut -d'=' -f2)
-          echo "STORE_EXTENSIONS_VERSION_NAME=$STORE_EXTENSIONS_VERSION" >> $GITHUB_ENV
-          
-          STORE_CORE_VERSION=$(grep "^STORE_CORE_VERSION_NAME=" gradle.properties | cut -d'=' -f2)
-          echo "STORE_CORE_VERSION_NAME=$STORE_CORE_VERSION" >> $GITHUB_ENV
-          
-          STOREX_RESULT_VERSION=$(grep "^STOREX_RESULT_VERSION_NAME=" gradle.properties | cut -d'=' -f2)
-          echo "STOREX_RESULT_VERSION_NAME=$STOREX_RESULT_VERSION" >> $GITHUB_ENV
-          
-          STOREX_TELEMETRY_VERSION=$(grep "^STOREX_TELEMETRY_VERSION_NAME=" gradle.properties | cut -d'=' -f2)
-          echo "STOREX_TELEMETRY_VERSION_NAME=$STOREX_TELEMETRY_VERSION" >> $GITHUB_ENV          
+          RESILIENCE_VERSION=$(grep "^RESILIENCE_VERSION_NAME=" gradle.properties | cut -d'=' -f2)
+          echo "RESILIENCE_VERSION_NAME=$RESILIENCE_VERSION" >> $GITHUB_ENV          
 
       - name: Publish Artifacts to Maven Central
         if: ${{ !endsWith(env[matrix.module-config.version_env], '-SNAPSHOT') }}
