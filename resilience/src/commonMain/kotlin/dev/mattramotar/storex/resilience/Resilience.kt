@@ -2,10 +2,7 @@ package dev.mattramotar.storex.resilience
 
 import dev.mattramotar.storex.resilience.dsl.OperationSpecScope
 import dev.mattramotar.storex.resilience.internal.DefaultResilience
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlin.time.Duration.Companion.seconds
 
 /** Executes work with built-in circuit breaker, timeout, and retry support. */
 interface Resilience {
