@@ -1,3 +1,5 @@
+package dev.mattramotar.storex.resilience.dsl
+
 import dev.mattramotar.storex.resilience.*
 import kotlinx.coroutines.flow.Flow
 import kotlin.time.Duration
