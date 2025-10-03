@@ -64,7 +64,7 @@ internal class DefaultResilience(
                 mutableOperationEvents.events.emit(
                     RetryScheduled(attempt = attempt - 1, delay = next, cause = exception)
                 )
-                circuitBreaker.onFailure()
+
                 clock.sleep(next)
             } catch (_: CancellationException) {
                 return OperationResult.Failure.Cancelled

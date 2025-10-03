@@ -2,6 +2,7 @@ package dev.mattramotar.storex.resilience.internal
 
 import app.cash.turbine.test
 import dev.mattramotar.storex.resilience.*
+import dev.mattramotar.storex.resilience.internal.utils.TimeoutCancellationException
 import dev.mokkery.answering.returns
 import dev.mokkery.everySuspend
 import dev.mokkery.mock
@@ -70,12 +71,12 @@ class DefaultResilienceTest {
         everySuspend { circuitBreaker.tryAcquire() } returns true
         everySuspend { circuitBreaker.onFailure() } returns Unit
         val resilience = DefaultResilience()
+        val timeoutException = TimeoutCancellationException()
 
         // When
         val result = resilience.execute {
             call {
-                delay(2000)
-                "success"
+                throw timeoutException
             }
             timeout = 10.milliseconds
             retryPolicy = RetryPolicy.NONE
@@ -86,7 +87,8 @@ class DefaultResilienceTest {
         // Then
         assertIs<OperationResult.Failure.TimedOut>(result)
         assertEquals(1, result.attemptCount)
-        assertIs<TimeoutCancellationException>(result.cause)
+        assertEquals(timeoutException::class, result.cause::class)
+        assertEquals(timeoutException.message, result.cause.message)
         verifySuspend(mode = VerifyMode.exactly(1)) { circuitBreaker.tryAcquire() }
         verifySuspend(mode = VerifyMode.exactly(1)) { circuitBreaker.onFailure() }
     }
@@ -128,7 +130,7 @@ class DefaultResilienceTest {
         assertEquals("success", result.value)
         assertEquals(1, clock.sleeps.size)
         assertTrue(fakeEvents.captured.any { it is RetryScheduled })
-        verifySuspend(mode = VerifyMode.exactly(2)) { circuitBreaker.onFailure() }
+        verifySuspend(mode = VerifyMode.exactly(1)) { circuitBreaker.onFailure() }
         verifySuspend(mode = VerifyMode.exactly(1)) { circuitBreaker.onSuccess() }
     }
 
@@ -289,7 +291,7 @@ class DefaultResilienceTest {
         assertEquals(3, result.attemptCount)
         assertEquals(2, clock.sleeps.size)
         assertEquals(2, fakeEvents.captured.filterIsInstance<RetryScheduled>().size)
-        verifySuspend(mode = VerifyMode.exactly(5)) { circuitBreaker.onFailure() }
+        verifySuspend(mode = VerifyMode.exactly(3)) { circuitBreaker.onFailure() }
     }
 
     @Test

@@ -3,7 +3,9 @@ package dev.mattramotar.storex.resilience.internal
 import app.cash.turbine.test
 import dev.mattramotar.storex.resilience.LoadState
 import dev.mattramotar.storex.resilience.OperationResult
-import kotlinx.coroutines.*
+import dev.mattramotar.storex.resilience.internal.utils.TimeoutCancellationException
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -32,7 +34,7 @@ class PassThroughResilienceTest {
     @Test
     fun execute_givenTimeoutCancellationException_whenCallThrows_thenReturnsError() = runTest {
         // Given
-        val timeoutException = timeoutCancellationException()
+        val timeoutException = TimeoutCancellationException()
 
         // When
         val result = PassThroughResilience.execute<String> {
@@ -142,18 +144,5 @@ class PassThroughResilienceTest {
         // Then
         assertNotNull(events)
         assertNotNull(events.events)
-    }
-
-    private suspend fun timeoutCancellationException(): TimeoutCancellationException {
-        val timeoutCancellationException = try {
-            withTimeout(0) {
-                delay(1)
-                null
-            }
-        } catch (e: TimeoutCancellationException) {
-            e
-        }
-
-        return requireNotNull(timeoutCancellationException)
     }
 }
