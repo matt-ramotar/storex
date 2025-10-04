@@ -77,14 +77,6 @@ interface Shape<V : Any> {
     fun outboundRefs(record: NormalizedRecord): Set<EntityKey>
 }
 
-
-// Re-export for convenience
-typealias EntityAdapter<T> = dev.mattramotar.storex.normalization.schema.EntityAdapter<T>
-typealias NormalizationContext = dev.mattramotar.storex.normalization.schema.NormalizationContext
-typealias DenormalizationContext = dev.mattramotar.storex.normalization.schema.DenormalizationContext
-typealias SchemaRegistry = dev.mattramotar.storex.normalization.schema.SchemaRegistry
-
-
 /**
  * Builder for constructing change-sets.
  */

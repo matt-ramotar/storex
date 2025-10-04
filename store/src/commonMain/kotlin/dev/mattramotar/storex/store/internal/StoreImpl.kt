@@ -2,6 +2,7 @@ package dev.mattramotar.storex.store.internal
 
 import dev.mattramotar.storex.store.Freshness
 import dev.mattramotar.storex.store.StoreKey
+import dev.mattramotar.storex.store.mutation.Precondition
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
@@ -28,6 +29,21 @@ interface SourceOfTruth<K : StoreKey, ReadDb, WriteDb> {
     suspend fun rekey(old: K, new: K, reconcile: suspend (oldRead: ReadDb, serverRead: ReadDb?) -> ReadDb)
 }
 
+interface Updater<K : StoreKey, Patch, NetPatch> {
+    sealed interface Outcome<out Net> {
+        data class Success<Net>(val echo: Net? = null, val etag: String? = null) : Outcome<Net>
+        data class Conflict(val serverVersionTag: String? = null) : Outcome<Nothing>
+        data class Failure(val error: Throwable) : Outcome<Nothing>
+    }
+    suspend fun update(key: K, patch: Patch, body: NetPatch, precondition: Precondition?): Outcome<*>
+}
+
+
+sealed interface UpdateOutcome<out N> {
+    data class Success<N>(val networkEcho: N?, val etag: String?) : UpdateOutcome<N>
+    data class Conflict(val serverVersionTag: String?) : UpdateOutcome<Nothing>
+    data class Failure(val error: Throwable, val retryAfter: Duration?) : UpdateOutcome<Nothing>
+}
 
 /**
  * A function that retrieves data from a remote source.
@@ -269,19 +285,25 @@ sealed class StoreException(
 }
 
 
+interface MemoryCache<Key: Any, Value: Any> {
+    suspend fun get(key: Key): Value?
+    suspend fun put(key: Key, value: Value): Boolean
+    suspend fun remove(key: Key): Boolean
+    suspend fun clear()
+}
 
 /**
  * In-memory cache with LRU eviction and TTL support.
  */
-internal class MemoryCache<Key : Any, Value : Any>(
+internal class MemoryCacheImpl<Key : Any, Value : Any>(
     private val maxSize: Int,
     private val ttl: Duration
-) {
+): MemoryCache<Key, Value> {
     private val cache = HashMap<Key, CacheEntry<Value>>() // TODO: Make this thread safe
     private val accessOrder = LinkedHashSet<Key>()
     private val mutex = Mutex()
 
-    suspend fun get(key: Key): Value? = mutex.withLock {
+    override suspend fun get(key: Key): Value? = mutex.withLock {
         val entry = cache[key] ?: return null
 
         if (isExpired(entry)) {
@@ -297,7 +319,7 @@ internal class MemoryCache<Key : Any, Value : Any>(
         entry.value
     }
 
-    suspend fun put(key: Key, value: Value) = mutex.withLock {
+    override suspend fun put(key: Key, value: Value) = mutex.withLock {
         // Evict if at capacity
         if (cache.size >= maxSize && key !in cache) {
             val oldest = accessOrder.first()
@@ -313,12 +335,12 @@ internal class MemoryCache<Key : Any, Value : Any>(
         accessOrder.add(key)
     }
 
-    suspend fun remove(key: Key) = mutex.withLock {
+    override suspend fun remove(key: Key): Boolean = mutex.withLock {
         cache.remove(key)
         accessOrder.remove(key)
     }
 
-    suspend fun clear() = mutex.withLock {
+    override suspend fun clear() = mutex.withLock {
         cache.clear()
         accessOrder.clear()
     }

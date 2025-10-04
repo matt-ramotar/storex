@@ -59,7 +59,8 @@ data class CreatePolicy(
     val mode: CreateMode = CreateMode.OfflineFirst,
     val idStrategy: IdStrategy = IdStrategy.ProvisionalUuid,
     val idempotency: Idempotency = Idempotency.Auto, // derive from provisional key
-    val conflictStrategy: ConflictStrategy = ConflictStrategy.ServerWins
+    val conflictStrategy: ConflictStrategy = ConflictStrategy.ServerWins,
+    val requireOnline: Boolean = false
 )
 
 enum class CreateMode { OfflineFirst, OnlineFirst }
@@ -99,7 +100,8 @@ data class DeletePolicy(
     val mode: DeleteMode = DeleteMode.OfflineFirst,
     val precondition: Precondition? = null,              // guard deletes with If-Match, etc.
     val tombstone: TombstonePolicy = TombstonePolicy.Enabled(ttl = 7.days),
-    val cascadeQueries: Boolean = true                   // remove from list indexes immediately
+    val cascadeQueries: Boolean = true,
+    val requireOnline: Boolean = false// remove from list indexes immediately
 )
 
 enum class DeleteMode { OfflineFirst, OnlineFirst }
@@ -119,7 +121,8 @@ data class UpsertPolicy(
     val mode: UpsertMode = UpsertMode.OfflineFirst,
     val existenceStrategy: ExistenceStrategy = ExistenceStrategy.ServerDecides, // PUT 200/201
     val precondition: Precondition? = null,           // If-None-Match for create-only, If-Match for replace-only
-    val idempotency: Idempotency = Idempotency.None   // optional for flaky networks
+    val idempotency: Idempotency = Idempotency.None,   // optional for flaky networks
+    val requireOnline: Boolean = false
 )
 
 enum class UpsertMode { OfflineFirst, OnlineFirst }
@@ -155,20 +158,28 @@ sealed interface Precondition {
 }
 
 interface Deleter<K : StoreKey> {
-    suspend fun delete(key: K, precondition: Precondition? = null): DeleteOutcome
+    sealed interface Outcome {
+        data class Success(val alreadyDeleted: Boolean, val etag: String? = null) : Outcome
+        data class Failure(val error: Throwable) : Outcome
+    }
+    suspend fun delete(key: K, precondition: Precondition?): Outcome
 }
+
 
 sealed interface DeleteOutcome {
     data class Success(val alreadyDeleted: Boolean, val etag: String? = null) : DeleteOutcome
     data class Failure(val error: Throwable, val retryAfter: Duration? = null) : DeleteOutcome
 }
 
-interface Putser<K : StoreKey, V, Net> { // Upsert/Replace transport (PUT)
-    suspend fun put(
-        key: K,
-        body: Net,
-        precondition: Precondition? = null
-    ): PutOutcome<K, Net>
+
+
+interface Putser<K : StoreKey, V, NetPut> {
+    sealed interface Outcome<out Net> {
+        data class Created<Net>(val echo: Net? = null, val etag: String? = null) : Outcome<Net>
+        data class Replaced<Net>(val echo: Net? = null, val etag: String? = null) : Outcome<Net>
+        data class Failure(val error: Throwable) : Outcome<Nothing>
+    }
+    suspend fun put(key: K, value: V, body: NetPut, precondition: Precondition?): Outcome<*>
 }
 
 sealed interface PutOutcome<out K, out Net> {
@@ -177,18 +188,12 @@ sealed interface PutOutcome<out K, out Net> {
     data class Failure(val error: Throwable, val retryAfter: Duration?) : PutOutcome<Nothing, Nothing>
 }
 
-interface Creator<K : StoreKey, D, Net> {
-    /**
-     * Create a new entity on the server.
-     * @param draft: domain draft to create
-     * @param provisional: optional client provisional key (for idempotency & echo)
-     * @param idempotencyKey: stable key to dedupe server-side (e.g., Stripe-style)
-     */
-    suspend fun create(
-        draft: D,
-        provisional: K?,
-        idempotencyKey: String?
-    ): CreateOutcome<K, Net>
+interface Creator<K : StoreKey, Draft, NetOut> {
+    sealed interface Outcome<out K2 : StoreKey, out Net> {
+        data class Success<K2 : StoreKey, Net>(val canonicalKey: K2, val echo: Net? = null, val etag: String? = null) : Outcome<K2, Net>
+        data class Failure(val error: Throwable) : Outcome<Nothing, Nothing>
+    }
+    suspend fun create(draft: Draft): Outcome<K, NetOut>
 }
 
 sealed interface CreateOutcome<out K, out Net> {
@@ -214,9 +219,14 @@ class KeyAliasMap<K : StoreKey> {
     fun flow(): StateFlow<Map<K, K>> = aliases
 }
 
-enum class ConflictStrategy {
-    ServerWins
-}
+data class WritePolicy(
+    val requireOnline: Boolean = false,
+    val conflictStrategy: ConflictStrategy = ConflictStrategy.ServerWins
+)
+
+enum class ConflictStrategy { ServerWins, ClientWins, Merge }
+
+
 
 sealed interface Idempotency {
     data object Auto : Idempotency
