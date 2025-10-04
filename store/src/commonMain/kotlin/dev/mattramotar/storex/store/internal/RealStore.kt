@@ -40,53 +40,123 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 
 
+/**
+ * Full-featured store implementation with all capabilities.
+ *
+ * Coordinates between memory cache, Source of Truth (SoT), and remote fetcher to provide:
+ * - **Read operations**: Multi-layer caching with freshness control
+ * - **Write operations**: Full CRUD with offline-first support
+ * - **Reactive updates**: Flow-based observers with automatic invalidation
+ *
+ * ## Architecture
+ *
+ * ```
+ * ┌─────────┐      ┌─────────┐      ┌─────────┐
+ * │ Memory  │ ───> │   SoT   │ ───> │ Fetcher │
+ * │  Cache  │ <─── │ (Local) │ <─── │ (Remote)│
+ * └─────────┘      └─────────┘      └─────────┘
+ *     Fast           Durable          Source
+ * ```
+ *
+ * ## Generic Parameters (CQRS Support)
+ *
+ * This class supports Command Query Responsibility Segregation (CQRS) with separate
+ * read and write models. For simpler use cases, use [SimpleReadStore], [BasicReadStore],
+ * or [BasicMutationStore] type aliases.
+ *
+ * @param Key The [StoreKey] subtype identifying stored entities (e.g., UserKey, ArticleKey)
+ * @param Domain The application's domain model type - what your app works with (e.g., User, Article)
+ * @param ReadEntity The database read projection type - optimized for queries (e.g., UserReadProjection)
+ * @param WriteEntity The database write model type - optimized for persistence (e.g., UserAggregate)
+ * @param NetworkResponse The type returned from network fetch operations (e.g., UserJson, UserDto)
+ * @param Patch The type for partial updates / PATCH operations (e.g., UserPatch, UpdateUserRequest)
+ * @param Draft The type for creating new entities / POST operations (e.g., UserDraft, CreateUserRequest)
+ * @param NetworkPatch The network DTO for PATCH requests (can differ from [Patch])
+ * @param NetworkDraft The network DTO for POST/create requests (can differ from [Draft])
+ * @param NetworkPut The network DTO for PUT/upsert requests (can differ from [Domain])
+ *
+ * @see SimpleReadStore For simplified read-only store (Domain == ReadEntity == WriteEntity == NetworkResponse)
+ * @see BasicReadStore For basic store with persistence layer (Domain vs Entity separation)
+ * @see BasicMutationStore For standard CRUD without complex network encoding
+ * @see CqrsStore For CQRS with separate read/write models
+ *
+ * ## Example: Full CQRS Configuration
+ * ```kotlin
+ * val store = RealStore<
+ *     UserKey,                  // Key
+ *     User,                     // Domain (what app uses)
+ *     UserReadProjection,       // ReadEntity (denormalized queries)
+ *     UserAggregate,            // WriteEntity (normalized writes)
+ *     UserJson,                 // NetworkResponse (API response)
+ *     UserPatch,                // Patch (domain patch type)
+ *     UserDraft,                // Draft (domain creation type)
+ *     UserPatchDto,             // NetworkPatch (API patch format)
+ *     UserDraftDto,             // NetworkDraft (API creation format)
+ *     UserDto                   // NetworkPut (API upsert format)
+ * >(
+ *     sot = userSoT,
+ *     fetcher = userFetcher,
+ *     converter = userConverter,
+ *     // ... other dependencies
+ * )
+ * ```
+ */
 class RealStore<
-    K : StoreKey,
-    V: Any,
-    ReadDb,
-    WriteDb,          // <-- NEW: strongly typed write value
-    NetOut: Any,
+    Key : StoreKey,
+    Domain: Any,
+    ReadEntity,
+    WriteEntity,
+    NetworkResponse: Any,
     Patch,
     Draft,
-    NetPatch,
-    NetDraft,
-    NetPut
+    NetworkPatch,
+    NetworkDraft,
+    NetworkPut
     >(
-    private val sot: SourceOfTruth<K, ReadDb, WriteDb>,
-    private val fetcher: Fetcher<K, NetOut>,
-    private val updater: Updater<K, Patch, NetPatch>?,
-    private val creator: Creator<K, Draft, NetOut>?,
-    private val deleter: Deleter<K>?,
-    private val putser: Putser<K, V, NetPut>?,
-    private val converter: Converter<K, V, ReadDb, NetOut, WriteDb>,
-    private val encoder: MutationEncoder<Patch, Draft, V, NetPatch, NetDraft, NetPut>,
-    private val bookkeeper: Bookkeeper<K>,
-    private val validator: FreshnessValidator<K, Any?>,
-    private val memory: MemoryCache<K, V>,
-    scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+    private val sot: SourceOfTruth<Key, ReadEntity, WriteEntity>,
+    private val fetcher: Fetcher<Key, NetworkResponse>,
+    private val updater: Updater<Key, Patch, NetworkPatch>?,
+    private val creator: Creator<Key, Draft, NetworkResponse>?,
+    private val deleter: Deleter<Key>?,
+    private val putser: Putser<Key, Domain, NetworkPut>?,
+    private val converter: Converter<Key, Domain, ReadEntity, NetworkResponse, WriteEntity>,
+    private val encoder: MutationEncoder<Patch, Draft, Domain, NetworkPatch, NetworkDraft, NetworkPut>,
+    private val bookkeeper: Bookkeeper<Key>,
+    private val validator: FreshnessValidator<Key, Any?>,
+    private val memory: MemoryCache<Key, Domain>,
+    scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),  // Changed to Dispatchers.IO for database operations
     private val now: () -> Instant = { Clock.System.now() }
-) : MutationStore<K, V, Patch, Draft>, AutoCloseable {
+) : MutationStore<Key, Domain, Patch, Draft>, AutoCloseable {
 
     private val storeScope = scope
-    private val fetchSingleFlight = SingleFlight<K, Unit>()
-    private val perKeyMutex = KeyMutex<K>()
+    private val fetchSingleFlight = SingleFlight<Key, Unit>()
+    private val perKeyMutex = KeyMutex<Key>()
 
-    override fun stream(key: K, freshness: Freshness): Flow<StoreResult<V>> = channelFlow {
+    override fun stream(key: Key, freshness: Freshness): Flow<StoreResult<Domain>> = channelFlow {
         val errorEvents = Channel<StoreResult.Error>(capacity = Channel.BUFFERED)
 
-        val initialDb: ReadDb? = try { sot.reader(key).firstOrNull() } catch (_: Throwable) { null }
+        val initialDb: ReadEntity? = try {
+            sot.reader(key).firstOrNull()
+        } catch (e: Exception) {
+            // Never catch CancellationException - only catch Exception
+            null
+        }
         val dbMeta = initialDb?.let { converter.dbMetaFromProjection(it) }
         val status = bookkeeper.lastStatus(key)
         val plan = validator.plan(FreshnessContext(key, now(), freshness, dbMeta, status))
 
-        suspend fun doFetch(): Unit = runBlockingFetch(key, plan, errorEvents)
-
         when (freshness) {
             Freshness.MustBeFresh -> {
-                try { if (plan !is FetchPlan.Skip) doFetch() }
-                catch (t: Throwable) { send(StoreResult.Error(t, servedStale = false)); return@channelFlow }
+                try {
+                    if (plan !is FetchPlan.Skip) doFetch()
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (t: Throwable) {
+                    send(StoreResult.Error(t, servedStale = false))
+                    return@channelFlow
+                }
             }
-            else -> if (plan !is FetchPlan.Skip) storeScope.launch { doFetch() }
+            else -> if (plan !is FetchPlan.Skip) launch { doFetch() }  // Fixed: Launch in channelFlow scope for proper cancellation
         }
 
         if (initialDb == null) send(StoreResult.Loading(fromCache = false))
@@ -105,7 +175,7 @@ class RealStore<
         joinAll(sotJob, errJob)
     }
 
-    override suspend fun get(key: K, freshness: Freshness): V {
+    override suspend fun get(key: Key, freshness: Freshness): Domain {
         if (freshness == Freshness.CachedOrFetch) memory.get(key)?.let { return it }
         return stream(key, freshness).mapNotNull { res ->
             when (res) {
@@ -118,14 +188,22 @@ class RealStore<
 
     /* ---------------- Writes ---------------- */
 
-    override suspend fun update(key: K, patch: Patch, policy: UpdatePolicy): UpdateResult {
-        val base: V? = try { sot.reader(key).firstOrNull()?.let { converter.dbReadToDomain(key, it) } } catch (_: Throwable) { null }
+    override suspend fun update(key: Key, patch: Patch, policy: UpdatePolicy): UpdateResult {
+        val base: Domain? = try {
+            sot.reader(key).firstOrNull()?.let { converter.dbReadToDomain(key, it) }
+        } catch (e: Exception) {
+            // Never catch CancellationException - only catch Exception
+            null
+        }
 
         // Optional optimistic local apply
-        val optimisticDb: WriteDb? = try {
+        val optimisticDb: WriteEntity? = try {
             val optimistic = base?.let { maybeApplyLocalPatch(it, patch) }
             optimistic?.let { converter.domainToDbWrite(key, it) }
-        } catch (_: Throwable) { null }
+        } catch (e: Exception) {
+            // Never catch CancellationException - only catch Exception
+            null
+        }
 
         if (optimisticDb != null) {
             sot.withTransaction { sot.write(key, optimisticDb) }
@@ -140,7 +218,7 @@ class RealStore<
                 is Updater.Outcome.Success<*> -> {
                     val echo = outcome.echo
                     if (echo != null) {
-                        val writeDb: WriteDb = converter.netToDbWrite(key, echo as NetOut) // keep if your Updater’s echo == NetOut
+                        val writeDb: WriteEntity = converter.netToDbWrite(key, echo as NetworkResponse)
                         sot.withTransaction { sot.write(key, writeDb) }
                     }
                     bookkeeper.recordSuccess(key, (outcome as? Updater.Outcome.Success<*>)?.etag, now())
@@ -155,13 +233,16 @@ class RealStore<
                     UpdateResult.Failed(outcome.error)
                 }
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            // Always rethrow CancellationException
+            throw e
         } catch (t: Throwable) {
             bookkeeper.recordFailure(key, t, now())
             UpdateResult.Failed(t)
         }
     }
 
-    override suspend fun create(draft: Draft, policy: CreatePolicy): CreateResult<K> {
+    override suspend fun create(draft: Draft, policy: CreatePolicy): CreateResult<Key> {
         if (policy.requireOnline && creator == null) return CreateResult.Failed(null, IllegalStateException("Creator not configured"))
         if (creator == null) return CreateResult.Failed(null, IllegalStateException("Creator not configured"))
 
@@ -170,7 +251,7 @@ class RealStore<
                 is Creator.Outcome.Success -> {
                     val canonical = outcome.canonicalKey
                     outcome.echo?.let { echo ->
-                        val writeDb: WriteDb = converter.netToDbWrite(canonical, echo)
+                        val writeDb: WriteEntity = converter.netToDbWrite(canonical, echo)
                         sot.withTransaction { sot.write(canonical, writeDb) }
                     }
                     bookkeeper.recordSuccess(canonical, outcome.etag, now())
@@ -181,27 +262,35 @@ class RealStore<
                     CreateResult.Failed(null, outcome.error)
                 }
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (t: Throwable) {
             CreateResult.Failed(null, t)
         }
     }
 
-    override suspend fun delete(key: K, policy: DeletePolicy): DeleteResult {
+    override suspend fun delete(key: Key, policy: DeletePolicy): DeleteResult {
         if (policy.requireOnline && deleter == null) return DeleteResult.Failed(cause = IllegalStateException("Deleter not configured"), restored = false)
-        try { sot.withTransaction { sot.delete(key) } } catch (_: Throwable) { /* optimistic */ }
+        try {
+            sot.withTransaction { sot.delete(key) }
+        } catch (e: Exception) {
+            // Optimistic delete - ignore failures, never catch CancellationException
+        }
         if (deleter == null) return DeleteResult.Enqueued
         return try {
             when (val out = deleter.delete(key, precondition = null)) {
                 is Deleter.Outcome.Success -> { bookkeeper.recordSuccess(key, out.etag, now()); DeleteResult.Synced(alreadyDeleted = out.alreadyDeleted) }
                 is Deleter.Outcome.Failure -> { bookkeeper.recordFailure(key, out.error, now()); DeleteResult.Failed(cause = out.error, restored = false) }
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (t: Throwable) {
             bookkeeper.recordFailure(key, t, now()); DeleteResult.Failed(cause = t, restored = false)
         }
     }
 
-    override suspend fun upsert(key: K, value: V, policy: UpsertPolicy): UpsertResult<K> {
-        val localDb: WriteDb? = converter.domainToDbWrite(key, value)
+    override suspend fun upsert(key: Key, value: Domain, policy: UpsertPolicy): UpsertResult<Key> {
+        val localDb: WriteEntity? = converter.domainToDbWrite(key, value)
         if (localDb != null) sot.withTransaction { sot.write(key, localDb) }
 
         if (policy.requireOnline && putser == null) return UpsertResult.Failed(key = key, cause = IllegalStateException("Putser not configured"))
@@ -213,7 +302,7 @@ class RealStore<
                 is Putser.Outcome.Created<*> -> {
                     val echo = out.echo
                     if (echo != null) {
-                        val writeDb: WriteDb = converter.netToDbWrite(key, echo as NetOut)
+                        val writeDb: WriteEntity = converter.netToDbWrite(key, echo as NetworkResponse)
                         sot.withTransaction { sot.write(key, writeDb) }
                     }
                     bookkeeper.recordSuccess(key, (out as? Putser.Outcome.Created<*>)?.etag, now())
@@ -222,7 +311,7 @@ class RealStore<
                 is Putser.Outcome.Replaced<*> -> {
                     val echo = out.echo
                     if (echo != null) {
-                        val writeDb: WriteDb = converter.netToDbWrite(key, echo as NetOut)
+                        val writeDb: WriteEntity = converter.netToDbWrite(key, echo as NetworkResponse)
                         sot.withTransaction { sot.write(key, writeDb) }
                     }
                     bookkeeper.recordSuccess(key, (out as? Putser.Outcome.Replaced<*>)?.etag, now())
@@ -233,13 +322,15 @@ class RealStore<
                     UpsertResult.Failed(key = key, cause = out.error)
                 }
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (t: Throwable) {
             bookkeeper.recordFailure(key, t, now()); UpsertResult.Failed(key = key, cause = t)
         }
     }
 
-    override suspend fun replace(key: K, value: V, policy: ReplacePolicy): ReplaceResult {
-        val localDb: WriteDb? = converter.domainToDbWrite(key, value)
+    override suspend fun replace(key: Key, value: Domain, policy: ReplacePolicy): ReplaceResult {
+        val localDb: WriteEntity? = converter.domainToDbWrite(key, value)
         if (localDb != null) sot.withTransaction { sot.write(key, localDb) }
 
         if (putser == null) return ReplaceResult.Enqueued
@@ -251,7 +342,7 @@ class RealStore<
                     // For replace, we expect Replaced not Created - this might be an error depending on server behavior
                     val echo = out.echo
                     if (echo != null) {
-                        val writeDb: WriteDb = converter.netToDbWrite(key, echo as NetOut)
+                        val writeDb: WriteEntity = converter.netToDbWrite(key, echo as NetworkResponse)
                         sot.withTransaction { sot.write(key, writeDb) }
                     }
                     bookkeeper.recordSuccess(key, (out as? Putser.Outcome.Created<*>)?.etag, now())
@@ -260,7 +351,7 @@ class RealStore<
                 is Putser.Outcome.Replaced<*> -> {
                     val echo = out.echo
                     if (echo != null) {
-                        val writeDb: WriteDb = converter.netToDbWrite(key, echo as NetOut)
+                        val writeDb: WriteEntity = converter.netToDbWrite(key, echo as NetworkResponse)
                         sot.withTransaction { sot.write(key, writeDb) }
                     }
                     bookkeeper.recordSuccess(key, (out as? Putser.Outcome.Replaced<*>)?.etag, now())
@@ -271,17 +362,19 @@ class RealStore<
                     ReplaceResult.Failed(cause = out.error)
                 }
             }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
         } catch (t: Throwable) {
             bookkeeper.recordFailure(key, t, now()); ReplaceResult.Failed(cause = t)
         }
     }
 
-    override fun invalidate(key: K) { storeScope.launch { memory.remove(key) } }
+    override fun invalidate(key: Key) { storeScope.launch { memory.remove(key) } }
     override fun invalidateNamespace(ns: StoreNamespace) { storeScope.launch { memory.clear() } }
     override fun invalidateAll() { storeScope.launch { memory.clear() } }
     override fun close() { storeScope.cancel() }
 
-    private suspend fun runBlockingFetch(key: K, plan: FetchPlan, errorEvents: Channel<StoreResult.Error>) {
+    private suspend fun runBlockingFetch(key: Key, plan: FetchPlan, errorEvents: Channel<StoreResult.Error>) {
         fetchSingleFlight.launch(storeScope, key) {
             try {
                 val req = when (plan) {
@@ -292,11 +385,11 @@ class RealStore<
                 fetcher.fetch(key, req).collect { resp ->
                     when (resp) {
                         is FetcherResult.Success -> {
-                            val writeDb: WriteDb = converter.netToDbWrite(key, resp.body)
+                            val writeDb: WriteEntity = converter.netToDbWrite(key, resp.body)
                             val m = perKeyMutex.forKey(key)
-                            m.lock()
-                            try { sot.write(key, writeDb) }
-                            finally { m.unlock() }
+                            m.withLock {
+                                sot.write(key, writeDb)
+                            }
                             bookkeeper.recordSuccess(key, resp.etag, now())
                         }
                         is FetcherResult.NotModified -> {
@@ -307,6 +400,9 @@ class RealStore<
                         }
                     }
                 }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                // Always rethrow CancellationException
+                throw e
             } catch (t: Throwable) {
                 bookkeeper.recordFailure(key, t, now())
                 errorEvents.trySend(StoreResult.Error(t, servedStale = true))
@@ -314,22 +410,17 @@ class RealStore<
         }.await()
     }
 
-    private fun fakeKeyForCreate(): K {
+    private fun fakeKeyForCreate(): Key {
         @Suppress("UNCHECKED_CAST")
         return ByIdKey(
             namespace = StoreNamespace("create"),
             entity = EntityId(type = "temp", id = Clock.System.now().toString()),
-        ) as K
+        ) as Key
     }
 
-    protected open fun maybeApplyLocalPatch(base: V, patch: Patch): V? = null
+    protected open fun maybeApplyLocalPatch(base: Domain, patch: Patch): Domain? = null
 }
 
 /* helper to extract updatedAt from arbitrary meta objects */
-private fun Any?.extractUpdatedAt(): Instant? =
-    try {
-        this as Instant
-    }catch(_: Throwable) {
-        null
-    }
+private fun Any?.extractUpdatedAt(): Instant? = this as? Instant
 

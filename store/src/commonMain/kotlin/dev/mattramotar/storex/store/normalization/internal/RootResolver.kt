@@ -40,6 +40,7 @@ class NormalizedEntitySot<K : StoreKey, V: Any>(
         return backend.rootInvalidations
             .filter { roots -> roots.isEmpty() || roots.contains(rootRef) }
             .onStart { emit(emptySet()) } // initial compose
+            .conflate()  // Drop intermediate invalidations to prevent overwhelming downstream
             .flatMapLatest {
                 flow {
                     val root = resolver.resolve(key)
@@ -49,6 +50,7 @@ class NormalizedEntitySot<K : StoreKey, V: Any>(
                     emit(GraphProjection(value = result.value, meta = result.meta))
                 }
             }
+            .buffer(capacity = 1)  // Additional buffering for bursty updates
     }
 
     override suspend fun write(key: K, value: NormalizedWrite<K>) {

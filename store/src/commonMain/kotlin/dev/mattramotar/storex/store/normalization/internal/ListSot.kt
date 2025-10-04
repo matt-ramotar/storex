@@ -39,8 +39,10 @@ class NormalizedListSot<K : StoreKey, V: Any>(
         val invalidations = backend.rootInvalidations
             .filter { roots -> roots.isEmpty() || roots.contains(rootRef) }
             .onStart { emit(emptySet()) } // initial compose
+            .conflate()  // Drop intermediate invalidations
 
         return combine(rootsFlow, invalidations) { roots, _ -> roots }
+            .conflate()  // Drop intermediate combinations
             .flatMapLatest { roots: List<EntityKey>? ->
                 flow {
                     if (roots == null) {

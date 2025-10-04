@@ -1,8 +1,50 @@
 package dev.mattramotar.storex.store.dsl
 
+import dev.mattramotar.storex.store.SimpleConverter
 import dev.mattramotar.storex.store.StoreKey
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
+
+/**
+ * Configuration for value conversion between domain, network, and persistence layers.
+ *
+ * @param K The store key type
+ * @param V The domain value type
+ * @param Db The database/network type
+ */
+class ConverterConfig<K : StoreKey, V : Any, Db> {
+    /**
+     * The converter to use for transforming values between layers.
+     * If null, an identity converter is used (assumes V == Db).
+     */
+    var converter: SimpleConverter<K, V, Db>? = null
+
+    /**
+     * Set the converter using a builder function.
+     *
+     * Example:
+     * ```kotlin
+     * converter { converter ->
+     *     object : SimpleConverter<UserKey, User, UserEntity> {
+     *         override suspend fun toDomain(key: UserKey, value: UserEntity): User {
+     *             return User(value.id, value.name, value.email)
+     *         }
+     *
+     *         override suspend fun fromDomain(key: UserKey, value: User): UserEntity {
+     *             return UserEntity(value.id, value.name, value.email)
+     *         }
+     *
+     *         override suspend fun fromNetwork(key: UserKey, network: UserEntity): UserEntity {
+     *             return network
+     *         }
+     *     }
+     * }
+     * ```
+     */
+    fun converter(converter: SimpleConverter<K, V, Db>) {
+        this.converter = converter
+    }
+}
 
 /**
  * Configuration for in-memory caching behavior.

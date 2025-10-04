@@ -5,56 +5,260 @@ import dev.mattramotar.storex.store.StoreKey
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
+import kotlin.js.JsExport
+import kotlin.jvm.JvmOverloads
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.milliseconds
 
-interface MutationStore<K : StoreKey, V, Patch, Draft> : Store<K, V> {
+/**
+ * Store with full CRUD (Create, Read, Update, Delete) mutation capabilities.
+ *
+ * Extends [Store] with write operations following REST/HTTP semantics:
+ * - **PATCH** ([update]) - Partial updates with optimistic UI support
+ * - **POST** ([create]) - Create new entities with provisional keys
+ * - **DELETE** ([delete]) - Deletion with tombstones and offline support
+ * - **PUT** ([upsert]/[replace]) - Full replacement with create-or-replace semantics
+ *
+ * ## Offline-First Design
+ *
+ * All mutations support offline-first operation:
+ * 1. **Optimistic update**: Write to local SoT immediately
+ * 2. **Background sync**: Queue mutation for network sync
+ * 3. **Conflict resolution**: Server wins/client wins/merge strategies
+ *
+ * @param Key The [StoreKey] subtype identifying stored entities
+ * @param Domain The application's domain model type
+ * @param Patch The type for partial updates (PATCH operations) - can be the same as [Domain] or a dedicated DTO
+ * @param Draft The type for creating new entities (POST operations) - can be the same as [Domain] or a creation-specific type
+ *
+ * @see Store For read-only store operations
+ * @see UpdatePolicy For configuring PATCH behavior
+ * @see CreatePolicy For configuring POST behavior with provisional IDs
+ * @see DeletePolicy For configuring DELETE with tombstones
+ *
+ * ## Example: User Mutation Store
+ * ```kotlin
+ * val userStore = mutationStore<UserKey, User, UserPatch, UserDraft> {
+ *     fetcher { key -> api.getUser(key.id) }
+ *
+ *     mutations {
+ *         update { key, patch ->
+ *             val response = api.updateUser(key.id, patch)
+ *             UpdateOutcome.Success(response, response.etag)
+ *         }
+ *
+ *         create { draft ->
+ *             val response = api.createUser(draft)
+ *             CreateOutcome.Success(UserKey(response.id), response, response.etag)
+ *         }
+ *
+ *         delete { key ->
+ *             api.deleteUser(key.id)
+ *             DeleteOutcome.Success(alreadyDeleted = false)
+ *         }
+ *     }
+ * }
+ *
+ * // Usage
+ * val result = userStore.update(
+ *     key = UserKey("123"),
+ *     patch = UserPatch(name = "Alice"),
+ *     policy = UpdatePolicy(conflictStrategy = ConflictStrategy.ClientWins)
+ * )
+ * ```
+ */
+@JsExport
+interface MutationStore<Key : StoreKey, Domain, Patch, Draft> : Store<Key, Domain> {
 
-    // PATCH/partial update (what write(...) already does)
+    /**
+     * Partially updates an existing entity (PATCH semantics).
+     *
+     * Applies a partial update to the entity. Only fields present in [patch] are modified;
+     * other fields remain unchanged. Supports optimistic updates and conflict resolution.
+     *
+     * @param key The entity identifier
+     * @param patch The partial update to apply
+     * @param policy Controls optimistic updates, preconditions (etag), and conflict resolution
+     * @return [UpdateResult] indicating enqueued, synced, or failed
+     *
+     * ## Example
+     * ```kotlin
+     * val result = store.update(
+     *     key = UserKey("123"),
+     *     patch = UserPatch(name = "Bob"),  // Only updates name
+     *     policy = UpdatePolicy(
+     *         precondition = Precondition.IfMatch("etag-abc"),  // Conditional update
+     *         conflictStrategy = ConflictStrategy.ServerWins
+     *     )
+     * )
+     * ```
+     */
+    @JvmOverloads
     suspend fun update(
-        key: K,
+        key: Key,
         patch: Patch,
         policy: UpdatePolicy = UpdatePolicy()
     ): UpdateResult
 
-    // POST/create (you already have this)
+    /**
+     * Creates a new entity (POST semantics).
+     *
+     * Creates a new entity from a draft. Supports:
+     * - **Provisional keys**: Client-generated UUID keys for offline creation
+     * - **Idempotency**: Automatic deduplication via idempotency keys
+     * - **Rekeying**: Server assigns canonical ID, replacing provisional key
+     *
+     * @param draft The creation payload (e.g., form data without ID)
+     * @param policy Controls ID generation, idempotency, and offline behavior
+     * @return [CreateResult] with canonical key (may differ from provisional)
+     *
+     * ## Example
+     * ```kotlin
+     * val result = store.create(
+     *     draft = UserDraft(name = "Alice", email = "alice@example.com"),
+     *     policy = CreatePolicy(
+     *         idStrategy = IdStrategy.ProvisionalUuid,  // Generate client-side UUID
+     *         idempotency = Idempotency.Auto,           // Prevent duplicates on retry
+     *         mode = CreateMode.OfflineFirst            // Save locally, sync later
+     *     )
+     * )
+     *
+     * when (result) {
+     *     is CreateResult.Local -> println("Created locally: ${result.provisional}")
+     *     is CreateResult.Synced -> println("Created on server: ${result.canonical}")
+     *     is CreateResult.Failed -> println("Failed: ${result.cause}")
+     * }
+     * ```
+     */
+    @JvmOverloads
     suspend fun create(
         draft: Draft,
         policy: CreatePolicy = CreatePolicy()
-    ): CreateResult<K>
+    ): CreateResult<Key>
 
-    // DELETE with offline-first semantics + tombstones
+    /**
+     * Deletes an entity (DELETE semantics).
+     *
+     * Deletes an entity with support for:
+     * - **Offline deletion**: Mark deleted locally, sync later
+     * - **Tombstones**: Temporary markers to prevent resurrection
+     * - **Cascade**: Optionally remove from query indexes
+     *
+     * @param key The entity identifier
+     * @param policy Controls tombstones, cascade, and offline behavior
+     * @return [DeleteResult] indicating enqueued, synced, or failed
+     *
+     * ## Example
+     * ```kotlin
+     * val result = store.delete(
+     *     key = UserKey("123"),
+     *     policy = DeletePolicy(
+     *         mode = DeleteMode.OfflineFirst,
+     *         tombstone = TombstonePolicy.Enabled(ttl = 7.days),  // Keep tombstone for 7 days
+     *         cascadeQueries = true  // Remove from list indexes
+     *     )
+     * )
+     * ```
+     */
+    @JvmOverloads
     suspend fun delete(
-        key: K,
+        key: Key,
         policy: DeletePolicy = DeletePolicy()
     ): DeleteResult
 
-    // PUT create-or-replace (server decides 200 vs 201)
+    /**
+     * Creates or replaces an entity (PUT with upsert semantics).
+     *
+     * If the entity exists, replaces it completely. Otherwise, creates it.
+     * Server determines whether creation (201) or replacement (200) occurred.
+     *
+     * @param key The entity identifier
+     * @param value The complete replacement value
+     * @param policy Controls existence checking and idempotency
+     * @return [UpsertResult] indicating created vs replaced
+     *
+     * ## Example
+     * ```kotlin
+     * val result = store.upsert(
+     *     key = UserKey("123"),
+     *     value = User(id = "123", name = "Alice", email = "alice@example.com"),
+     *     policy = UpsertPolicy(
+     *         existenceStrategy = ExistenceStrategy.ServerDecides,
+     *         idempotency = Idempotency.Explicit("upsert-${timestamp}")
+     *     )
+     * )
+     *
+     * when (result) {
+     *     is UpsertResult.Synced -> {
+     *         if (result.created) println("Created new entity")
+     *         else println("Replaced existing entity")
+     *     }
+     * }
+     * ```
+     */
+    @JvmOverloads
     suspend fun upsert(
-        key: K,
-        value: V,
+        key: Key,
+        value: Domain,
         policy: UpsertPolicy = UpsertPolicy()
-    ): UpsertResult<K>
+    ): UpsertResult<Key>
 
-    // PUT replace-only (expects resource to exist; else fail or fallback)
+    /**
+     * Replaces an existing entity (PUT with replace-only semantics).
+     *
+     * Replaces an existing entity completely. Fails if entity doesn't exist
+     * (unlike [upsert] which would create it).
+     *
+     * @param key The entity identifier
+     * @param value The complete replacement value
+     * @param policy Controls preconditions (typically If-Match required)
+     * @return [ReplaceResult] indicating enqueued, synced, or failed
+     *
+     * ## Example
+     * ```kotlin
+     * val result = store.replace(
+     *     key = UserKey("123"),
+     *     value = updatedUser,
+     *     policy = ReplacePolicy(
+     *         precondition = Precondition.IfMatch(currentEtag)  // Optimistic concurrency
+     *     )
+     * )
+     * ```
+     */
+    @JvmOverloads
     suspend fun replace(
-        key: K,
-        value: V,
+        key: Key,
+        value: Domain,
         policy: ReplacePolicy = ReplacePolicy()
     ): ReplaceResult
 }
 
 
-sealed interface Mutation<K : StoreKey, V, Patch, Draft> {
-    data class Create<K : StoreKey, V, P, D>(val draft: D, val policy: CreatePolicy) : Mutation<K, V, P, D>
-    data class Update<K : StoreKey, V, P, D>(val key: K, val patch: P, val policy: UpdatePolicy) : Mutation<K, V, P, D>
-    data class Replace<K : StoreKey, V, P, D>(val key: K, val value: V, val policy: ReplacePolicy) : Mutation<K, V, P, D>
-    data class Upsert<K : StoreKey, V, P, D>(val key: K, val value: V, val policy: UpsertPolicy) : Mutation<K, V, P, D>
-    data class Delete<K : StoreKey, V, P, D>(val key: K, val policy: DeletePolicy) : Mutation<K, V, P, D>
+/**
+ * Discriminated union of all mutation types.
+ *
+ * Useful for:
+ * - Mutation queues (offline sync)
+ * - Replay logs
+ * - Undo/redo stacks
+ * - Audit trails
+ *
+ * @param Key The [StoreKey] subtype
+ * @param Domain The application's domain model type
+ * @param Patch The partial update type
+ * @param Draft The creation type
+ */
+sealed interface Mutation<Key : StoreKey, Domain, Patch, Draft> {
+    data class Create<Key : StoreKey, Domain, P, D>(val draft: D, val policy: CreatePolicy) : Mutation<Key, Domain, P, D>
+    data class Update<Key : StoreKey, Domain, P, D>(val key: Key, val patch: P, val policy: UpdatePolicy) : Mutation<Key, Domain, P, D>
+    data class Replace<Key : StoreKey, Domain, P, D>(val key: Key, val value: Domain, val policy: ReplacePolicy) : Mutation<Key, Domain, P, D>
+    data class Upsert<Key : StoreKey, Domain, P, D>(val key: Key, val value: Domain, val policy: UpsertPolicy) : Mutation<Key, Domain, P, D>
+    data class Delete<Key : StoreKey, Domain, P, D>(val key: Key, val policy: DeletePolicy) : Mutation<Key, Domain, P, D>
 }
 
 
+@JsExport
 data class CreatePolicy(
     val mode: CreateMode = CreateMode.OfflineFirst,
     val idStrategy: IdStrategy = IdStrategy.ProvisionalUuid,
@@ -63,14 +267,17 @@ data class CreatePolicy(
     val requireOnline: Boolean = false
 )
 
+@JsExport
 enum class CreateMode { OfflineFirst, OnlineFirst }
 
+@JsExport
 sealed interface IdStrategy {
     data object ProvisionalUuid : IdStrategy            // client generates UUID provisional key
     data class ContentHash(val bytesOf: (Any) -> ByteArray) : IdStrategy // for blobs
     data object ServerAllocated : IdStrategy            // no provisional key
 }
 
+@JsExport
 sealed interface CreateResult<out K> {
     /** Local row exists, awaiting sync (offline-first). */
     data class Local<K>(val provisional: K) : CreateResult<K>
@@ -83,6 +290,7 @@ sealed interface CreateResult<out K> {
 }
 
 
+@JsExport
 data class UpdatePolicy(
     val precondition: Precondition? = null,              // ETag/version guards (If-Match)
     val conflictStrategy: ConflictStrategy = ConflictStrategy.ServerWins,
@@ -90,12 +298,14 @@ data class UpdatePolicy(
     val dedupeWindow: Duration = 150.milliseconds
 )
 
+@JsExport
 sealed interface UpdateResult {
     data object Enqueued : UpdateResult
     data object Synced : UpdateResult
     data class Failed(val cause: Throwable) : UpdateResult
 }
 
+@JsExport
 data class DeletePolicy(
     val mode: DeleteMode = DeleteMode.OfflineFirst,
     val precondition: Precondition? = null,              // guard deletes with If-Match, etc.
@@ -104,19 +314,23 @@ data class DeletePolicy(
     val requireOnline: Boolean = false// remove from list indexes immediately
 )
 
+@JsExport
 enum class DeleteMode { OfflineFirst, OnlineFirst }
 
+@JsExport
 sealed interface TombstonePolicy {
     data class Enabled(val ttl: Duration) : TombstonePolicy
     data object Disabled : TombstonePolicy
 }
 
+@JsExport
 sealed interface DeleteResult {
     data object Enqueued : DeleteResult                        // pending remote delete
     data class Synced(val alreadyDeleted: Boolean) : DeleteResult
     data class Failed(val cause: Throwable, val restored: Boolean) : DeleteResult
 }
 
+@JsExport
 data class UpsertPolicy(
     val mode: UpsertMode = UpsertMode.OfflineFirst,
     val existenceStrategy: ExistenceStrategy = ExistenceStrategy.ServerDecides, // PUT 200/201
@@ -157,12 +371,17 @@ sealed interface Precondition {
     data class Version(val value: Long) : Precondition
 }
 
-interface Deleter<K : StoreKey> {
+/**
+ * Interface for executing delete operations against a remote API.
+ *
+ * @param Key The [StoreKey] subtype
+ */
+interface Deleter<Key : StoreKey> {
     sealed interface Outcome {
         data class Success(val alreadyDeleted: Boolean, val etag: String? = null) : Outcome
         data class Failure(val error: Throwable) : Outcome
     }
-    suspend fun delete(key: K, precondition: Precondition?): Outcome
+    suspend fun delete(key: Key, precondition: Precondition?): Outcome
 }
 
 
@@ -173,13 +392,20 @@ sealed interface DeleteOutcome {
 
 
 
-interface Putser<K : StoreKey, V, NetPut> {
+/**
+ * Interface for executing PUT operations (upsert/replace) against a remote API.
+ *
+ * @param Key The [StoreKey] subtype
+ * @param Domain The application's domain model type
+ * @param NetworkPut The network DTO for PUT requests
+ */
+interface Putser<Key : StoreKey, Domain, NetworkPut> {
     sealed interface Outcome<out Net> {
         data class Created<Net>(val echo: Net? = null, val etag: String? = null) : Outcome<Net>
         data class Replaced<Net>(val echo: Net? = null, val etag: String? = null) : Outcome<Net>
         data class Failure(val error: Throwable) : Outcome<Nothing>
     }
-    suspend fun put(key: K, value: V, body: NetPut, precondition: Precondition?): Outcome<*>
+    suspend fun put(key: Key, value: Domain, body: NetworkPut, precondition: Precondition?): Outcome<*>
 }
 
 sealed interface PutOutcome<out K, out Net> {
@@ -188,12 +414,19 @@ sealed interface PutOutcome<out K, out Net> {
     data class Failure(val error: Throwable, val retryAfter: Duration?) : PutOutcome<Nothing, Nothing>
 }
 
-interface Creator<K : StoreKey, Draft, NetOut> {
+/**
+ * Interface for executing POST/create operations against a remote API.
+ *
+ * @param Key The [StoreKey] subtype
+ * @param Draft The creation payload type
+ * @param NetworkResponse The network response type
+ */
+interface Creator<Key : StoreKey, Draft, NetworkResponse> {
     sealed interface Outcome<out K2 : StoreKey, out Net> {
         data class Success<K2 : StoreKey, Net>(val canonicalKey: K2, val echo: Net? = null, val etag: String? = null) : Outcome<K2, Net>
         data class Failure(val error: Throwable) : Outcome<Nothing, Nothing>
     }
-    suspend fun create(draft: Draft): Outcome<K, NetOut>
+    suspend fun create(draft: Draft): Outcome<Key, NetworkResponse>
 }
 
 sealed interface CreateOutcome<out K, out Net> {
@@ -209,14 +442,38 @@ sealed interface CreateOutcome<out K, out Net> {
     ) : CreateOutcome<Nothing, Nothing>
 }
 
-class KeyAliasMap<K : StoreKey> {
-    private val aliases = MutableStateFlow<Map<K, K>>(emptyMap())
-    fun canonicalOf(k: K): K = aliases.value[k] ?: k
-    fun recordAlias(old: K, new: K) {
+/**
+ * Maps provisional (client-generated) keys to canonical (server-assigned) keys.
+ *
+ * Used for rekeying after offline creates sync to server.
+ *
+ * @param Key The [StoreKey] subtype
+ *
+ * ## Example
+ * ```kotlin
+ * val aliasMap = KeyAliasMap<UserKey>()
+ *
+ * // Offline create with provisional UUID
+ * val provisionalKey = UserKey("uuid-123")
+ *
+ * // Server assigns canonical ID
+ * val canonicalKey = UserKey("user-456")
+ * aliasMap.recordAlias(provisionalKey, canonicalKey)
+ *
+ * // Lookups resolve to canonical
+ * aliasMap.canonicalOf(provisionalKey)  // Returns UserKey("user-456")
+ * ```
+ */
+class KeyAliasMap<Key : StoreKey> {
+    private val aliases = MutableStateFlow<Map<Key, Key>>(emptyMap())
+
+    fun canonicalOf(k: Key): Key = aliases.value[k] ?: k
+
+    fun recordAlias(old: Key, new: Key) {
         aliases.update { it + (old to new) }
     }
 
-    fun flow(): StateFlow<Map<K, K>> = aliases
+    fun flow(): StateFlow<Map<Key, Key>> = aliases
 }
 
 data class WritePolicy(
@@ -228,15 +485,211 @@ enum class ConflictStrategy { ServerWins, ClientWins, Merge }
 
 
 
+/**
+ * Idempotency strategy for mutations (creates and upserts).
+ *
+ * Idempotency ensures that retrying a mutation doesn't create duplicate resources or
+ * unintended side effects. This is critical for:
+ * - Flaky network connections (automatic retries)
+ * - User-initiated retries (e.g., tapping "Create" multiple times)
+ * - Background sync after offline usage
+ *
+ * ## Strategies
+ *
+ * ### [Auto] - Automatic Idempotency Key Generation (Recommended for Creates)
+ *
+ * **What it does:**
+ * - Automatically generates an idempotency key from the provisional client-side ID
+ * - Sends this key to the server (typically in `Idempotency-Key` header)
+ * - Server uses the key to detect duplicate requests
+ *
+ * **When to use:**
+ * - Creating new resources with client-generated provisional IDs
+ * - [IdStrategy.ProvisionalUuid] or [IdStrategy.ContentHash]
+ * - Your API supports idempotency keys (e.g., Stripe-style APIs)
+ *
+ * **Example:**
+ * ```kotlin
+ * store.create(
+ *     draft = UserDraft(name = "Alice"),
+ *     policy = CreatePolicy(
+ *         idStrategy = IdStrategy.ProvisionalUuid,
+ *         idempotency = Idempotency.Auto  // ← Derives key from UUID
+ *     )
+ * )
+ * ```
+ *
+ * **Server behavior:**
+ * ```
+ * POST /users
+ * Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
+ * { "name": "Alice" }
+ *
+ * First request → 201 Created, User ID: 123
+ * Retry (same key) → 200 OK, User ID: 123 (already exists)
+ * ```
+ *
+ * **Benefits:**
+ * - Zero user input required
+ * - Deterministic retry behavior
+ * - Works offline-first (provisional ID available immediately)
+ *
+ * ---
+ *
+ * ### [Explicit] - Custom Idempotency Key (For Business Logic Keys)
+ *
+ * **What it does:**
+ * - Uses a custom application-defined idempotency key
+ * - Useful when idempotency is tied to business logic, not resource ID
+ *
+ * **When to use:**
+ * - Idempotency based on user input (e.g., order number)
+ * - Composite keys (e.g., "user-123-purchase-456")
+ * - Semantic deduplication (e.g., "Only one active session per device")
+ *
+ * **Example:**
+ * ```kotlin
+ * store.upsert(
+ *     key = ByIdKey(namespace, EntityId("Order", orderId)),
+ *     value = order,
+ *     policy = UpsertPolicy(
+ *         idempotency = Idempotency.Explicit("order-${userId}-${timestamp}")
+ *     )
+ * )
+ * ```
+ *
+ * **Server behavior:**
+ * ```
+ * PUT /orders/456
+ * Idempotency-Key: order-123-2025-10-04T12:00:00Z
+ * { "items": [...], "total": 99.99 }
+ *
+ * First request → 201 Created
+ * Retry (same key) → 200 OK (idempotent)
+ * ```
+ *
+ * **Use cases:**
+ * - Financial transactions (prevent duplicate charges)
+ * - Reservation systems (prevent double-booking)
+ * - Event logging (deduplicate events)
+ *
+ * ---
+ *
+ * ### [None] - No Idempotency (Default for Upserts, Use with Caution)
+ *
+ * **What it does:**
+ * - No idempotency key sent to server
+ * - Each retry is treated as a new request
+ *
+ * **When to use:**
+ * - Server operation is inherently idempotent (e.g., PUT to replace resource)
+ * - You have other deduplication mechanisms (e.g., database unique constraints)
+ * - Performance-critical paths where idempotency overhead is unacceptable
+ * - APIs that don't support idempotency keys
+ *
+ * **Example:**
+ * ```kotlin
+ * store.replace(
+ *     key = key,
+ *     value = updatedUser,
+ *     policy = ReplacePolicy()  // Idempotency not needed for PUT replace
+ * )
+ * ```
+ *
+ * **Risks:**
+ * - Retry after network error might create duplicates (for creates)
+ * - User double-tap might process twice (if not inherently idempotent)
+ *
+ * **Safe scenarios:**
+ * - Replacing a resource by ID (PUT /users/123) - inherently idempotent
+ * - Deleting a resource (DELETE /users/123) - idempotent at HTTP level
+ * - Updates where last-write-wins is acceptable
+ *
+ * ## Implementation Notes
+ *
+ * **Server Requirements:**
+ * - Server must support `Idempotency-Key` header (or custom header)
+ * - Server must store keys and return cached responses for duplicates
+ * - Typical TTL: 24 hours
+ *
+ * **Client Behavior:**
+ * - [Auto]: `Idempotency-Key: <provisionalId>`
+ * - [Explicit]: `Idempotency-Key: <customValue>`
+ * - [None]: No header sent
+ *
+ * **Error Handling:**
+ * - If server returns 409 Conflict with different result → rekeying needed
+ * - If server returns 500 → retry with same idempotency key
+ * - If client restarts → provisional ID persists, idempotency preserved
+ *
+ * ## Best Practices
+ *
+ * 1. **For creates**: Use [Auto] with [IdStrategy.ProvisionalUuid]
+ * 2. **For upserts**: Use [None] if PUT is truly idempotent, otherwise [Explicit]
+ * 3. **For financial operations**: Always use [Explicit] with unique transaction ID
+ * 4. **For analytics events**: Use [Explicit] with event ID to deduplicate
+ * 5. **For bulk operations**: Consider batch-level idempotency keys
+ *
+ * ## See Also
+ * - [CreatePolicy.idempotency]
+ * - [UpsertPolicy.idempotency]
+ * - [IdStrategy] for provisional ID generation
+ * - Stripe API Idempotency: https://stripe.com/docs/api/idempotent_requests
+ */
 sealed interface Idempotency {
+    /**
+     * Automatically derive idempotency key from provisional resource ID.
+     *
+     * Use with [IdStrategy.ProvisionalUuid] or [IdStrategy.ContentHash].
+     * Sends `Idempotency-Key: <provisionalId>` to server.
+     *
+     * **Recommended for:** Creates with client-generated IDs
+     */
     data object Auto : Idempotency
-    data class Explicit(val value: String) : Idempotency
-    data object None : Idempotency
 
+    /**
+     * Use an explicit custom idempotency key.
+     *
+     * Sends `Idempotency-Key: <value>` to server.
+     *
+     * **Recommended for:** Business logic keys, composite keys, semantic deduplication
+     *
+     * @property value Custom idempotency key (e.g., "order-123-456", "session-device-789")
+     */
+    data class Explicit(val value: String) : Idempotency
+
+    /**
+     * No idempotency key sent.
+     *
+     * Each retry is treated as a new request. Use only when:
+     * - Operation is inherently idempotent (e.g., PUT replace)
+     * - Server doesn't support idempotency keys
+     * - Other deduplication mechanisms exist
+     *
+     * **Warning:** May create duplicates on retry for non-idempotent operations
+     *
+     * **Recommended for:** PUT/DELETE operations, performance-critical paths
+     */
+    data object None : Idempotency
 }
 
-interface MutationEncoder<Patch, Draft, V, NetPatch, NetDraft, NetPut> {
-    suspend fun fromPatch(patch: Patch, base: V?): NetPatch?
-    suspend fun fromDraft(draft: Draft): NetDraft?
-    suspend fun fromValue(value: V): NetPut?
+/**
+ * Encodes domain types to network DTOs for mutation operations.
+ *
+ * Separates network encoding for each mutation type (PATCH, POST, PUT) to support
+ * APIs with different request shapes per operation.
+ *
+ * @param Patch The domain patch type
+ * @param Draft The domain draft type
+ * @param Domain The application's domain model type
+ * @param NetworkPatch The network DTO for PATCH requests
+ * @param NetworkDraft The network DTO for POST/create requests
+ * @param NetworkPut The network DTO for PUT/upsert requests
+ *
+ * @see SimpleMutationEncoder For simplified 4-parameter version when all network types are the same
+ */
+interface MutationEncoder<Patch, Draft, Domain, NetworkPatch, NetworkDraft, NetworkPut> {
+    suspend fun fromPatch(patch: Patch, base: Domain?): NetworkPatch?
+    suspend fun fromDraft(draft: Draft): NetworkDraft?
+    suspend fun fromValue(value: Domain): NetworkPut?
 }

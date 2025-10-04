@@ -23,6 +23,7 @@ internal data class ComposeResult<V: Any>(
  * - Batches reads via NormalizationBackend.read(...)
  * - Tracks dependencies (entity keys visited)
  * - Aggregates GraphMeta using EntityMeta
+ * - Handles errors gracefully, tracking failed entities
  */
 internal suspend fun <V: Any> composeFromRoot(
     root: EntityKey,
@@ -30,10 +31,12 @@ internal suspend fun <V: Any> composeFromRoot(
     registry: SchemaRegistry,
     backend: NormalizationBackend
 ): ComposeResult<V> {
-    // BFS gather of records
+    // BFS gather of records with depth tracking
     val seen = LinkedHashSet<EntityKey>()
-    val queue = ArrayDeque<EntityKey>().apply { add(root) }
+    val queue = ArrayDeque<Pair<EntityKey, Int>>().apply { add(root to 0) }  // Track (key, depth)
     val records = LinkedHashMap<EntityKey, NormalizedRecord?>()
+    val errors = mutableMapOf<EntityKey, Throwable>()
+    var maxDepthReached = false
 
     fun outboundRefs(rec: NormalizedRecord?): Set<EntityKey> {
         if (rec == null) return emptySet()
@@ -41,14 +44,48 @@ internal suspend fun <V: Any> composeFromRoot(
     }
 
     while (queue.isNotEmpty()) {
-        val batch = buildList<EntityKey> {
-            while (queue.isNotEmpty() && size < 256) add(queue.removeFirst())
-        }.filterNot(seen::contains)
+        val batch = buildList<Pair<EntityKey, Int>> {
+            while (queue.isNotEmpty() && size < 256) {
+                val (key, depth) = queue.removeFirst()
+
+                // Check depth limit
+                if (depth >= shape.maxDepth) {
+                    maxDepthReached = true
+                    continue
+                }
+
+                // Cycle detection - skip if already seen
+                if (key in seen) continue
+
+                add(key to depth)
+            }
+        }
 
         if (batch.isEmpty()) continue
-        seen += batch
-        records += backend.read(batch.toSet())
-        batch.forEach { key -> outboundRefs(records[key]).forEach { if (it !in seen) queue.add(it) } }
+
+        val keys = batch.map { it.first }
+        seen += keys
+
+        // Handle backend read errors gracefully
+        try {
+            records += backend.read(keys.toSet())
+        } catch (e: Exception) {
+            // Log error and mark entities as failed, but continue with partial data
+            keys.forEach { key ->
+                errors[key] = e
+                records[key] = null  // Mark as null to stop traversal for this branch
+            }
+            // Continue to next batch instead of failing completely
+            continue
+        }
+
+        batch.forEach { (key, depth) ->
+            outboundRefs(records[key]).forEach { childKey ->
+                if (childKey !in seen) {
+                    queue.add(childKey to depth + 1)  // Increment depth
+                }
+            }
+        }
     }
 
     // Meta aggregation
@@ -78,8 +115,33 @@ internal suspend fun <V: Any> composeFromRoot(
     val rootRec = records[root]
     @Suppress("UNCHECKED_CAST")
     val rootAdapter: EntityAdapter<V> = registry.getAdapter(root.typeName)
-    val value = rootRec?.let { rootAdapter.denormalize(it, resolver) }
-        ?: error("Root entity not found: $root")
+
+    val value = if (rootRec != null) {
+        try {
+            rootAdapter.denormalize(rootRec, resolver)
+        } catch (e: Exception) {
+            throw dev.mattramotar.storex.store.normalization.GraphCompositionException(
+                message = "Failed to denormalize root entity: $root",
+                rootKey = root,
+                shapeId = shape.id,
+                partialRecords = records.size,
+                totalExpected = seen.size,
+                failedEntities = errors,
+                maxDepthReached = maxDepthReached,
+                cause = e
+            )
+        }
+    } else {
+        throw dev.mattramotar.storex.store.normalization.GraphCompositionException(
+            message = "Root entity not found: $root",
+            rootKey = root,
+            shapeId = shape.id,
+            partialRecords = records.size,
+            totalExpected = seen.size,
+            failedEntities = errors,
+            maxDepthReached = maxDepthReached
+        )
+    }
 
     return ComposeResult(
         value = value,

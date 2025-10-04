@@ -43,7 +43,7 @@ import kotlin.time.Duration
  * @return A configured Store instance
  */
 fun <K : StoreKey, V : Any> store(
-    scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+    scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),  // Use IO dispatcher for database operations
     block: StoreBuilderScope<K, V>.() -> Unit
 ): Store<K, V> {
     val builder = DefaultStoreBuilderScope<K, V>()
@@ -98,7 +98,7 @@ fun <K : StoreKey, V : Any> store(
  * @return A configured MutationStore instance
  */
 fun <K : StoreKey, V : Any, P, D> mutationStore(
-    scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+    scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),  // Use IO dispatcher for database operations
     block: MutationStoreBuilderScope<K, V, P, D>.() -> Unit
 ): MutationStore<K, V, P, D> {
     val builder = DefaultMutationStoreBuilderScope<K, V, P, D>()

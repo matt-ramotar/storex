@@ -63,7 +63,7 @@ internal class DefaultStoreBuilderScope<K : StoreKey, V : Any> : StoreBuilderSco
 
     fun build(): Store<K, V> {
         val actualFetcher = requireNotNull(fetcher) { "fetcher is required" }
-        val actualScope = scope ?: CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val actualScope = scope ?: CoroutineScope(SupervisorJob() + Dispatchers.IO)  // Use IO for database operations
 
         val cache = createMemoryCache()
         val sot = createSourceOfTruth()
@@ -162,7 +162,7 @@ internal class DefaultMutationStoreBuilderScope<K : StoreKey, V : Any, P, D> :
 
     fun build(): MutationStore<K, V, P, D> {
         val actualFetcher = requireNotNull(fetcher) { "fetcher is required" }
-        val actualScope = scope ?: CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val actualScope = scope ?: CoroutineScope(SupervisorJob() + Dispatchers.IO)  // Use IO for database operations
 
         val cache = createMemoryCache()
         val sot = createSourceOfTruth()
