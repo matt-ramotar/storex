@@ -822,7 +822,7 @@ See [MIGRATION.md](./MIGRATION.md) for detailed migration instructions.
 - [THREADING.md](./THREADING.md) - Concurrency model and thread safety guarantees
 - [PERFORMANCE.md](./PERFORMANCE.md) - Optimization tips and benchmarks
 - [MIGRATION.md](./MIGRATION.md) - Migration from other libraries
-- [API Documentation](./docs/api/) - Comprehensive API reference
+- [API Documentation](../docs/api/) - Comprehensive API reference (if available)
 
 ---
 

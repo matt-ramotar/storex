@@ -68,7 +68,7 @@ dependencies {
 }
 ```
 
-**See:** [CHOOSING_MODULES.md](CHOOSING_MODULES.md) for detailed module selection guide
+**See:** [CHOOSING_MODULES.md](docs/CHOOSING_MODULES.md) for detailed module selection guide
 
 ---
 
@@ -250,7 +250,7 @@ Layer 1: Foundation
 └── resilience (Retry, circuit breaking)
 ```
 
-**See:** [MODULES.md](MODULES.md) for complete module reference
+**See:** [MODULES.md](docs/MODULES.md) for complete module reference
 
 ### Data Flow
 
@@ -284,7 +284,7 @@ Layer 1: Foundation
 └──────────────────────────────────────────┘
 ```
 
-**See:** [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture
+**See:** [ARCHITECTURE.md](docs/ARCHITECTURE.md) for detailed architecture
 
 ---
 
@@ -368,16 +368,16 @@ fun PostsList(pageStore: PageStore<PostsKey, Post>) {
 
 ### Core Documentation
 
-- **[MODULES.md](MODULES.md)** - Complete module reference (17 modules)
-- **[CHOOSING_MODULES.md](CHOOSING_MODULES.md)** - Which modules do I need?
-- **[BUNDLE_GUIDE.md](BUNDLE_GUIDE.md)** - Bundles vs individual modules
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Architecture deep dive
-- **[MIGRATION.md](MIGRATION.md)** - Migration from other libraries
+- **[MODULES.md](docs/MODULES.md)** - Complete module reference (17 modules)
+- **[CHOOSING_MODULES.md](docs/CHOOSING_MODULES.md)** - Which modules do I need?
+- **[BUNDLE_GUIDE.md](docs/BUNDLE_GUIDE.md)** - Bundles vs individual modules
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** - Architecture deep dive
+- **[MIGRATION.md](docs/MIGRATION.md)** - Migration from other libraries
 
 ### Technical Documentation
 
-- **[PERFORMANCE.md](PERFORMANCE.md)** - Optimization and benchmarks
-- **[THREADING.md](THREADING.md)** - Concurrency model and thread safety
+- **[PERFORMANCE.md](docs/PERFORMANCE.md)** - Optimization and benchmarks
+- **[THREADING.md](docs/THREADING.md)** - Concurrency model and thread safety
 
 ### Module-Specific Guides
 
@@ -523,7 +523,7 @@ limitations under the License.
 ## 🔗 Links
 
 - **GitHub**: https://github.com/matt-ramotar/storex
-- **Documentation**: [MODULES.md](MODULES.md)
+- **Documentation**: [MODULES.md](docs/MODULES.md)
 - **Issues**: https://github.com/matt-ramotar/storex/issues
 - **Discussions**: https://github.com/matt-ramotar/storex/discussions
 

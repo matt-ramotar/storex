@@ -326,7 +326,7 @@ override fun stableHash(): Long {
 - Backward compatible with existing code
 
 **5. Comprehensive Documentation**
-- `SIMPLIFIED_API.md` - Complete guide with examples
+- `../SIMPLIFIED_API.md` - Complete guide with examples
 - Migration path from old API
 - Best practices for choosing the right type
 - Before/after comparisons
@@ -384,7 +384,7 @@ val store: BasicMutationStore<
 - `SimpleConverter.kt` - 3-param converter interface with adapters
 - `SimpleMutationEncoder.kt` - 4-param encoder interface with adapters
 - `TypeAliases.kt` - Type aliases for common patterns
-- `SIMPLIFIED_API.md` - Comprehensive documentation
+- `../SIMPLIFIED_API.md` - Comprehensive documentation
 
 **Files Modified:**
 - `ConfigScopes.kt` - Added ConverterConfig for DSL support
@@ -853,7 +853,7 @@ The following should be tested before production:
 - Added comprehensive @param KDoc to all type aliases
 
 **7. Migration Guide Created**
-- `GENERIC_NAMING_MIGRATION.md` - Complete migration guide
+- `../archive/GENERIC_NAMING_MIGRATION.md` - Complete migration guide
 - Search & replace patterns
 - Before/after code examples
 - Breaking changes documentation
