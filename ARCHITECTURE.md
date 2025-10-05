@@ -1,17 +1,18 @@
 # StoreX Architecture
 
-**Last Updated**: 2025-10-04
+**Last Updated**: 2025-10-05
 **Version**: 1.0
 
 ## Table of Contents
 1. [Overview](#overview)
-2. [Core Architecture](#core-architecture)
-3. [Data Flow](#data-flow)
-4. [Key Components](#key-components)
-5. [Normalization Architecture](#normalization-architecture)
-6. [Mutations & Writes](#mutations--writes)
-7. [Caching Strategy](#caching-strategy)
-8. [Extension Points](#extension-points)
+2. [Modular Architecture](#modular-architecture)
+3. [Core Architecture](#core-architecture)
+4. [Data Flow](#data-flow)
+5. [Key Components](#key-components)
+6. [Normalization Architecture](#normalization-architecture)
+7. [Mutations & Writes](#mutations--writes)
+8. [Caching Strategy](#caching-strategy)
+9. [Extension Points](#extension-points)
 
 ---
 
@@ -34,6 +35,199 @@ StoreX is a Kotlin Multiplatform library that provides a sophisticated **caching
 - **REST APIs**: Entity caching with relationships
 - **Offline-First Apps**: Local persistence with background sync
 - **Real-time Data**: Reactive updates across app components
+
+---
+
+## Modular Architecture
+
+StoreX v1.0 introduces a **modular architecture** with 17 focused modules, replacing the previous monolithic `:store` module. This design enables:
+
+- **Minimal dependencies**: Use only what you need (e.g., `:core` for read-only caching)
+- **Clear separation of concerns**: Read operations (`:core`) separated from writes (`:mutations`)
+- **Independent evolution**: Modules can be updated independently
+- **Better tree-shaking**: Reduce app size by excluding unused modules
+
+### Module Layers
+
+StoreX modules are organized into 6 architectural layers:
+
+```
+Layer 6: Convenience (Meta-Packages)
+├── bundle-graphql       # GraphQL all-in-one (core + mutations + normalization + interceptors)
+├── bundle-rest          # REST all-in-one (core + mutations + resilience + serialization)
+├── bundle-android       # Android all-in-one (core + mutations + android + compose)
+└── bom                  # Bill of Materials for version management
+
+Layer 5: Development & Observability
+├── testing              # Test utilities, fakes, assertion helpers
+└── telemetry            # Metrics collection, distributed tracing, monitoring
+
+Layer 4: Integrations & Extensions
+├── interceptors         # Request/response interception (auth, logging, metrics)
+├── serialization-kotlinx # Kotlinx Serialization integration (JSON, ProtoBuf)
+├── android              # Android platform (Room, WorkManager, Lifecycle)
+├── compose              # Jetpack Compose helpers (collectAsState, LazyColumn)
+└── ktor-client          # Ktor HTTP client integration (retry, ETags, auth)
+
+Layer 3: Advanced Features
+├── normalization:runtime # Graph normalization and composition
+├── normalization:ksp    # KSP code generation for normalizers
+└── paging               # Bidirectional pagination (cursor/offset-based)
+
+Layer 2: Write Operations
+└── mutations            # CRUD operations (update, create, delete, upsert, replace)
+
+Layer 1: Foundation (Zero Internal Dependencies)
+├── core                 # Read-only store, caching, reactive updates
+└── resilience           # Retry policies, circuit breaking, rate limiting
+```
+
+### Module Dependency Graph
+
+```
+:bundle-graphql
+├── :core
+├── :mutations
+│   └── :core
+├── :normalization:runtime
+│   ├── :core
+│   └── :mutations
+└── :interceptors
+    └── :core
+
+:bundle-rest
+├── :core
+├── :mutations
+│   └── :core
+├── :resilience
+└── :serialization-kotlinx
+    └── :core
+
+:bundle-android
+├── :core
+├── :mutations
+│   └── :core
+├── :android
+│   ├── :core
+│   └── :mutations
+└── :compose
+    ├── :core
+    └── :paging
+
+:normalization:ksp
+└── :normalization:runtime
+    ├── :core
+    └── :mutations
+
+:paging
+└── :core
+```
+
+### Module Characteristics
+
+| Layer | Modules | Dependencies | Platform Support | Status |
+|-------|---------|--------------|------------------|--------|
+| **Foundation** | `:core`, `:resilience` | None (external libs only) | All platforms | ✅ Production |
+| **Write Ops** | `:mutations` | `:core` | All platforms | ✅ Production |
+| **Advanced** | `:normalization:runtime`, `:normalization:ksp`, `:paging` | Layer 1 + 2 | All platforms | ✅ Production |
+| **Integrations** | `:interceptors`, `:serialization-kotlinx`, `:android`, `:compose`, `:ktor-client` | Layer 1 + 2 | Platform-specific | 🚧 Placeholder |
+| **Observability** | `:testing`, `:telemetry` | Layer 1 + 2 | All platforms | 🚧 Placeholder |
+| **Convenience** | `:bundle-*`, `:bom` | Aggregates lower layers | Varies by bundle | ✅ Production |
+
+### Choosing Modules
+
+**Quick guide:**
+
+| Use Case | Modules |
+|----------|---------|
+| **Read-only caching** | `:core` |
+| **Simple CRUD app** | `:core` + `:mutations` |
+| **GraphQL with normalization** | `:bundle-graphql` or `:core` + `:mutations` + `:normalization:runtime` |
+| **REST API with retry** | `:bundle-rest` or `:core` + `:mutations` + `:resilience` |
+| **Android with Compose** | `:bundle-android` or `:core` + `:mutations` + `:android` + `:compose` |
+| **Infinite scroll lists** | `:core` + `:paging` (+ `:compose` for LazyColumn) |
+
+**See also:**
+- [MODULES.md](./MODULES.md) - Complete module reference
+- [CHOOSING_MODULES.md](./CHOOSING_MODULES.md) - Module selection guide
+- [BUNDLE_GUIDE.md](./BUNDLE_GUIDE.md) - Bundles vs individual modules
+
+### Module Boundaries
+
+Each module has clearly defined responsibilities:
+
+**`:core` (Read-Only Store)**
+- `Store<Key, Domain>` interface
+- Multi-tier caching (Memory → SoT → Network)
+- Freshness policies
+- Reactive updates via Flow
+- **Does NOT include**: Write operations, normalization, pagination
+
+**`:mutations` (Write Operations)**
+- `MutationStore<Key, Domain, Patch, Draft>` interface
+- CRUD operations: `update()`, `create()`, `delete()`, `upsert()`, `replace()`
+- Optimistic updates with rollback
+- Provisional keys for server-assigned IDs
+- **Depends on**: `:core`
+
+**`:normalization:runtime` (Graph Normalization)**
+- Normalized entity storage
+- Graph composition via BFS traversal
+- Automatic cache coherence
+- Relationship tracking
+- **Depends on**: `:core`, `:mutations`
+
+**`:paging` (Pagination)**
+- `PageStore<Key, Item>` interface
+- Cursor/offset-based pagination
+- Prefetch strategies
+- Load state management
+- **Depends on**: `:core`
+
+**`:bundle-graphql` (GraphQL All-in-One)**
+- Aggregates: `:core`, `:mutations`, `:normalization:runtime`, `:interceptors`
+- Pre-configured for GraphQL applications
+- Apollo Client-like normalized caching
+- **Use when**: Building GraphQL apps, want simplicity over customization
+
+**`:bundle-rest` (REST All-in-One)**
+- Aggregates: `:core`, `:mutations`, `:resilience`, `:serialization-kotlinx`
+- Pre-configured for REST APIs
+- Automatic retry, JSON parsing
+- **Use when**: Building REST apps, want full-featured setup
+
+**`:bundle-android` (Android All-in-One)**
+- Aggregates: `:core`, `:mutations`, `:android`, `:compose`
+- Pre-configured for Android apps
+- Room, WorkManager, Compose helpers
+- **Use when**: Building Android apps with Compose
+
+### Migration from Monolithic `:store`
+
+StoreX v1.0 replaces the monolithic `:store` module with modular architecture:
+
+**Before (v0.x):**
+```kotlin
+dependencies {
+    implementation("dev.mattramotar.storex:store:0.9.0")  // Monolithic
+}
+```
+
+**After (v1.0):**
+```kotlin
+// Option A: Use bundle
+dependencies {
+    implementation("dev.mattramotar.storex:bundle-rest:1.0.0")
+}
+
+// Option B: Individual modules (minimal)
+dependencies {
+    implementation("dev.mattramotar.storex:core:1.0.0")
+    implementation("dev.mattramotar.storex:mutations:1.0.0")
+}
+```
+
+**See:** [MIGRATION.md](./MIGRATION.md#from-monolithic-store6-to-modular-10) for complete migration guide.
 
 ---
 
@@ -619,6 +813,12 @@ See [MIGRATION.md](./MIGRATION.md) for detailed migration instructions.
 
 ## See Also
 
+**Module Documentation:**
+- [MODULES.md](./MODULES.md) - Complete module reference (17 modules)
+- [CHOOSING_MODULES.md](./CHOOSING_MODULES.md) - Module selection guide
+- [BUNDLE_GUIDE.md](./BUNDLE_GUIDE.md) - Bundles vs individual modules
+
+**Technical Documentation:**
 - [THREADING.md](./THREADING.md) - Concurrency model and thread safety guarantees
 - [PERFORMANCE.md](./PERFORMANCE.md) - Optimization tips and benchmarks
 - [MIGRATION.md](./MIGRATION.md) - Migration from other libraries
@@ -626,4 +826,4 @@ See [MIGRATION.md](./MIGRATION.md) for detailed migration instructions.
 
 ---
 
-**Last Updated**: 2025-10-04
+**Last Updated**: 2025-10-05

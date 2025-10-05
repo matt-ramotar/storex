@@ -1,16 +1,17 @@
 # StoreX Migration Guide
 
-**Last Updated**: 2025-10-04
+**Last Updated**: 2025-10-05
 **Version**: 1.0
 
 ## Table of Contents
 1. [Overview](#overview)
-2. [Migration from Store5](#migration-from-store5)
-3. [Migration from Apollo Client](#migration-from-apollo-client)
-4. [Migration from Room/Realm](#migration-from-roomrealm)
-5. [Migration from Custom Cache](#migration-from-custom-cache)
-6. [Breaking Changes](#breaking-changes)
-7. [Compatibility Layer](#compatibility-layer)
+2. [From Monolithic Store6 to Modular 1.0](#from-monolithic-store6-to-modular-10)
+3. [Migration from Store5](#migration-from-store5)
+4. [Migration from Apollo Client](#migration-from-apollo-client)
+5. [Migration from Room/Realm](#migration-from-roomrealm)
+6. [Migration from Custom Cache](#migration-from-custom-cache)
+7. [Breaking Changes](#breaking-changes)
+8. [Compatibility Layer](#compatibility-layer)
 
 ---
 
@@ -22,10 +23,409 @@ This guide helps you migrate to StoreX from other popular caching and data manag
 
 | From Library | Estimated Effort | Difficulty |
 |-------------|-----------------|------------|
+| **Monolithic Store6** | 1-2 hours | Very Low (mostly dependencies) |
 | **Store5** | 1-3 days | Low (similar API) |
 | **Apollo Client (Android)** | 3-7 days | Medium (normalization concepts transfer) |
 | **Room (direct)** | 5-10 days | High (architectural shift) |
 | **Custom cache** | Variable | Medium-High |
+
+---
+
+## From Monolithic Store6 to Modular 1.0
+
+### Overview
+
+StoreX v1.0 introduces a **modular architecture** with 17 focused modules, replacing the previous monolithic `:store` module. This migration is straightforward and primarily involves updating dependencies.
+
+**Key Changes:**
+- 🔀 **Modular structure**: Monolithic `:store` split into 17 focused modules
+- 📦 **New packages**: `dev.mattramotar.storex.core.*`, `dev.mattramotar.storex.mutations.*`, etc.
+- ✅ **API compatible**: Core APIs remain largely unchanged
+- 🎯 **Flexible dependencies**: Use only what you need (e.g., `:core` for read-only)
+
+### Quick Migration Paths
+
+#### Path A: Use Bundles (Recommended - 5 minutes)
+
+**Best for:** Most applications, getting started quickly
+
+```kotlin
+// Before (v0.x - monolithic)
+dependencies {
+    implementation("dev.mattramotar.storex:store:0.9.0")
+}
+
+// After (v1.0 - bundle)
+dependencies {
+    // Choose based on your use case:
+    implementation("dev.mattramotar.storex:bundle-graphql:1.0.0")  // GraphQL apps
+    // OR
+    implementation("dev.mattramotar.storex:bundle-rest:1.0.0")     // REST apps
+    // OR
+    implementation("dev.mattramotar.storex:bundle-android:1.0.0")  // Android apps
+}
+```
+
+**Import changes:**
+```kotlin
+// Before
+import dev.mattramotar.storex.store.*
+
+// After
+import dev.mattramotar.storex.core.*           // Core types
+import dev.mattramotar.storex.mutations.*     // Mutation operations
+import dev.mattramotar.storex.normalization.* // Normalization (if using bundle-graphql)
+```
+
+**That's it!** Your code should work with minimal changes.
+
+---
+
+#### Path B: Individual Modules (10-15 minutes)
+
+**Best for:** Minimizing app size, precise control over dependencies
+
+**Step 1: Identify Features You Use**
+
+| Feature | Required Modules |
+|---------|------------------|
+| Read-only caching | `:core` |
+| Write operations (update/create/delete) | `:core` + `:mutations` |
+| Graph normalization (GraphQL) | `:core` + `:mutations` + `:normalization:runtime` |
+| Pagination | `:core` + `:paging` |
+| Retry/circuit breaking | `:core` + `:resilience` |
+
+**Step 2: Update Dependencies**
+
+```kotlin
+// Before (v0.x)
+dependencies {
+    implementation("dev.mattramotar.storex:store:0.9.0")
+}
+
+// After (v1.0) - minimal setup
+dependencies {
+    implementation("dev.mattramotar.storex:core:1.0.0")
+    implementation("dev.mattramotar.storex:mutations:1.0.0")  // If you use MutableStore
+
+    // Optional: Add based on features
+    // implementation("dev.mattramotar.storex:normalization-runtime:1.0.0")
+    // implementation("dev.mattramotar.storex:paging:1.0.0")
+    // implementation("dev.mattramotar.storex:resilience:1.0.0")
+}
+```
+
+**Step 3: Update Imports**
+
+```kotlin
+// Before (all from store module)
+import dev.mattramotar.storex.store.Store
+import dev.mattramotar.storex.store.MutableStore
+import dev.mattramotar.storex.store.StoreBuilder
+import dev.mattramotar.storex.store.normalization.*
+
+// After (module-specific imports)
+import dev.mattramotar.storex.core.Store              // from :core
+import dev.mattramotar.storex.mutations.MutationStore // from :mutations
+import dev.mattramotar.storex.core.dsl.store          // from :core
+import dev.mattramotar.storex.normalization.*         // from :normalization:runtime
+```
+
+---
+
+### Package Name Mapping
+
+| Old Package (v0.x) | New Package (v1.0) | Module |
+|-------------------|-------------------|--------|
+| `dev.mattramotar.storex.store` | `dev.mattramotar.storex.core` | `:core` |
+| `dev.mattramotar.storex.store.MutableStore` | `dev.mattramotar.storex.mutations.MutationStore` | `:mutations` |
+| `dev.mattramotar.storex.store.normalization` | `dev.mattramotar.storex.normalization` | `:normalization:runtime` |
+| `dev.mattramotar.storex.store.paging` | `dev.mattramotar.storex.paging` | `:paging` |
+
+---
+
+### Code Changes
+
+#### 1. Store Creation (Read-Only)
+
+**Before (v0.x):**
+```kotlin
+val userStore = StoreBuilder
+    .from<String, User>(
+        fetcher = Fetcher.of { userId ->
+            api.getUser(userId)
+        }
+    )
+    .build()
+```
+
+**After (v1.0):**
+```kotlin
+val userStore = store<ByIdKey, User> {
+    fetcher { key ->
+        flow {
+            val user = api.getUser(key.entity.id)
+            emit(FetcherResult.Success(user))
+        }
+    }
+}
+```
+
+**Key changes:**
+- ✅ Use `store { }` DSL instead of `StoreBuilder`
+- ✅ Keys must implement `StoreKey` (use `ByIdKey` or custom)
+- ✅ Fetcher returns `Flow<FetcherResult>`
+
+---
+
+#### 2. Mutation Store (Read + Write)
+
+**Before (v0.x):**
+```kotlin
+val userStore = MutableStoreBuilder
+    .from<String, User>(
+        fetcher = Fetcher.of { userId -> api.getUser(userId) }
+    )
+    .withUpdater { userId, patch -> api.updateUser(userId, patch) }
+    .build()
+```
+
+**After (v1.0):**
+```kotlin
+val userStore = mutationStore<ByIdKey, User, UserPatch, UserDraft> {
+    fetcher { key ->
+        flow {
+            val user = api.getUser(key.entity.id)
+            emit(FetcherResult.Success(user))
+        }
+    }
+
+    mutations {
+        updater { key, patch ->
+            api.updateUser(key.entity.id, patch)
+        }
+
+        creator { draft ->
+            val response = api.createUser(draft)
+            CreateResult(
+                key = ByIdKey(namespace, EntityId("User", response.id)),
+                value = response
+            )
+        }
+
+        deleter { key ->
+            api.deleteUser(key.entity.id)
+        }
+    }
+}
+```
+
+**Key changes:**
+- ✅ `MutableStore` → `MutationStore`
+- ✅ Use `mutations { }` block for CRUD operations
+- ✅ More explicit type parameters: `<Key, Domain, Patch, Draft>`
+
+---
+
+#### 3. Normalized Store (GraphQL)
+
+**Before (v0.x):**
+```kotlin
+val store = NormalizedStoreBuilder
+    .from<QueryKey, User>(
+        fetcher = graphQLFetcher
+    )
+    .withNormalization(normalizer, backend)
+    .build()
+```
+
+**After (v1.0):**
+```kotlin
+val store = normalizedStore<QueryKey, User> {
+    fetcher { key ->
+        flow {
+            val response = graphQLClient.query(key.query)
+            emit(FetcherResult.Success(response))
+        }
+    }
+
+    normalization {
+        backend = graphQLBackend
+        registry = schemaRegistry
+        normalizer = GraphQLNormalizer(registry)
+    }
+}
+```
+
+**Key changes:**
+- ✅ Use `normalization { }` block
+- ✅ Explicitly configure `backend`, `registry`, `normalizer`
+
+---
+
+### Dependency Mapping
+
+**Map your old usage to new modules:**
+
+| Old Feature | Old Module | New Modules |
+|------------|-----------|-------------|
+| **Read-only store** | `:store` | `:core` |
+| **Mutable store** | `:store` | `:core` + `:mutations` |
+| **GraphQL normalization** | `:store` | `:core` + `:mutations` + `:normalization:runtime` |
+| **Pagination** | `:store` | `:core` + `:paging` |
+| **Retry/resilience** | `:store` | `:core` + `:resilience` |
+
+---
+
+### Breaking Changes
+
+#### 1. Key Types
+
+**Breaking:** Keys must implement `StoreKey`
+
+**Before (v0.x):**
+```kotlin
+val store = StoreBuilder.from<String, User>(...)  // String key
+store.get("user123")
+```
+
+**After (v1.0):**
+```kotlin
+val store = store<ByIdKey, User> { ... }
+val key = ByIdKey(
+    namespace = StoreNamespace("users"),
+    entity = EntityId("User", "user123")
+)
+store.get(key)
+```
+
+**Migration:**
+- Use built-in `ByIdKey` for entity IDs
+- Use `QueryKey` for query parameters
+- Or implement custom `StoreKey`
+
+---
+
+#### 2. Package Names
+
+**Breaking:** All packages renamed
+
+| Old | New |
+|-----|-----|
+| `dev.mattramotar.storex.store.*` | `dev.mattramotar.storex.core.*` |
+| `dev.mattramotar.storex.store.MutableStore` | `dev.mattramotar.storex.mutations.MutationStore` |
+
+**Migration:** Find-and-replace imports (IDE can help)
+
+---
+
+#### 3. Builder Pattern
+
+**Breaking:** `StoreBuilder` → `store { }` DSL
+
+**Migration:**
+```kotlin
+// Before
+StoreBuilder.from<K, V>(fetcher).build()
+
+// After
+store<K, V> { fetcher { ... } }
+```
+
+---
+
+### Migration Checklist
+
+- [ ] **Step 1:** Choose migration path (bundles vs individual modules)
+- [ ] **Step 2:** Update `build.gradle.kts` dependencies
+  - [ ] Remove old `:store` dependency
+  - [ ] Add new module dependencies (bundle or individual)
+- [ ] **Step 3:** Update imports
+  - [ ] Replace `dev.mattramotar.storex.store.*` with module-specific imports
+  - [ ] Update `MutableStore` → `MutationStore`
+- [ ] **Step 4:** Update key types
+  - [ ] Replace primitive keys (String, Int) with `StoreKey` implementations
+  - [ ] Use `ByIdKey` or `QueryKey` or custom keys
+- [ ] **Step 5:** Update store creation
+  - [ ] Replace `StoreBuilder` with `store { }` DSL
+  - [ ] Update fetcher to return `Flow<FetcherResult>`
+- [ ] **Step 6:** Update mutation operations (if applicable)
+  - [ ] Use `mutations { }` block
+  - [ ] Update `updater`, `creator`, `deleter` signatures
+- [ ] **Step 7:** Test all read operations
+  - [ ] `store.get(key)` works
+  - [ ] `store.stream(key)` works
+  - [ ] Cache invalidation works
+- [ ] **Step 8:** Test all write operations (if applicable)
+  - [ ] `store.update(key, patch)` works
+  - [ ] `store.create(draft)` works
+  - [ ] `store.delete(key)` works
+- [ ] **Step 9:** Verify build
+  - [ ] Run `./gradlew build`
+  - [ ] All tests pass
+- [ ] **Step 10:** Verify runtime behavior
+  - [ ] App starts correctly
+  - [ ] Data loads as expected
+  - [ ] Offline mode works
+
+---
+
+### FAQ
+
+#### Q: Do I need to rewrite my entire app?
+
+**A:** No! Migration is mostly a dependency update. The core APIs are compatible.
+
+---
+
+#### Q: Should I use bundles or individual modules?
+
+**A:**
+- **Use bundles** if: You want simplicity, don't care about 100-200 KB app size
+- **Use individual modules** if: App size matters, you want precise control
+
+See [BUNDLE_GUIDE.md](./BUNDLE_GUIDE.md) for details.
+
+---
+
+#### Q: What if I only use read operations?
+
+**A:** Use `:core` only. No need for `:mutations` or other modules.
+
+```kotlin
+dependencies {
+    implementation("dev.mattramotar.storex:core:1.0.0")
+}
+```
+
+---
+
+#### Q: Can I migrate incrementally?
+
+**A:** No. You must migrate all StoreX usage at once (same version across modules).
+
+---
+
+#### Q: Where do I get help?
+
+**A:**
+- [MODULES.md](./MODULES.md) - Module reference
+- [CHOOSING_MODULES.md](./CHOOSING_MODULES.md) - Module selection guide
+- [GitHub Issues](https://github.com/matt-ramotar/storex/issues)
+
+---
+
+### Timeline Estimate
+
+| Migration Path | Estimated Time |
+|---------------|----------------|
+| **Bundle (simple)** | 10-30 minutes |
+| **Bundle (complex)** | 1-2 hours |
+| **Individual modules (simple)** | 30 minutes - 1 hour |
+| **Individual modules (complex)** | 2-4 hours |
+
+**"Simple"**: Read-only or basic CRUD, < 5 stores
+**"Complex"**: Normalization, pagination, 10+ stores
 
 ---
 
@@ -756,4 +1156,4 @@ class Store5Adapter<Key, Output>(
 
 ---
 
-**Last Updated**: 2025-10-04
+**Last Updated**: 2025-10-05

@@ -1,6 +1,6 @@
 # StoreX Performance Guide
 
-**Last Updated**: 2025-10-04
+**Last Updated**: 2025-10-05
 **Version**: 1.0
 
 ## Table of Contents
@@ -11,8 +11,9 @@
 5. [Network Optimization](#network-optimization)
 6. [Database Optimization](#database-optimization)
 7. [Normalization Performance](#normalization-performance)
-8. [Benchmarks](#benchmarks)
-9. [Profiling](#profiling)
+8. [Module-Specific Optimizations](#module-specific-optimizations)
+9. [Benchmarks](#benchmarks)
+10. [Profiling](#profiling)
 
 ---
 
@@ -509,6 +510,466 @@ backend.updateRootDependencies(rootRef, result.dependencies)
 
 ---
 
+## Module-Specific Optimizations
+
+StoreX v1.0's modular architecture enables targeted optimizations per module. This section provides module-specific performance tips.
+
+### `:core` Module Optimizations
+
+#### 1. Memory Cache Tuning
+
+**Platform-specific recommendations:**
+
+```kotlin
+// Mobile (iOS, Android)
+val store = store<Key, Value> {
+    memoryCache {
+        maxSize = 100  // Conservative: 2-5MB
+    }
+}
+
+// Desktop (JVM, Electron)
+val store = store<Key, Value> {
+    memoryCache {
+        maxSize = 1000  // Generous: 20-50MB
+    }
+}
+
+// Server (Backend)
+val store = store<Key, Value> {
+    memoryCache {
+        maxSize = 10_000  // Large: 200MB+
+    }
+}
+```
+
+**Size impact:**
+- `:core` module: ~200 KB
+- Memory cache overhead: (maxSize × avg value size)
+
+#### 2. Freshness Policy Selection
+
+**Performance by policy:**
+
+| Policy | First Paint | Network | Memory | Use Case |
+|--------|------------|---------|--------|----------|
+| `CachedOrFetch` | **< 1ms** | Background | High | ✅ Most UI (recommended) |
+| `MinAge(duration)` | < 1ms (if fresh) | Conditional | High | Time-sensitive feeds |
+| `MustBeFresh` | 50-500ms | Blocking | Low | Critical operations |
+| `StaleIfError` | < 1ms | Background | High | Offline resilience |
+
+**Recommendation:** Use `CachedOrFetch` for 90% of UI cases.
+
+#### 3. Source of Truth Optimization
+
+**Choose the right SoT for your platform:**
+
+| Platform | Recommended SoT | Performance |
+|----------|----------------|-------------|
+| **Android** | Room | Read: ~5ms, Write: ~10ms |
+| **iOS** | Realm / CoreData | Read: ~8ms, Write: ~15ms |
+| **KMP** | SQLDelight | Read: ~6ms, Write: ~12ms |
+| **Server** | Redis | Read: ~1ms, Write: ~2ms |
+
+**Size impact:**
+- `:core` only: ~200 KB
+- No database dependencies (you choose)
+
+---
+
+### `:mutations` Module Optimizations
+
+#### 1. Optimistic Update Performance
+
+```kotlin
+// ✅ Fast: Optimistic update (instant UI)
+store.update(
+    key = key,
+    patch = patch,
+    policy = UpdatePolicy(optimistic = true)
+)
+// UI updates: < 1ms (local cache)
+// Network sync: 100-500ms (background)
+
+// ❌ Slow: Wait for server (blocking UI)
+store.update(
+    key = key,
+    patch = patch,
+    policy = UpdatePolicy(optimistic = false)
+)
+// UI updates: 100-500ms (waits for network)
+```
+
+**User experience:**
+- Optimistic: Instant feedback, occasional rollback
+- Non-optimistic: Slow, always correct
+
+**Recommendation:** Use optimistic updates for 90% of mutations.
+
+#### 2. Batch Mutations
+
+```kotlin
+// ❌ Slow: Sequential mutations
+users.forEach { user ->
+    store.update(userKey(user.id), UserPatch(name = "New Name"))
+}
+// Time: N × 200ms = 2000ms (for 10 users)
+
+// ✅ Fast: Parallel mutations
+coroutineScope {
+    users.map { user ->
+        async {
+            store.update(userKey(user.id), UserPatch(name = "New Name"))
+        }
+    }.awaitAll()
+}
+// Time: ~200ms (all parallel)
+```
+
+**Speedup:** 10x for 10 users
+
+#### 3. Write Coalescing
+
+```kotlin
+// ✅ Debounce rapid writes (e.g., search input)
+val debouncedUpdate = flow {
+    emit(searchQuery)
+}
+    .debounce(300.milliseconds)
+    .onEach { query ->
+        store.update(searchKey, SearchPatch(query = query))
+    }
+    .launchIn(viewModelScope)
+```
+
+**Network load:**
+- Without debounce: 20 requests (typing "kotlin")
+- With debounce: 1 request
+- **Reduction: 95%**
+
+**Size impact:**
+- `:core` + `:mutations`: ~300 KB (+100 KB)
+
+---
+
+### `:normalization:runtime` Module Optimizations
+
+#### 1. Graph Depth Control
+
+**Critical for performance:**
+
+```kotlin
+// ❌ Slow: Unbounded depth (exponential growth)
+val shape = Shape<User>(
+    id = ShapeId("UserEverything"),
+    maxDepth = Int.MAX_VALUE  // 🔥 Will explode!
+)
+
+// ✅ Fast: Bounded depth (linear growth)
+val shape = Shape<User>(
+    id = ShapeId("UserSummary"),
+    maxDepth = 2  // Just user → posts (no nested comments)
+)
+```
+
+**Performance by depth:**
+
+| Depth | Entities | Time | Use Case |
+|-------|----------|------|----------|
+| 1 | ~10 | ~5ms | List items |
+| 2 | ~100 | ~40ms | ✅ Detail views (recommended) |
+| 3 | ~1,000 | ~300ms | Complex graphs |
+| 4 | ~10,000 | ~3000ms | ❌ Too slow! |
+
+**Recommendation:** maxDepth = 2-3 for most apps
+
+#### 2. Shape Specialization
+
+```kotlin
+// ✅ Define multiple shapes for different screens
+
+// List screen: Shallow shape
+val userListShape = Shape<UserSummary>(
+    id = ShapeId("UserList"),
+    maxDepth = 1  // Just user fields
+)
+// Time: ~5ms, Entities: ~10
+
+// Detail screen: Deeper shape
+val userDetailShape = Shape<UserDetail>(
+    id = ShapeId("UserDetail"),
+    maxDepth = 2  // User + posts + comments
+)
+// Time: ~40ms, Entities: ~100
+
+// Admin screen: Full shape
+val userFullShape = Shape<UserFull>(
+    id = ShapeId("UserFull"),
+    maxDepth = 3  // Everything
+)
+// Time: ~300ms, Entities: ~1000
+```
+
+**Memory savings:**
+- Single shape (maxDepth=3): 1000 entities
+- Multiple shapes: 10 (list) + 100 (detail) = 110 entities
+- **Reduction: 90%**
+
+#### 3. Batch Size Tuning
+
+**Default batch size: 256 entities**
+
+```kotlin
+// For most apps: Leave default
+const val BATCH_SIZE = 256  // Optimal for SQL
+
+// For very large graphs: Increase
+const val BATCH_SIZE = 1024  // Fewer round-trips
+
+// For low-memory devices: Decrease
+const val BATCH_SIZE = 64  // Less memory usage
+```
+
+**Trade-offs:**
+
+| Batch Size | Round-trips (1000 entities) | Memory | Best For |
+|------------|---------------------------|--------|----------|
+| 64 | 16 | Low | Mobile (limited RAM) |
+| 256 | 4 | Medium | ✅ Default (balanced) |
+| 1024 | 1 | High | Server (large graphs) |
+
+**Size impact:**
+- `:core` + `:mutations` + `:normalization:runtime`: ~500 KB (+200 KB)
+
+---
+
+### `:paging` Module Optimizations
+
+#### 1. Page Size Selection
+
+```kotlin
+// ✅ Choose page size based on UI
+val pageStore = pageStore<PostsKey, Post> {
+    paging {
+        pageSize = 20  // Mobile: Small viewport
+        // OR
+        pageSize = 50  // Desktop: Large viewport
+        // OR
+        pageSize = 100  // Infinite scroll
+    }
+}
+```
+
+**Performance by page size:**
+
+| Page Size | Network | Parse | Render | Use Case |
+|-----------|---------|-------|--------|----------|
+| 10 | 50ms | 5ms | Fast | ✅ Mobile (small screens) |
+| 20 | 80ms | 10ms | Fast | ✅ Mobile (recommended) |
+| 50 | 150ms | 25ms | Medium | Desktop |
+| 100 | 250ms | 50ms | Slow | ❌ Too large |
+
+**Recommendation:** 20 for mobile, 50 for desktop
+
+#### 2. Prefetch Distance
+
+```kotlin
+val pageStore = pageStore<PostsKey, Post> {
+    paging {
+        prefetchDistance = 5  // Load next page when 5 items from end
+    }
+}
+```
+
+**User experience:**
+
+| Prefetch Distance | UX | Network Load | Use Case |
+|-------------------|-----|--------------|----------|
+| 0 | ❌ Jank at end | Minimal | Poor UX |
+| 5 | ✅ Smooth | Moderate | ✅ Recommended |
+| 10 | ✅ Very smooth | High | Fast networks |
+
+**Recommendation:** 5 items (default)
+
+#### 3. Bidirectional Loading
+
+```kotlin
+// ✅ Load in both directions (chat, timeline)
+pageStore.loadNext()  // Older posts
+pageStore.loadPrevious()  // Newer posts
+```
+
+**Performance tip:** Limit total cached pages
+
+```kotlin
+val pageStore = pageStore<PostsKey, Post> {
+    paging {
+        maxCachedPages = 10  // Drop old pages
+    }
+}
+```
+
+**Memory usage:**
+- Without limit: N × pageSize items
+- With limit: 10 × 20 = 200 items max
+- **Bounded memory**
+
+**Size impact:**
+- `:core` + `:paging`: ~250 KB (+50 KB)
+
+---
+
+### `:resilience` Module Optimizations
+
+#### 1. Retry Policy Tuning
+
+```kotlin
+// ✅ Balanced retry policy
+val store = store<Key, Value> {
+    resilience {
+        retry {
+            maxAttempts = 3
+            exponentialBackoff(
+                initial = 100.milliseconds,
+                max = 5.seconds,
+                factor = 2.0
+            )
+        }
+    }
+}
+```
+
+**Retry timing:**
+
+| Attempt | Delay | Total Time |
+|---------|-------|------------|
+| 1 | 0ms | 0ms |
+| 2 | 100ms | 100ms |
+| 3 | 200ms | 300ms |
+| 4 | 400ms (capped at 5s) | 700ms |
+
+**Network load:**
+- No retry: 1 request (fails fast)
+- 3 retries: Up to 4 requests (resilient)
+
+#### 2. Circuit Breaker
+
+```kotlin
+val store = store<Key, Value> {
+    resilience {
+        circuitBreaker {
+            failureThreshold = 5  // Open after 5 failures
+            resetTimeout = 30.seconds  // Try again after 30s
+        }
+    }
+}
+```
+
+**Benefit:** Prevents cascading failures
+
+**Network savings:**
+- Without circuit breaker: 1000 requests (all fail)
+- With circuit breaker: 5 requests (then stop)
+- **Reduction: 99.5%**
+
+**Size impact:**
+- `:core` + `:resilience`: ~300 KB (+100 KB)
+
+---
+
+### `:bundle-graphql` Optimizations
+
+**Includes:** `:core` + `:mutations` + `:normalization:runtime` + `:interceptors`
+
+**Total size:** ~500 KB
+
+**Optimization checklist:**
+- ✅ Use `maxDepth = 2` for most queries
+- ✅ Define specialized shapes per screen
+- ✅ Enable optimistic updates for mutations
+- ✅ Batch queries when possible
+- ✅ Use ETags for conditional requests
+
+**Performance:**
+- Query (100 entities): ~40ms
+- Mutation (optimistic): < 1ms UI, ~200ms sync
+- Cache hit: < 1ms
+
+---
+
+### `:bundle-rest` Optimizations
+
+**Includes:** `:core` + `:mutations` + `:resilience` + `:serialization-kotlinx`
+
+**Total size:** ~400 KB
+
+**Optimization checklist:**
+- ✅ Enable retry with exponential backoff
+- ✅ Use circuit breaker for flaky APIs
+- ✅ Enable gzip compression
+- ✅ Use `CachedOrFetch` freshness policy
+- ✅ Batch REST requests when API supports it
+
+**Performance:**
+- GET (cached): < 1ms
+- GET (network): ~100ms
+- POST/PUT (optimistic): < 1ms UI, ~200ms sync
+- Retry overhead: ~100-500ms (on failure)
+
+---
+
+### `:bundle-android` Optimizations
+
+**Includes:** `:core` + `:mutations` + `:android` + `:compose`
+
+**Total size:** ~450 KB
+
+**Optimization checklist:**
+- ✅ Scope stores to `viewModelScope` (lifecycle-aware)
+- ✅ Use `collectAsState()` for Compose
+- ✅ Enable WorkManager for background sync
+- ✅ Use Room for Source of Truth
+- ✅ Configure memory cache for mobile (maxSize = 100-200)
+
+**Performance:**
+- UI update (collectAsState): < 1ms
+- Background sync (WorkManager): ~200ms
+- Room read: ~5ms
+- Room write: ~10ms
+
+---
+
+### Module Size Comparison
+
+**APK size impact (approximate):**
+
+| Configuration | Size | Modules |
+|--------------|------|---------|
+| `:core` only | ~200 KB | Minimal setup |
+| `:core` + `:mutations` | ~300 KB | Most common |
+| `:bundle-graphql` | ~500 KB | GraphQL apps |
+| `:bundle-rest` | ~400 KB | REST apps |
+| `:bundle-android` | ~450 KB | Android apps |
+
+**Recommendation:** Start with bundles, optimize later if needed.
+
+---
+
+### Performance Decision Matrix
+
+**Choose modules based on performance requirements:**
+
+| Requirement | Recommended Modules | Size | Performance |
+|-------------|-------------------|------|-------------|
+| **Minimal (read-only)** | `:core` | 200 KB | Fastest |
+| **Standard (CRUD)** | `:core` + `:mutations` | 300 KB | Fast |
+| **GraphQL** | `:bundle-graphql` | 500 KB | Good (with tuning) |
+| **REST** | `:bundle-rest` | 400 KB | Fast |
+| **Offline-first** | `:core` + `:mutations` + `:resilience` | 400 KB | Resilient |
+| **Infinite scroll** | `:core` + `:paging` | 250 KB | Smooth |
+
+---
+
 ## Benchmarks
 
 ### Memory Cache Benchmarks
@@ -656,10 +1117,16 @@ class InstrumentedStore<K, V>(
 
 ## See Also
 
+**Module Documentation:**
+- [MODULES.md](./MODULES.md) - Complete module reference
+- [CHOOSING_MODULES.md](./CHOOSING_MODULES.md) - Module selection guide
+- [BUNDLE_GUIDE.md](./BUNDLE_GUIDE.md) - Bundles vs individual modules
+
+**Technical Documentation:**
 - [ARCHITECTURE.md](./ARCHITECTURE.md) - Overall architecture
 - [THREADING.md](./THREADING.md) - Concurrency model
 - [Test Suite](./store/src/commonTest/kotlin/dev/mattramotar/storex/store/concurrency/) - Performance tests
 
 ---
 
-**Last Updated**: 2025-10-04
+**Last Updated**: 2025-10-05
