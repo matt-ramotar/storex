@@ -8,6 +8,7 @@ plugins {
     id("plugin.storex.maven.publish")
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.mokkery)
+    alias(libs.plugins.kover)
 }
 
 group = "dev.mattramotar.storex"
@@ -15,6 +16,12 @@ version = "1.0.0"
 
 android {
     namespace = "dev.mattramotar.storex.core"
+
+    testOptions {
+        unitTests {
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 kotlin {
