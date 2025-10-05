@@ -55,6 +55,3 @@ include(":bundle-android")
 
 // Samples & Tools
 include(":sample")
-
-// Legacy modules (to be migrated/removed)
-include(":store")

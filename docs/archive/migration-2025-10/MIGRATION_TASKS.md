@@ -1,8 +1,8 @@
 # StoreX Module Restructure - Migration Tasks
 
 **Started**: 2025-10-04
-**Target Completion**: 2025-10-10 (1 week - ahead of schedule!)
-**Status**: 🟢 NEARLY COMPLETE (~90% complete)
+**Completed**: 2025-10-05 (Main migration phases)
+**Status**: ✅ ARCHIVED - Core migration complete (~92%), remaining work tracked in docs/TODO.md
 
 ---
 
@@ -20,7 +20,7 @@ Complete restructure of StoreX from monolithic `:store` module into clean, modul
 - ✅ **Bundle Documentation**: 100% complete (comprehensive READMEs)
 - ✅ **General Documentation**: 100% complete (all docs updated with modular structure)
 - ⏳ **Testing & Verification**: ~25% complete
-- ⏳ **Cleanup**: 0% complete (old :store module still exists)
+- ⏳ **Cleanup**: ~20% complete (store module deleted ✅, final tasks remain)
 
 ### Completed Phases ✅
 - **Phase 1**: Module Structure & Build Setup (100% complete) ✅
@@ -36,7 +36,7 @@ Complete restructure of StoreX from monolithic `:store` module into clean, modul
 ### Remaining Phases ⏳
 - **Phase 10**: Sample App Updates (0% complete) - Update examples
 - **Phase 11**: Testing & Verification (25% complete) - Full test suite
-- **Phase 12**: Cleanup & Release (0% complete) - Delete old :store, release prep
+- **Phase 12**: Cleanup & Release (~20% complete) - ✅ Store deleted, release prep remains
 
 ---
 
@@ -379,14 +379,13 @@ Complete restructure of StoreX from monolithic `:store` module into clean, modul
 
 ---
 
-## Phase 12: Cleanup & Release ⏳ NOT STARTED
+## Phase 12: Cleanup & Release ⏳ ~20% COMPLETE
 
-### 12.1 Delete Legacy Modules ⏳ TODO
-- [ ] Delete `store/` directory (monolithic module)
-- [ ] Delete `normalization/runtime/` (merged into `:normalization-runtime`)
-- [ ] Delete `normalization/ksp/` (moved to root `:normalization-ksp`)
-- [ ] Update `settings.gradle.kts` - remove legacy module includes
-- [ ] Clean up any dangling references
+### 12.1 Delete Legacy Modules ✅ PARTIALLY COMPLETE
+- [x] Delete `store/` directory (monolithic module) ✅ **COMPLETED 2025-10-05**
+- [x] Update `settings.gradle.kts` - remove `:store` include ✅ **COMPLETED 2025-10-05**
+- [x] Verify build succeeds without store module ✅ **COMPLETED 2025-10-05**
+- [ ] Clean up any dangling references (if found)
 
 ### 12.2 Final Code Review ⏳ TODO
 - [ ] Review all public APIs for consistency
