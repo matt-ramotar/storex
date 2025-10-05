@@ -6,6 +6,7 @@ plugins {
     id("plugin.storex.android.library")
     id("plugin.storex.kotlin.multiplatform")
     id("plugin.storex.maven.publish")
+    alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.mokkery)
 }
 
@@ -21,6 +22,15 @@ kotlin {
         commonMain {
             dependencies {
                 api(projects.core)
+                api(libs.kotlinx.coroutines.core)
+                api(libs.kotlinx.datetime)
+                implementation(libs.kotlinx.serialization.json)
+            }
+        }
+        commonTest {
+            dependencies {
+                implementation(libs.kotlin.test)
+                implementation(libs.kotlinx.coroutines.test)
             }
         }
     }

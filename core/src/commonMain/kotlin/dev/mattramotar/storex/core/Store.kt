@@ -424,7 +424,7 @@ interface Converter<Key : StoreKey, Domain, ReadEntity, NetworkResponse, WriteEn
  * }
  * ```
  */
-internal class SingleFlight<Key, Result> {
+class SingleFlight<Key, Result> {
     private val inFlight = hashMapOf<Key, CompletableDeferred<Result>>()
     private val mutex = kotlinx.coroutines.sync.Mutex()
 
@@ -480,7 +480,7 @@ internal class SingleFlight<Key, Result> {
  * }
  * ```
  */
-internal class KeyMutex<Key>(private val maxSize: Int = 1000) {
+class KeyMutex<Key>(private val maxSize: Int = 1000) {
     private val map = mutableMapOf<Key, Mutex>()
     private val mapMutex = Mutex()
 
