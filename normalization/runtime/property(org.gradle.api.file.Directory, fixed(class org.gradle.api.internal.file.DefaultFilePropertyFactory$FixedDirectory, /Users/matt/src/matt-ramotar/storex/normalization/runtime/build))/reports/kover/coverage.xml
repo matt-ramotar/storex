@@ -1,5 +1,391 @@
 <?xml version="1.0" ?>
 <report name="Kover Gradle Plugin XML report for :normalization:runtime">
+<package name="dev/mattramotar/storex/normalization/internal">
+<class name="dev/mattramotar/storex/normalization/internal/ComposeResult" sourcefilename="ComposeResult.kt">
+<method name="&lt;init&gt;" desc="(Ljava/lang/Object;Ljava/util/Set;Ldev/mattramotar/storex/normalization/GraphMeta;)V">
+<counter type="INSTRUCTION" missed="17" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="17" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/internal/ComposeResultKt" sourcefilename="ComposeResult.kt">
+<method name="composeFromRoot" desc="(Ldev/mattramotar/storex/normalization/keys/EntityKey;Ldev/mattramotar/storex/normalization/Shape;Ldev/mattramotar/storex/normalization/schema/SchemaRegistry;Ldev/mattramotar/storex/normalization/backend/NormalizationBackend;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="466" covered="0"/>
+<counter type="BRANCH" missed="26" covered="0"/>
+<counter type="LINE" missed="63" covered="0"/>
+</method>
+<method name="composeFromRoot$outboundRefs" desc="(Ldev/mattramotar/storex/normalization/Shape;Ljava/util/Map;)Ljava/util/Set;">
+<counter type="INSTRUCTION" missed="6" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="2" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="472" covered="0"/>
+<counter type="BRANCH" missed="28" covered="0"/>
+<counter type="LINE" missed="65" covered="0"/>
+<counter type="METHOD" missed="2" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/internal/ComposeResultKt$composeFromRoot$resolver$1" sourcefilename="ComposeResult.kt">
+<method name="&lt;init&gt;" desc="(Ljava/util/LinkedHashMap;Ldev/mattramotar/storex/normalization/backend/NormalizationBackend;Ldev/mattramotar/storex/normalization/schema/SchemaRegistry;)V">
+<counter type="INSTRUCTION" missed="2" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="resolveReference" desc="(Ldev/mattramotar/storex/normalization/keys/EntityKey;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="63" covered="0"/>
+<counter type="BRANCH" missed="4" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="65" covered="0"/>
+<counter type="BRANCH" missed="4" covered="0"/>
+<counter type="LINE" missed="5" covered="0"/>
+<counter type="METHOD" missed="2" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/internal/NormalizationConverter" sourcefilename="NormalizationConverter.kt">
+<method name="dbMetaFromProjection" desc="(Ldev/mattramotar/storex/normalization/GraphProjection;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="4" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="dbReadToDomain" desc="(Ldev/mattramotar/storex/core/StoreKey;Ldev/mattramotar/storex/normalization/GraphProjection;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="2" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="netMeta" desc="(Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="7" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="&lt;init&gt;" desc="(Lkotlin/jvm/functions/Function3;)V">
+<counter type="INSTRUCTION" missed="10" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="2" covered="0"/>
+</method>
+<method name="netToDbWrite" desc="(Ldev/mattramotar/storex/core/StoreKey;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="6" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="29" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="6" covered="0"/>
+<counter type="METHOD" missed="5" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/internal/NormalizationConverter$dbMetaFromProjection$2" sourcefilename="NormalizationConverter.kt">
+<method name="&lt;init&gt;" desc="(Ldev/mattramotar/storex/normalization/GraphProjection;)V">
+<counter type="INSTRUCTION" missed="16" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="16" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/internal/NormalizedEntitySot" sourcefilename="RootResolver.kt">
+<method name="reader" desc="(Ldev/mattramotar/storex/core/StoreKey;)Lkotlinx/coroutines/flow/Flow;">
+<counter type="INSTRUCTION" missed="32" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="7" covered="0"/>
+</method>
+<method name="delete" desc="(Ldev/mattramotar/storex/core/StoreKey;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="1" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="withTransaction" desc="(Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="&lt;init&gt;" desc="(Ldev/mattramotar/storex/normalization/backend/NormalizationBackend;Ldev/mattramotar/storex/normalization/schema/SchemaRegistry;Ldev/mattramotar/storex/normalization/Shape;Ldev/mattramotar/storex/normalization/internal/RootResolver;)V">
+<counter type="INSTRUCTION" missed="14" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="5" covered="0"/>
+</method>
+<method name="rekey" desc="(Ldev/mattramotar/storex/core/StoreKey;Ldev/mattramotar/storex/core/StoreKey;Lkotlin/jvm/functions/Function3;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="1" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="write" desc="(Ldev/mattramotar/storex/core/StoreKey;Ldev/mattramotar/storex/normalization/NormalizedWrite;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="56" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="112" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="19" covered="0"/>
+<counter type="METHOD" missed="6" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/internal/NormalizedEntitySot$reader$2" sourcefilename="RootResolver.kt">
+<method name="invokeSuspend" desc="(Ljava/lang/Object;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="22" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="22" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/internal/NormalizedEntitySot$reader$3$1" sourcefilename="RootResolver.kt">
+<method name="invokeSuspend" desc="(Ljava/lang/Object;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="75" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="75" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/internal/NormalizedListSot" sourcefilename="ListSot.kt">
+<method name="reader" desc="(Ldev/mattramotar/storex/core/StoreKey;)Lkotlinx/coroutines/flow/Flow;">
+<counter type="INSTRUCTION" missed="42" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="9" covered="0"/>
+</method>
+<method name="delete" desc="(Ldev/mattramotar/storex/core/StoreKey;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="1" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="withTransaction" desc="(Lkotlin/jvm/functions/Function1;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="rekey" desc="(Ldev/mattramotar/storex/core/StoreKey;Ldev/mattramotar/storex/core/StoreKey;Lkotlin/jvm/functions/Function3;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="1" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="defaultEmptyMeta" desc="()Ldev/mattramotar/storex/normalization/GraphMeta;">
+<counter type="INSTRUCTION" missed="6" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="2" covered="0"/>
+</method>
+<method name="&lt;init&gt;" desc="(Ldev/mattramotar/storex/normalization/backend/NormalizationBackend;Ldev/mattramotar/storex/normalization/IndexManager;Ldev/mattramotar/storex/normalization/schema/SchemaRegistry;Ldev/mattramotar/storex/normalization/Shape;)V">
+<counter type="INSTRUCTION" missed="14" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="5" covered="0"/>
+</method>
+<method name="write" desc="(Ldev/mattramotar/storex/core/StoreKey;Ldev/mattramotar/storex/normalization/NormalizedWrite;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="27" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="99" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="22" covered="0"/>
+<counter type="METHOD" missed="7" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/internal/NormalizedListSot$reader$1" sourcefilename="ListSot.kt">
+<method name="invokeSuspend" desc="(Ljava/lang/Object;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="6" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="6" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/internal/NormalizedListSot$reader$2$1" sourcefilename="ListSot.kt">
+<method name="invokeSuspend" desc="(Ljava/lang/Object;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="230" covered="0"/>
+<counter type="BRANCH" missed="12" covered="0"/>
+<counter type="LINE" missed="16" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="230" covered="0"/>
+<counter type="BRANCH" missed="12" covered="0"/>
+<counter type="LINE" missed="16" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/internal/NormalizedListSot$reader$invalidations$2" sourcefilename="ListSot.kt">
+<method name="invokeSuspend" desc="(Ljava/lang/Object;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="22" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="22" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<sourcefile name="ListSot.kt">
+<line nr="29" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="30" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="31" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="32" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="33" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="37" mi="9" ci="0" mb="0" cb="0"/>
+<line nr="38" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="40" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="41" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="42" mi="28" ci="0" mb="0" cb="0"/>
+<line nr="43" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="45" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="46" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="47" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="49" mi="3" ci="0" mb="2" cb="0"/>
+<line nr="50" mi="17" ci="0" mb="0" cb="0"/>
+<line nr="53" mi="10" ci="0" mb="0" cb="0"/>
+<line nr="54" mi="33" ci="0" mb="0" cb="0"/>
+<line nr="56" mi="15" ci="0" mb="0" cb="0"/>
+<line nr="58" mi="43" ci="0" mb="8" cb="0"/>
+<line nr="59" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="60" mi="9" ci="0" mb="0" cb="0"/>
+<line nr="61" mi="22" ci="0" mb="2" cb="0"/>
+<line nr="62" mi="31" ci="0" mb="0" cb="0"/>
+<line nr="63" mi="21" ci="0" mb="0" cb="0"/>
+<line nr="64" mi="9" ci="0" mb="0" cb="0"/>
+<line nr="65" mi="10" ci="0" mb="0" cb="0"/>
+<line nr="66" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="67" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="68" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="77" mi="15" ci="0" mb="0" cb="0"/>
+<line nr="78" mi="11" ci="0" mb="2" cb="0"/>
+<line nr="82" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="87" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="89" mi="8" ci="0" mb="0" cb="0"/>
+<line nr="92" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="93" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="100" mi="1" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="357" covered="0"/>
+<counter type="BRANCH" missed="14" covered="0"/>
+<counter type="LINE" missed="40" covered="0"/>
+</sourcefile>
+<sourcefile name="RootResolver.kt">
+<line nr="33" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="34" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="35" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="36" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="37" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="41" mi="9" ci="0" mb="0" cb="0"/>
+<line nr="42" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="43" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="44" mi="28" ci="0" mb="0" cb="0"/>
+<line nr="45" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="46" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="48" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="49" mi="22" ci="0" mb="0" cb="0"/>
+<line nr="51" mi="22" ci="0" mb="0" cb="0"/>
+<line nr="52" mi="24" ci="0" mb="0" cb="0"/>
+<line nr="55" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="59" mi="18" ci="0" mb="0" cb="0"/>
+<line nr="60" mi="11" ci="0" mb="2" cb="0"/>
+<line nr="62" mi="26" ci="0" mb="0" cb="0"/>
+<line nr="63" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="69" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="71" mi="8" ci="0" mb="0" cb="0"/>
+<line nr="81" mi="1" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="209" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="24" covered="0"/>
+</sourcefile>
+<sourcefile name="ComposeResult.kt">
+<line nr="15" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="16" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="17" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="18" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="35" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="36" mi="15" ci="0" mb="0" cb="0"/>
+<line nr="37" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="38" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="39" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="42" mi="3" ci="0" mb="2" cb="0"/>
+<line nr="43" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="46" mi="5" ci="0" mb="2" cb="0"/>
+<line nr="47" mi="9" ci="0" mb="0" cb="0"/>
+<line nr="48" mi="9" ci="0" mb="4" cb="0"/>
+<line nr="49" mi="13" ci="0" mb="0" cb="0"/>
+<line nr="52" mi="4" ci="0" mb="2" cb="0"/>
+<line nr="53" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="58" mi="4" ci="0" mb="2" cb="0"/>
+<line nr="60" mi="8" ci="0" mb="0" cb="0"/>
+<line nr="62" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="64" mi="3" ci="0" mb="2" cb="0"/>
+<line nr="66" mi="11" ci="0" mb="0" cb="0"/>
+<line nr="67" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="71" mi="56" ci="0" mb="0" cb="0"/>
+<line nr="74" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="75" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="76" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="77" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="82" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="83" mi="10" ci="0" mb="0" cb="0"/>
+<line nr="84" mi="4" ci="0" mb="2" cb="0"/>
+<line nr="85" mi="9" ci="0" mb="0" cb="0"/>
+<line nr="87" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="88" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="92" mi="47" ci="0" mb="0" cb="0"/>
+<line nr="93" mi="7" ci="0" mb="2" cb="0"/>
+<line nr="94" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="95" mi="37" ci="0" mb="6" cb="0"/>
+<line nr="97" mi="23" ci="0" mb="0" cb="0"/>
+<line nr="98" mi="8" ci="0" mb="2" cb="0"/>
+<line nr="100" mi="9" ci="0" mb="0" cb="0"/>
+<line nr="103" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="106" mi="9" ci="0" mb="0" cb="0"/>
+<line nr="108" mi="31" ci="0" mb="2" cb="0"/>
+<line nr="109" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="110" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="111" mi="26" ci="0" mb="2" cb="0"/>
+<line nr="115" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="116" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="117" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="119" mi="3" ci="0" mb="2" cb="0"/>
+<line nr="121" mi="38" ci="0" mb="0" cb="0"/>
+<line nr="123" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="124" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="125" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="126" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="127" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="128" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="129" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="130" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="131" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="135" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="136" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="137" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="138" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="139" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="140" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="141" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="142" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="146" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="147" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="148" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="149" mi="1" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="554" covered="0"/>
+<counter type="BRANCH" missed="32" covered="0"/>
+<counter type="LINE" missed="74" covered="0"/>
+</sourcefile>
+<sourcefile name="NormalizationConverter.kt">
+<line nr="15" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="16" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="20" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="23" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="27" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="28" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="29" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="32" mi="7" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="45" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="9" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="1165" covered="0"/>
+<counter type="BRANCH" missed="48" covered="0"/>
+<counter type="LINE" missed="147" covered="0"/>
+<counter type="METHOD" missed="29" covered="0"/>
+<counter type="CLASS" missed="12" covered="0"/>
+</package>
 <package name="dev/mattramotar/storex/normalization/format">
 <class name="dev/mattramotar/storex/normalization/format/NormalizedValue" sourcefilename="NormalizedValue.kt">
 <method name="&lt;init&gt;" desc="()V">
@@ -165,6 +551,52 @@
 <counter type="CLASS" missed="2" covered="0"/>
 </package>
 <package name="dev/mattramotar/storex/normalization">
+<class name="dev/mattramotar/storex/normalization/ChangeSetBuilder" sourcefilename="Normalizer.kt">
+<method name="upsert" desc="(Ldev/mattramotar/storex/normalization/ChangeSetBuilder;Ldev/mattramotar/storex/normalization/keys/EntityKey;Ljava/util/Map;Ldev/mattramotar/storex/normalization/EntityMeta;)Ldev/mattramotar/storex/normalization/ChangeSetBuilder;">
+<counter type="INSTRUCTION" missed="11" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="patch" desc="(Ldev/mattramotar/storex/normalization/keys/EntityKey;Ljava/util/Map;Ljava/util/Set;Ldev/mattramotar/storex/normalization/EntityMeta;)Ldev/mattramotar/storex/normalization/ChangeSetBuilder;">
+<counter type="INSTRUCTION" missed="21" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="5" covered="0"/>
+</method>
+<method name="patch" desc="(Ldev/mattramotar/storex/normalization/ChangeSetBuilder;Ldev/mattramotar/storex/normalization/keys/EntityKey;Ljava/util/Map;Ljava/util/Set;Ldev/mattramotar/storex/normalization/EntityMeta;)Ldev/mattramotar/storex/normalization/ChangeSetBuilder;">
+<counter type="INSTRUCTION" missed="12" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="delete" desc="(Ldev/mattramotar/storex/normalization/keys/EntityKey;)Ldev/mattramotar/storex/normalization/ChangeSetBuilder;">
+<counter type="INSTRUCTION" missed="6" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="2" covered="0"/>
+</method>
+<method name="rekey" desc="(Ldev/mattramotar/storex/normalization/keys/EntityKey;Ldev/mattramotar/storex/normalization/keys/EntityKey;)Ldev/mattramotar/storex/normalization/ChangeSetBuilder;">
+<counter type="INSTRUCTION" missed="10" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="2" covered="0"/>
+</method>
+<method name="&lt;init&gt;" desc="()V">
+<counter type="INSTRUCTION" missed="32" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="6" covered="0"/>
+</method>
+<method name="upsert" desc="(Ldev/mattramotar/storex/normalization/keys/EntityKey;Ljava/util/Map;Ldev/mattramotar/storex/normalization/EntityMeta;)Ldev/mattramotar/storex/normalization/ChangeSetBuilder;">
+<counter type="INSTRUCTION" missed="15" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+</method>
+<method name="build" desc="()Ldev/mattramotar/storex/normalization/NormalizedChangeSet;">
+<counter type="INSTRUCTION" missed="13" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="6" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="120" covered="0"/>
+<counter type="BRANCH" missed="4" covered="0"/>
+<counter type="LINE" missed="27" covered="0"/>
+<counter type="METHOD" missed="8" covered="0"/>
+</class>
 <class name="dev/mattramotar/storex/normalization/EmbeddedMode" sourcefilename="Normalizable.kt">
 <method name="&lt;clinit&gt;" desc="()V">
 <counter type="INSTRUCTION" missed="18" covered="0"/>
@@ -176,21 +608,630 @@
 <counter type="LINE" missed="1" covered="0"/>
 <counter type="METHOD" missed="1" covered="0"/>
 </class>
+<class name="dev/mattramotar/storex/normalization/EntityMeta" sourcefilename="Normalizer.kt">
+<method name="&lt;init&gt;" desc="(Ljava/lang/String;Lkotlinx/datetime/Instant;ZLjava/util/Set;)V">
+<counter type="INSTRUCTION" missed="29" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="29" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/GraphCompositionException" sourcefilename="GraphCompositionException.kt">
+<method name="&lt;init&gt;" desc="(Ljava/lang/String;Ldev/mattramotar/storex/normalization/keys/EntityKey;Ljava/lang/String;ILjava/lang/Integer;Ljava/util/Map;ZLjava/lang/Throwable;)V">
+<counter type="INSTRUCTION" missed="69" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="9" covered="0"/>
+</method>
+<method name="toString" desc="()Ljava/lang/String;">
+<counter type="INSTRUCTION" missed="127" covered="0"/>
+<counter type="BRANCH" missed="10" covered="0"/>
+<counter type="LINE" missed="15" covered="0"/>
+</method>
+<method name="isRetryable" desc="()Z">
+<counter type="INSTRUCTION" missed="45" covered="0"/>
+<counter type="BRANCH" missed="10" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="241" covered="0"/>
+<counter type="BRANCH" missed="20" covered="0"/>
+<counter type="LINE" missed="27" covered="0"/>
+<counter type="METHOD" missed="3" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/GraphMeta" sourcefilename="GraphProjection.kt">
+<method name="&lt;init&gt;" desc="(Lkotlinx/datetime/Instant;Ljava/lang/String;)V">
+<counter type="INSTRUCTION" missed="12" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="2" covered="0"/>
+</method>
+<method name="age-5sfh64U" desc="(Lkotlinx/datetime/Instant;)J">
+<counter type="INSTRUCTION" missed="4" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="16" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+<counter type="METHOD" missed="2" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/GraphProjection" sourcefilename="GraphProjection.kt">
+<method name="&lt;init&gt;" desc="(Ljava/lang/Object;Ldev/mattramotar/storex/normalization/GraphMeta;)V">
+<counter type="INSTRUCTION" missed="12" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="12" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/InMemoryIndexManager" sourcefilename="IndexManager.kt">
+<method name="bucket" desc="(Ldev/mattramotar/storex/core/StoreKey;)Lkotlinx/coroutines/flow/MutableStateFlow;">
+<counter type="INSTRUCTION" missed="12" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="streamIndex" desc="(Ldev/mattramotar/storex/core/StoreKey;)Lkotlinx/coroutines/flow/Flow;">
+<counter type="INSTRUCTION" missed="5" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="updateIndex" desc="(Ldev/mattramotar/storex/core/StoreKey;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="9" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="&lt;init&gt;" desc="()V">
+<counter type="INSTRUCTION" missed="13" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="39" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="6" covered="0"/>
+<counter type="METHOD" missed="4" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/InMemoryNormalizationBackend" sourcefilename="NormalizerEngine.kt">
+<method name="clear" desc="(Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="14" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="read" desc="(Ljava/util/Set;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="24" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="getEntityInvalidations" desc="()Lkotlinx/coroutines/flow/Flow;">
+<counter type="INSTRUCTION" missed="3" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="readMeta" desc="(Ljava/util/Set;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="18" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="&lt;init&gt;" desc="()V">
+<counter type="INSTRUCTION" missed="44" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="10" covered="0"/>
+</method>
+<method name="apply" desc="(Ldev/mattramotar/storex/normalization/NormalizedChangeSet;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="459" covered="0"/>
+<counter type="BRANCH" missed="48" covered="0"/>
+<counter type="LINE" missed="46" covered="0"/>
+</method>
+<method name="updateRootDependencies" desc="(Ldev/mattramotar/storex/normalization/backend/RootRef;Ljava/util/Set;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="83" covered="0"/>
+<counter type="BRANCH" missed="8" covered="0"/>
+<counter type="LINE" missed="9" covered="0"/>
+</method>
+<method name="getRootInvalidations" desc="()Lkotlinx/coroutines/flow/Flow;">
+<counter type="INSTRUCTION" missed="3" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="648" covered="0"/>
+<counter type="BRANCH" missed="58" covered="0"/>
+<counter type="LINE" missed="70" covered="0"/>
+<counter type="METHOD" missed="8" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/IndexUpdate" sourcefilename="NormalizedWrite.kt">
+<method name="&lt;init&gt;" desc="(Ldev/mattramotar/storex/core/StoreKey;Ljava/util/List;)V">
+<counter type="INSTRUCTION" missed="12" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="12" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/NormalizedChangeSet" sourcefilename="Normalizer.kt">
+<method name="&lt;init&gt;" desc="(Ljava/util/Map;Ljava/util/Set;Ljava/util/List;Ljava/util/Map;Ljava/util/Map;)V">
+<counter type="INSTRUCTION" missed="35" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="5" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="35" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="5" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/NormalizedWrite" sourcefilename="NormalizedWrite.kt">
+<method name="&lt;init&gt;" desc="(Ldev/mattramotar/storex/normalization/NormalizedChangeSet;Ldev/mattramotar/storex/normalization/IndexUpdate;)V">
+<counter type="INSTRUCTION" missed="12" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="2" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="12" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="2" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/NormalizerEngine" sourcefilename="NormalizerEngine.kt">
+<method name="normalizeAndWrite" desc="(Ldev/mattramotar/storex/core/StoreKey;Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="114" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="12" covered="0"/>
+</method>
+<method name="&lt;init&gt;" desc="(Ldev/mattramotar/storex/normalization/schema/SchemaRegistry;Ldev/mattramotar/storex/normalization/backend/NormalizationBackend;Ldev/mattramotar/storex/normalization/IndexManager;)V">
+<counter type="INSTRUCTION" missed="11" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="125" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="16" covered="0"/>
+<counter type="METHOD" missed="2" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/NormalizerEngine$normalizeAndWrite$ctx$1" sourcefilename="NormalizerEngine.kt">
+<method name="&lt;init&gt;" desc="(Ldev/mattramotar/storex/normalization/NormalizerEngine;Ljava/util/LinkedHashMap;Ljava/util/LinkedHashMap;Ljava/util/LinkedHashMap;)V">
+<counter type="INSTRUCTION" missed="2" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="registerNested" desc="(Ljava/lang/Object;)Ldev/mattramotar/storex/normalization/keys/EntityKey;">
+<counter type="INSTRUCTION" missed="62" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="9" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="64" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="10" covered="0"/>
+<counter type="METHOD" missed="2" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/RecomposerEngine" sourcefilename="NormalizerEngine.kt">
+<method name="recompose$collectOutboundRefs" desc="(Ldev/mattramotar/storex/normalization/RecomposerEngine;Ljava/util/Map;)Ljava/util/Set;">
+<counter type="INSTRUCTION" missed="8" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="&lt;init&gt;" desc="(Ldev/mattramotar/storex/normalization/schema/SchemaRegistry;Ldev/mattramotar/storex/normalization/backend/NormalizationBackend;Ldev/mattramotar/storex/normalization/IndexManager;Ldev/mattramotar/storex/normalization/Shape;)V">
+<counter type="INSTRUCTION" missed="14" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="5" covered="0"/>
+</method>
+<method name="stream" desc="(Ldev/mattramotar/storex/core/StoreKey;)Lkotlinx/coroutines/flow/Flow;">
+<counter type="INSTRUCTION" missed="31" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="6" covered="0"/>
+</method>
+<method name="recompose" desc="(Ldev/mattramotar/storex/normalization/backend/RootRef;Ljava/util/List;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="253" covered="0"/>
+<counter type="BRANCH" missed="12" covered="0"/>
+<counter type="LINE" missed="24" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="306" covered="0"/>
+<counter type="BRANCH" missed="14" covered="0"/>
+<counter type="LINE" missed="36" covered="0"/>
+<counter type="METHOD" missed="4" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/RecomposerEngine$recompose$resolver$1" sourcefilename="NormalizerEngine.kt">
+<method name="&lt;init&gt;" desc="(Ljava/util/LinkedHashMap;Ldev/mattramotar/storex/normalization/RecomposerEngine;)V">
+<counter type="INSTRUCTION" missed="2" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="resolveReference" desc="(Ldev/mattramotar/storex/normalization/keys/EntityKey;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="65" covered="0"/>
+<counter type="BRANCH" missed="4" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="67" covered="0"/>
+<counter type="BRANCH" missed="4" covered="0"/>
+<counter type="LINE" missed="5" covered="0"/>
+<counter type="METHOD" missed="2" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/RecomposerEngine$stream$1$1" sourcefilename="NormalizerEngine.kt">
+<method name="invokeSuspend" desc="(Ljava/lang/Object;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="53" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="53" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/RecomposerEngine$stream$triggers$2" sourcefilename="NormalizerEngine.kt">
+<method name="invokeSuspend" desc="(Ljava/lang/Object;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="22" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="22" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/Rekey" sourcefilename="Normalizer.kt">
+<method name="&lt;init&gt;" desc="(Ldev/mattramotar/storex/normalization/keys/EntityKey;Ldev/mattramotar/storex/normalization/keys/EntityKey;)V">
+<counter type="INSTRUCTION" missed="12" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="12" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/Shape$DefaultImpls" sourcefilename="Normalizer.kt">
+<method name="getEdgeLimits" desc="(Ldev/mattramotar/storex/normalization/Shape;)Ljava/util/Map;">
+<counter type="INSTRUCTION" missed="1" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="getMaxDepth" desc="(Ldev/mattramotar/storex/normalization/Shape;)I">
+<counter type="INSTRUCTION" missed="1" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="2" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="2" covered="0"/>
+<counter type="METHOD" missed="2" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/ShapeId" sourcefilename="Normalizer.kt">
+<method name="getValue" desc="()Ljava/lang/String;">
+<counter type="INSTRUCTION" missed="11" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="11" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="1" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<sourcefile name="GraphProjection.kt">
+<line nr="12" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="13" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="15" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="19" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="20" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="21" mi="5" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="28" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="6" covered="0"/>
+</sourcefile>
+<sourcefile name="GraphCompositionException.kt">
+<line nr="11" mi="27" ci="0" mb="0" cb="0"/>
+<line nr="14" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="16" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="18" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="20" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="22" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="24" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="25" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="26" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="32" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="34" mi="18" ci="0" mb="6" cb="0"/>
+<line nr="35" mi="20" ci="0" mb="4" cb="0"/>
+<line nr="38" mi="10" ci="0" mb="0" cb="0"/>
+<line nr="39" mi="8" ci="0" mb="0" cb="0"/>
+<line nr="40" mi="10" ci="0" mb="0" cb="0"/>
+<line nr="41" mi="28" ci="0" mb="4" cb="0"/>
+<line nr="43" mi="5" ci="0" mb="2" cb="0"/>
+<line nr="44" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="45" mi="13" ci="0" mb="0" cb="0"/>
+<line nr="46" mi="13" ci="0" mb="0" cb="0"/>
+<line nr="47" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="50" mi="3" ci="0" mb="2" cb="0"/>
+<line nr="51" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="54" mi="10" ci="0" mb="2" cb="0"/>
+<line nr="55" mi="12" ci="0" mb="0" cb="0"/>
+<line nr="56" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="57" mi="1" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="241" covered="0"/>
+<counter type="BRANCH" missed="20" covered="0"/>
+<counter type="LINE" missed="27" covered="0"/>
+</sourcefile>
+<sourcefile name="NormalizerEngine.kt">
+<line nr="26" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="27" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="28" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="29" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="36" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="37" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="38" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="39" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="41" mi="10" ci="0" mb="0" cb="0"/>
+<line nr="43" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="44" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="45" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="46" mi="6" ci="0" mb="2" cb="0"/>
+<line nr="47" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="48" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="49" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="50" mi="15" ci="0" mb="0" cb="0"/>
+<line nr="52" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="56" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="57" mi="17" ci="0" mb="2" cb="0"/>
+<line nr="58" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="61" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="62" mi="23" ci="0" mb="0" cb="0"/>
+<line nr="63" mi="26" ci="0" mb="0" cb="0"/>
+<line nr="64" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="68" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="69" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="70" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="71" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="72" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="75" mi="9" ci="0" mb="0" cb="0"/>
+<line nr="76" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="77" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="78" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="79" mi="28" ci="0" mb="0" cb="0"/>
+<line nr="81" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="83" mi="53" ci="0" mb="0" cb="0"/>
+<line nr="88" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="89" mi="13" ci="0" mb="0" cb="0"/>
+<line nr="90" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="91" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="94" mi="8" ci="0" mb="2" cb="0"/>
+<line nr="96" mi="5" ci="0" mb="2" cb="0"/>
+<line nr="97" mi="11" ci="0" mb="0" cb="0"/>
+<line nr="98" mi="15" ci="0" mb="4" cb="0"/>
+<line nr="99" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="101" mi="3" ci="0" mb="2" cb="0"/>
+<line nr="102" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="103" mi="47" ci="0" mb="0" cb="0"/>
+<line nr="105" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="106" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="107" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="108" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="109" mi="8" ci="0" mb="2" cb="0"/>
+<line nr="110" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="111" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="114" mi="40" ci="0" mb="0" cb="0"/>
+<line nr="116" mi="9" ci="0" mb="0" cb="0"/>
+<line nr="118" mi="32" ci="0" mb="2" cb="0"/>
+<line nr="119" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="120" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="121" mi="26" ci="0" mb="2" cb="0"/>
+<line nr="125" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="126" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="127" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="128" mi="40" ci="0" mb="2" cb="0"/>
+<line nr="135" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="136" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="138" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="139" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="141" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="142" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="144" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="145" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="147" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="148" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="151" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="152" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="155" mi="24" ci="0" mb="2" cb="0"/>
+<line nr="158" mi="18" ci="0" mb="0" cb="0"/>
+<line nr="161" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="162" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="164" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="166" mi="17" ci="0" mb="2" cb="0"/>
+<line nr="167" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="168" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="169" mi="9" ci="0" mb="2" cb="0"/>
+<line nr="170" mi="9" ci="0" mb="2" cb="0"/>
+<line nr="173" mi="10" ci="0" mb="0" cb="0"/>
+<line nr="174" mi="12" ci="0" mb="0" cb="0"/>
+<line nr="175" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="176" mi="3" ci="0" mb="2" cb="0"/>
+<line nr="177" mi="15" ci="0" mb="2" cb="0"/>
+<line nr="178" mi="3" ci="0" mb="2" cb="0"/>
+<line nr="179" mi="17" ci="0" mb="2" cb="0"/>
+<line nr="180" mi="9" ci="0" mb="0" cb="0"/>
+<line nr="182" mi="0" ci="0" mb="0" cb="0"/>
+<line nr="184" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="185" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="187" mi="17" ci="0" mb="4" cb="0"/>
+<line nr="188" mi="13" ci="0" mb="0" cb="0"/>
+<line nr="189" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="190" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="191" mi="10" ci="0" mb="0" cb="0"/>
+<line nr="192" mi="8" ci="0" mb="2" cb="0"/>
+<line nr="193" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="195" mi="22" ci="0" mb="0" cb="0"/>
+<line nr="199" mi="20" ci="0" mb="2" cb="0"/>
+<line nr="200" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="201" mi="12" ci="0" mb="0" cb="0"/>
+<line nr="202" mi="5" ci="0" mb="4" cb="0"/>
+<line nr="203" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="205" mi="21" ci="0" mb="2" cb="0"/>
+<line nr="207" mi="19" ci="0" mb="2" cb="0"/>
+<line nr="208" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="212" mi="11" ci="0" mb="2" cb="0"/>
+<line nr="213" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="214" mi="34" ci="0" mb="2" cb="0"/>
+<line nr="216" mi="17" ci="0" mb="2" cb="0"/>
+<line nr="217" mi="10" ci="0" mb="2" cb="0"/>
+<line nr="218" mi="18" ci="0" mb="2" cb="0"/>
+<line nr="220" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="224" mi="33" ci="0" mb="4" cb="0"/>
+<line nr="225" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="227" mi="10" ci="0" mb="2" cb="0"/>
+<line nr="228" mi="10" ci="0" mb="2" cb="0"/>
+<line nr="232" mi="4" ci="0" mb="0" cb="0"/>
+<line nr="233" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="234" mi="10" ci="0" mb="2" cb="0"/>
+<line nr="236" mi="18" ci="0" mb="2" cb="0"/>
+<line nr="238" mi="9" ci="0" mb="0" cb="0"/>
+<line nr="239" mi="18" ci="0" mb="0" cb="0"/>
+<line nr="240" mi="9" ci="0" mb="2" cb="0"/>
+<line nr="241" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="242" mi="10" ci="0" mb="2" cb="0"/>
+<line nr="246" mi="14" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="1285" covered="0"/>
+<counter type="BRANCH" missed="80" covered="0"/>
+<counter type="LINE" missed="139" covered="0"/>
+</sourcefile>
 <sourcefile name="Normalizable.kt">
 <line nr="62" mi="18" ci="0" mb="0" cb="0"/>
 <counter type="INSTRUCTION" missed="18" covered="0"/>
 <counter type="BRANCH" missed="0" covered="0"/>
 <counter type="LINE" missed="1" covered="0"/>
 </sourcefile>
-<counter type="INSTRUCTION" missed="18" covered="0"/>
+<sourcefile name="NormalizedWrite.kt">
+<line nr="12" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="13" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="16" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="17" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="18" mi="5" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="24" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="5" covered="0"/>
+</sourcefile>
+<sourcefile name="IndexManager.kt">
+<line nr="17" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="18" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="19" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="22" mi="12" ci="0" mb="0" cb="0"/>
+<line nr="25" mi="9" ci="0" mb="0" cb="0"/>
+<line nr="29" mi="5" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="39" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="6" covered="0"/>
+</sourcefile>
+<sourcefile name="Normalizer.kt">
+<line nr="14" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="16" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="21" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="28" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="31" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="34" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="35" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="36" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="41" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="43" mi="8" ci="0" mb="0" cb="0"/>
+<line nr="45" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="47" mi="7" ci="0" mb="0" cb="0"/>
+<line nr="51" mi="11" ci="0" mb="0" cb="0"/>
+<line nr="68" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="71" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="83" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="84" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="85" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="86" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="87" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="88" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="93" mi="11" ci="0" mb="0" cb="0"/>
+<line nr="94" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="95" mi="2" ci="0" mb="2" cb="0"/>
+<line nr="96" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="98" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="104" mi="12" ci="0" mb="0" cb="0"/>
+<line nr="105" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="106" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="107" mi="2" ci="0" mb="2" cb="0"/>
+<line nr="108" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="110" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="117" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="118" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="125" mi="9" ci="0" mb="0" cb="0"/>
+<line nr="126" mi="1" ci="0" mb="0" cb="0"/>
+<line nr="133" mi="3" ci="0" mb="0" cb="0"/>
+<line nr="134" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="135" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="136" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="137" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="138" mi="2" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="209" covered="0"/>
+<counter type="BRANCH" missed="4" covered="0"/>
+<counter type="LINE" missed="42" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="1844" covered="0"/>
+<counter type="BRANCH" missed="104" covered="0"/>
+<counter type="LINE" missed="226" covered="0"/>
+<counter type="METHOD" missed="47" covered="0"/>
+<counter type="CLASS" missed="20" covered="0"/>
+</package>
+<package name="dev/mattramotar/storex/normalization/backend">
+<class name="dev/mattramotar/storex/normalization/backend/NormalizationBackend$DefaultImpls" sourcefilename="NormalizationBackend.kt">
+<method name="readOne" desc="(Ldev/mattramotar/storex/normalization/backend/NormalizationBackend;Ldev/mattramotar/storex/normalization/keys/EntityKey;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;">
+<counter type="INSTRUCTION" missed="36" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="2" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="36" covered="0"/>
+<counter type="BRANCH" missed="2" covered="0"/>
+<counter type="LINE" missed="2" covered="0"/>
+<counter type="METHOD" missed="1" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/backend/RootRef" sourcefilename="NormalizationBackend.kt">
+<method name="toString" desc="()Ljava/lang/String;">
+<counter type="INSTRUCTION" missed="6" covered="0"/>
 <counter type="BRANCH" missed="0" covered="0"/>
 <counter type="LINE" missed="1" covered="0"/>
+</method>
+<method name="&lt;init&gt;" desc="(Ldev/mattramotar/storex/core/StoreKey;Ljava/lang/String;)V">
+<counter type="INSTRUCTION" missed="12" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="18" covered="0"/>
+<counter type="BRANCH" missed="0" covered="0"/>
+<counter type="LINE" missed="4" covered="0"/>
+<counter type="METHOD" missed="2" covered="0"/>
+</class>
+<class name="dev/mattramotar/storex/normalization/backend/RootRef$Companion" sourcefilename="NormalizationBackend.kt">
+<method name="parse" desc="(Ljava/lang/String;)Ldev/mattramotar/storex/normalization/backend/RootRef;">
+<counter type="INSTRUCTION" missed="47" covered="0"/>
+<counter type="BRANCH" missed="4" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
+</method>
+<counter type="INSTRUCTION" missed="47" covered="0"/>
+<counter type="BRANCH" missed="4" covered="0"/>
+<counter type="LINE" missed="3" covered="0"/>
 <counter type="METHOD" missed="1" covered="0"/>
-<counter type="CLASS" missed="1" covered="0"/>
+</class>
+<sourcefile name="NormalizationBackend.kt">
+<line nr="16" mi="2" ci="0" mb="0" cb="0"/>
+<line nr="17" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="18" mi="5" ci="0" mb="0" cb="0"/>
+<line nr="20" mi="6" ci="0" mb="0" cb="0"/>
+<line nr="24" mi="16" ci="0" mb="0" cb="0"/>
+<line nr="25" mi="17" ci="0" mb="4" cb="0"/>
+<line nr="28" mi="14" ci="0" mb="0" cb="0"/>
+<line nr="39" mi="19" ci="0" mb="2" cb="0"/>
+<line nr="40" mi="17" ci="0" mb="0" cb="0"/>
+<counter type="INSTRUCTION" missed="101" covered="0"/>
+<counter type="BRANCH" missed="6" covered="0"/>
+<counter type="LINE" missed="9" covered="0"/>
+</sourcefile>
+<counter type="INSTRUCTION" missed="101" covered="0"/>
+<counter type="BRANCH" missed="6" covered="0"/>
+<counter type="LINE" missed="9" covered="0"/>
+<counter type="METHOD" missed="4" covered="0"/>
+<counter type="CLASS" missed="3" covered="0"/>
 </package>
-<counter type="INSTRUCTION" missed="118" covered="0"/>
-<counter type="BRANCH" missed="2" covered="0"/>
-<counter type="LINE" missed="15" covered="0"/>
-<counter type="METHOD" missed="13" covered="0"/>
-<counter type="CLASS" missed="10" covered="0"/>
+<counter type="INSTRUCTION" missed="3210" covered="0"/>
+<counter type="BRANCH" missed="160" covered="0"/>
+<counter type="LINE" missed="396" covered="0"/>
+<counter type="METHOD" missed="92" covered="0"/>
+<counter type="CLASS" missed="44" covered="0"/>
 </report>

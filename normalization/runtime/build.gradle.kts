@@ -29,6 +29,10 @@ kotlin {
                 api(libs.kotlinx.coroutines.core)
                 api(libs.kotlinx.datetime)
                 implementation(libs.kotlinx.serialization.json)
+
+                // Module dependencies
+                api(projects.core)
+                api(projects.mutations)
             }
         }
     }
