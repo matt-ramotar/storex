@@ -1,361 +1,466 @@
-# StoreX 1.0 - Release Roadmap
+# StoreX 1.0 - HONEST Release Roadmap
 
 **Last Updated**: 2025-10-05
-**Overall Progress**: ~92% Complete
-**Status**: 🟢 Core migration complete, finalizing for 1.0 release
+**Overall Progress**: ~40% Complete (honest assessment)
+**Status**: 🟡 Core architecture complete, but CRITICAL testing gaps
 
 ---
 
 ## 📋 Executive Summary
 
-StoreX modular migration is **92% complete**. All code migrated from monolithic `:store` to 16 focused modules. All P0/P1 production issues resolved. Remaining work: samples, testing, code review, and release preparation.
+**Reality Check**: While the modular migration is architecturally complete (16 modules extracted from monolithic `:store`), **only 1 module is production-ready with tests**. The rest either lack tests entirely or are placeholder interfaces.
 
-**Total Time to 1.0**: 9-12 hours
-**Post-1.0 Enhancements**: 4-8 hours (optional)
+**What's Actually Done:**
+- ✅ `:resilience` - Fully implemented + 11 tests passing
+- ⚠️ `:core`, `:mutations`, `:normalization:runtime` - Working implementations, **ZERO tests**
+- ❌ `:paging` - Interface only, **NO implementation** (despite earlier claims)
+- ❌ 7 modules - Just placeholder interfaces with TODO comments
 
----
+**Critical Truth**: The TODO claimed "92% complete" was based on code compilation, not production readiness. A module that compiles without tests is not production-ready.
 
-## 🔴 Pre-1.0 Critical Path (7 tasks)
-
-Must complete before 1.0.0 release.
-
-### 1. Sample App Updates (2 hours) 🔴 HIGH PRIORITY
-
-**Goal**: Demonstrate new modular architecture with working examples
-
-**Tasks**:
-- [ ] Update `sample/build.gradle.kts` - Replace normalization.runtime dependency with appropriate bundles
-- [ ] Update sample code imports - Change to new package structure
-- [ ] Create GraphQL sample - Demonstrate `:bundle-graphql` usage
-- [ ] Create REST API sample - Demonstrate `:bundle-rest` usage
-- [ ] Create Android sample - Demonstrate `:bundle-android` usage
-- [ ] Add README to each sample - Explain bundle selection and usage
-
-**Why Critical**: Users need working examples to understand the new architecture
-
-**Files to Update**:
-- `sample/build.gradle.kts`
-- `sample/src/commonMain/kotlin/**/*.kt`
+**Realistic Time to 1.0**: 4-6 weeks of focused testing and implementation work
+**Alternative**: Ship 1.0 with only tested modules (`:resilience`, `:core` after testing)
 
 ---
 
-### 2. Test Migration (2-3 hours) 🔴 HIGH PRIORITY
+## 🔴 CRITICAL REALITY CHECK
 
-**Goal**: Move tests from deleted `:store` module to appropriate new modules
+### What the Module Status Table Claimed vs. Reality
 
-**Current State**: Tests exist in deleted `store/src/commonTest/` but haven't been migrated
+| Claim | Reality | Evidence |
+|-------|---------|----------|
+| "`:paging` - Production Ready" | ❌ Interface only, no PageStore implementation | 2 files, 0 tests, `./gradlew :paging:test` shows NO-SOURCE |
+| "`:core` - Production Ready" | ⚠️ Has implementation, **ZERO tests** | 14 files, 0 tests, `./gradlew :core:test` shows NO-SOURCE |
+| "`:mutations` - Production Ready" | ⚠️ Has implementation, **ZERO tests** | 9 files, 0 tests, `./gradlew :mutations:test` shows NO-SOURCE |
+| "`:normalization:runtime` - Production Ready" | ⚠️ Substantial code, **ZERO tests** | 17 files, 0 tests, `./gradlew :normalization:runtime:test` shows NO-SOURCE |
+| "`:interceptors` through `:ktor-client` - Placeholder" | ✅ Accurate | All have explicit "Planned Features (to be implemented)" comments |
 
-**Tasks**:
-- [ ] Identify all tests from archived store module
-  - Concurrency tests (StreamCancellationTest, MemoryCacheThreadSafetyTest, SingleFlightTest, GraphCompositionErrorHandlingTest)
-  - Unit tests for core functionality
-  - Integration tests
-- [ ] Move tests to appropriate modules:
-  - [ ] Core tests → `:core/src/commonTest/`
-  - [ ] Mutation tests → `:mutations/src/commonTest/`
-  - [ ] Normalization tests → `:normalization:runtime/src/commonTest/`
-  - [ ] Paging tests → `:paging/src/commonTest/`
-- [ ] Update test imports to new package structure
-- [ ] Run full test suite: `./gradlew test`
-- [ ] Fix any compilation or test failures
-- [ ] Achieve >80% code coverage per module (run `./gradlew koverVerify`)
+### The Only Truly Production-Ready Module
 
-**Why Critical**: Cannot ship without comprehensive test coverage
+**`:resilience`** is the ONLY module that meets production standards:
+- ✅ 21 implementation files
+- ✅ 11 comprehensive test files
+- ✅ All tests passing (`./gradlew :resilience:test` - BUILD SUCCESSFUL)
+- ✅ Platform-specific implementations (Android, JVM, JS, Native)
+- ✅ Test utilities for circuit breakers, retry logic, timeouts
 
 ---
 
-### 3. Consolidate Policy Classes (1 hour) 🟡 MEDIUM PRIORITY
+## 📊 HONEST Module Status Reference
 
-**Goal**: Simplify mutation policy API before 1.0 release
-
-**Current State**: Multiple policy classes (CreatePolicy, UpdatePolicy, DeletePolicy, UpsertPolicy, ReplacePolicy) with overlapping configuration
-
-**Tasks**:
-- [ ] Analyze policy class overlap
-- [ ] Design unified MutationPolicy interface
-- [ ] Update mutation methods to use unified policy
-- [ ] Update DSL builders
-- [ ] Update documentation and examples
-
-**Why Important**: API breaking change - must do before 1.0 or never
-
-**Complexity**: Medium - requires careful API design
-
-**Files to Update**:
-- `mutations/src/commonMain/kotlin/dev/mattramotar/storex/mutations/MutationStore.kt`
-- `mutations/src/commonMain/kotlin/dev/mattramotar/storex/mutations/dsl/`
-
----
-
-### 4. Platform Compatibility Testing (2 hours) 🔴 HIGH PRIORITY
-
-**Goal**: Ensure inline classes work correctly across all platforms
-
-**Current State**: Value classes used for StoreNamespace, EntityId but not tested cross-platform
-
-**Tasks**:
-- [ ] Write JVM tests for inline class serialization
-- [ ] Write JS tests for inline class interop
-- [ ] Write Native tests for inline class behavior
-- [ ] Test reflection behavior (where applicable)
-- [ ] Test type erasure edge cases
-- [ ] Document any platform-specific gotchas
-
-**Why Critical**: Multiplatform library must work on all targets
-
-**Files to Test**:
-- `core/src/jvmTest/kotlin/` (new)
-- `core/src/jsTest/kotlin/` (new)
-- `core/src/nativeTest/kotlin/` (new)
-
----
-
-### 5. Final Code Review (1-2 hours) 🟡 MEDIUM PRIORITY
-
-**Goal**: Polish codebase to production quality
-
-**Tasks**:
-- [ ] Review all public APIs for consistency across modules
-- [ ] Verify all generics use new naming (Key, Domain, Entity)
-- [ ] Verify all KDoc is complete and accurate
-- [ ] Search for TODO comments: `git grep -n "TODO"` and resolve
-- [ ] Check for unused imports: `./gradlew lintKotlin` (if configured)
-- [ ] Run code formatter: `./gradlew spotlessApply` (if configured)
-- [ ] Remove any debug logging or print statements
-- [ ] Verify version numbers are consistent (1.0.0)
-
-**Why Important**: First impressions matter for 1.0 release
-
----
-
-### 6. Create CHANGELOG (1 hour) 🔴 HIGH PRIORITY
-
-**Goal**: Document all changes for 1.0.0 release
-
-**Tasks**:
-- [ ] Create `CHANGELOG.md` at project root
-- [ ] Document new modular architecture
-- [ ] List all 16 production modules
-- [ ] Explain bundle system
-- [ ] Document breaking changes from Store5/Store6 (if any existed)
-- [ ] List all P0/P1 fixes from production readiness review:
-  - Race condition fixes
-  - Thread safety improvements
-  - API simplifications
-  - Documentation additions
-- [ ] Include migration guide summary
-- [ ] Add upgrade instructions
-
-**Why Critical**: Users need to understand what changed
-
-**Template Structure**:
-```markdown
-# Changelog
-
-## [1.0.0] - 2025-10-XX
-
-### 🎉 New Modular Architecture
-- Split monolithic :store into 16 focused modules
-- Added 3 convenience bundles (graphql, rest, android)
-...
-
-### ✨ Features
-### 🐛 Bug Fixes
-### 📚 Documentation
-### ⚠️ Breaking Changes
-```
-
----
-
-### 7. Release Preparation (1 hour) 🔴 HIGH PRIORITY
-
-**Goal**: Prepare for Maven Central publication
-
-**Tasks**:
-- [ ] Update root `README.md`:
-  - Remove "unreleased" warnings
-  - Add installation instructions for all modules
-  - Update examples to use 1.0.0
-  - Add badge for Maven Central
-- [ ] Prepare GitHub release notes:
-  - Highlight modular architecture
-  - Link to migration guide
-  - List key features
-  - Thank contributors
-- [ ] Test local Maven publishing: `./gradlew publishToMavenLocal`
-- [ ] Verify all 16 modules publish correctly
-- [ ] Check POM files for correct dependencies
-- [ ] Verify BOM constraints work
-- [ ] Tag version 1.0.0: `git tag -a v1.0.0 -m "StoreX 1.0.0 - Modular Architecture Release"`
-- [ ] Publish to Maven Central: `./gradlew publish --no-daemon`
-- [ ] Create GitHub release with tag
-- [ ] Announce release (optional - Twitter, Reddit, etc.)
-
-**Why Critical**: This is the actual release!
-
----
-
-## 🟢 Post-1.0 Enhancements (2 tasks)
-
-Can be done after 1.0.0 release without breaking changes.
-
-### 8. Incremental Recomposition (4-6 hours) 🟢 ENHANCEMENT
-
-**Goal**: Optimize Compose recomposition for better UI performance
-
-**Current State**: `:compose` module exists but only has placeholder implementation
-
-**Tasks**:
-- [ ] Implement `@Stable` wrappers for StoreResult
-- [ ] Create `collectAsState()` extension for Store
-- [ ] Implement structural equality for cache invalidation
-- [ ] Add Compose-specific caching layer
-- [ ] Write comprehensive tests
-- [ ] Update `:bundle-android` to include optimization
-- [ ] Document best practices
-
-**Why Enhancement**: Performance optimization, not core functionality
-
-**Priority**: Post-1.0 (can ship in 1.1.0)
-
-**Complexity**: High - requires deep Compose knowledge
-
----
-
-### 9. Verify Pagination Implementation (2 hours) 🟢 VERIFICATION
-
-**Goal**: Check if existing `:paging` module satisfies TASK-019 requirements
-
-**Current State**: `:paging` module exists with PageStore implementation
-
-**Tasks**:
-- [ ] Review `:paging` module implementation
-- [ ] Check if it supports prefetch/cursor-based pagination
-- [ ] Compare against original TASK-019 requirements
-- [ ] Test with real-world pagination use case
-- [ ] If incomplete:
-  - [ ] Implement missing features
-  - [ ] Add prefetch strategies
-  - [ ] Add cursor/offset pagination variants
-- [ ] Update documentation with examples
-
-**Why Low Priority**: Module may already be complete
-
-**Outcome**: Either "already done" or "needs enhancement for 1.1.0"
-
----
-
-## 📊 Module Status Reference
-
-| Module | Status | Version | Tests | Docs | Notes |
-|--------|--------|---------|-------|------|-------|
-| `:core` | ✅ Production | 1.0.0 | ⚠️ Need migration | ✅ Complete | Read-only store, 14 files |
-| `:mutations` | ✅ Production | 1.0.0 | ⚠️ Need migration | ✅ Complete | Write operations, 9 files |
-| `:paging` | ✅ Production | 1.0.0 | ⚠️ Need check | ✅ Complete | Pagination support |
-| `:normalization:runtime` | ✅ Production | 1.0.0 | ⚠️ Need migration | ✅ Complete | Graph normalization, 17 files |
-| `:normalization:ksp` | ✅ Production | 1.0.0 | ✅ Tests exist | ✅ Complete | Code generation |
-| `:resilience` | ✅ Production | 1.0.0 | ✅ All pass | ✅ Complete | Retry/fallback, fully tested |
-| `:interceptors` | ⚠️ Placeholder | 1.0.0 | N/A | ✅ Complete | Compiles, post-1.0 impl |
-| `:serialization-kotlinx` | ⚠️ Placeholder | 1.0.0 | N/A | ✅ Complete | Compiles, post-1.0 impl |
-| `:testing` | ⚠️ Placeholder | 1.0.0 | N/A | ✅ Complete | Compiles, post-1.0 impl |
-| `:telemetry` | ⚠️ Placeholder | 1.0.0 | N/A | ✅ Complete | Compiles, post-1.0 impl |
-| `:android` | ⚠️ Placeholder | 1.0.0 | N/A | ✅ Complete | Compiles, post-1.0 impl |
-| `:compose` | ⚠️ Placeholder | 1.0.0 | N/A | ✅ Complete | Compiles, task #8 post-1.0 |
-| `:ktor-client` | ⚠️ Placeholder | 1.0.0 | N/A | ✅ Complete | Compiles, post-1.0 impl |
-| `:bundle-graphql` | ✅ Production | 1.0.0 | ✅ Deps only | ✅ Complete | Meta-package |
-| `:bundle-rest` | ✅ Production | 1.0.0 | ✅ Deps only | ✅ Complete | Meta-package |
-| `:bundle-android` | ✅ Production | 1.0.0 | ✅ Deps only | ✅ Complete | Meta-package |
-| `:bom` | ✅ Configured | 1.0.0 | N/A | ✅ Complete | Bill of materials |
+| Module | Implementation | Tests | Status | Reality Check |
+|--------|---------------|-------|--------|---------------|
+| **Core Modules** |
+| `:core` | ✅ 14 files | ❌ 0 tests | ⚠️ **UNTESTED** | RealReadStore, MemoryCache work but unverified |
+| `:mutations` | ✅ 9 files | ❌ 0 tests | ⚠️ **UNTESTED** | Full CRUD impl, but no test coverage |
+| `:paging` | ❌ 2 files (interfaces) | ❌ 0 tests | ❌ **NOT IMPLEMENTED** | Only PageStore interface + 1 validator |
+| `:normalization:runtime` | ✅ 17 files | ❌ 0 tests | ⚠️ **UNTESTED** | Complex graph logic needs extensive testing |
+| `:normalization:ksp` | ✅ Code gen | ❌ 0 tests | ⚠️ **UNTESTED** | Compiler plugin untested |
+| `:resilience` | ✅ 21 files | ✅ 11 tests | ✅ **PRODUCTION READY** | Only fully tested module |
+| **Integration Modules** |
+| `:interceptors` | ❌ Interface | ❌ 0 tests | ❌ **PLACEHOLDER** | Explicit TODO comments |
+| `:serialization-kotlinx` | ❌ Interface | ❌ 0 tests | ❌ **PLACEHOLDER** | Explicit TODO comments |
+| `:testing` | ❌ Interface | ❌ 0 tests | ❌ **PLACEHOLDER** | Explicit TODO comments |
+| `:telemetry` | ❌ Interface | ❌ 0 tests | ❌ **PLACEHOLDER** | Explicit TODO comments |
+| **Platform Modules** |
+| `:android` | ❌ Interface | ❌ 0 tests | ❌ **PLACEHOLDER** | Explicit TODO comments |
+| `:compose` | ❌ Interface | ❌ 0 tests | ❌ **PLACEHOLDER** | Explicit TODO comments |
+| `:ktor-client` | ❌ Interface | ❌ 0 tests | ❌ **PLACEHOLDER** | Explicit TODO comments |
+| **Meta Packages** |
+| `:bundle-graphql` | N/A | N/A | ✅ **META** | Dependency aggregation only |
+| `:bundle-rest` | N/A | N/A | ✅ **META** | Dependency aggregation only |
+| `:bundle-android` | N/A | N/A | ✅ **META** | Dependency aggregation only |
+| `:bom` | N/A | N/A | ✅ **META** | Bill of materials |
 
 **Legend**:
-- ✅ Ready for 1.0
-- ⚠️ Needs work before 1.0
-- 🟢 Post-1.0 enhancement
+- ✅ Production Ready - Has implementation AND tests
+- ⚠️ Untested - Has working code, ZERO tests
+- ❌ Not Implemented - Interface only or placeholder
+- N/A - Meta package (no code)
+
+---
+
+## 🎯 Decision Point: What Does "1.0" Mean?
+
+### Option A: True Production 1.0 (Recommended)
+**Ship only tested modules** - Honest, builds trust with users
+
+**Includes:**
+- `:resilience` (tested)
+- `:core` (after writing tests)
+- `:mutations` (after writing tests)
+- Bundles (meta-packages)
+
+**Excludes:**
+- `:paging` (not implemented)
+- `:normalization` (complex, needs extensive testing)
+- All placeholder modules (`:interceptors`, `:serialization-kotlinx`, etc.)
+
+**Timeline**: 3-4 weeks
+**Marketing**: "Solid, tested foundation with resilience patterns"
+
+### Option B: MVP 1.0 with Warnings
+**Ship with clear "experimental" flags** on untested modules
+
+**Timeline**: 1-2 weeks (just test `:core` and `:mutations`)
+**Risk**: Reputation damage if bugs hit production
+
+### Option C: Delay 1.0
+**Test everything that exists, remove placeholders**
+
+**Timeline**: 6-8 weeks
+**Outcome**: True enterprise-grade 1.0
+
+---
+
+## 🔴 CRITICAL PATH TO 1.0 (Option A - Recommended)
+
+### Phase 1: Foundation Testing (Week 1-2)
+
+#### Task 1.1: Core Module Tests (HIGH PRIORITY) 🔴
+**Current State**: 14 implementation files, 0 tests
+**Why Critical**: Core Store is the foundation - bugs here break everything
+
+**Must Test:**
+- `RealReadStore` - stream(), get(), invalidation
+- `MemoryCache` - LRU eviction, TTL expiration, thread safety
+- `SingleFlight` - request deduplication (thundering herd prevention)
+- `KeyMutex` - per-key locking correctness
+- `Bookkeeper` - fetch status tracking
+- Platform compatibility (JVM, JS, Native)
+
+**Test Files to Create:**
+- `core/src/commonTest/kotlin/RealReadStoreTest.kt`
+- `core/src/commonTest/kotlin/MemoryCacheTest.kt`
+- `core/src/commonTest/kotlin/SingleFlightTest.kt`
+- `core/src/commonTest/kotlin/KeyMutexTest.kt`
+- `core/src/jvmTest/kotlin/PlatformTests.kt`
+- `core/src/jsTest/kotlin/PlatformTests.kt`
+
+**Acceptance Criteria:**
+- [ ] >80% code coverage on `:core`
+- [ ] All tests pass on all platforms
+- [ ] Concurrency tests for thread safety
+- [ ] Memory leak tests for cache eviction
+
+**Estimated Time**: 40 hours (1 week)
+
+---
+
+#### Task 1.2: Mutations Module Tests (HIGH PRIORITY) 🔴
+**Current State**: 9 implementation files, 0 tests
+**Why Critical**: Mutation operations are high-risk (data corruption potential)
+
+**Must Test:**
+- `RealMutationStore` - CRUD operations
+- Optimistic updates with rollback
+- Offline-first behavior
+- Conflict resolution strategies
+- Policy enforcement (CreatePolicy, UpdatePolicy, DeletePolicy, UpsertPolicy, ReplacePolicy)
+
+**Test Files to Create:**
+- `mutations/src/commonTest/kotlin/RealMutationStoreTest.kt`
+- `mutations/src/commonTest/kotlin/OptimisticUpdateTest.kt`
+- `mutations/src/commonTest/kotlin/ConflictResolutionTest.kt`
+- `mutations/src/commonTest/kotlin/PolicyTest.kt`
+
+**Acceptance Criteria:**
+- [ ] >80% code coverage on `:mutations`
+- [ ] All CRUD operations tested
+- [ ] Rollback scenarios verified
+- [ ] Network failure edge cases handled
+
+**Estimated Time**: 40 hours (1 week)
+
+---
+
+### Phase 2: Quality & Documentation (Week 3)
+
+#### Task 2.1: Integration Tests
+**Goal**: Verify `:core` + `:mutations` + `:resilience` work together
+
+**Tests:**
+- [ ] Resilient Store with retry on mutation failures
+- [ ] Cache invalidation after mutations
+- [ ] Concurrent reads/writes stress test
+- [ ] End-to-end user scenarios
+
+**Estimated Time**: 16 hours
+
+---
+
+#### Task 2.2: Platform Compatibility (CRITICAL)
+**Current Risk**: Value classes (StoreNamespace, EntityId) untested cross-platform
+
+**Tests Needed:**
+- [ ] JVM: Inline class serialization with kotlinx.serialization
+- [ ] JS: Inline class interop with JSON
+- [ ] Native: Inline class memory layout
+- [ ] Type erasure edge cases
+
+**Files:**
+- `core/src/jvmTest/kotlin/ValueClassTest.kt`
+- `core/src/jsTest/kotlin/ValueClassTest.kt`
+- `core/src/nativeTest/kotlin/ValueClassTest.kt`
+
+**Estimated Time**: 16 hours
+
+---
+
+#### Task 2.3: Update Documentation
+**Goal**: Remove claims about untested/unimplemented modules
+
+**Changes:**
+- [ ] Update root README.md - Remove `:paging`, `:normalization` examples
+- [ ] Update module READMEs - Add "Experimental" warnings where needed
+- [ ] Create TESTING.md - Document test coverage gaps
+- [ ] Update ARCHITECTURE.md - Clarify what's production vs experimental
+
+**Estimated Time**: 8 hours
+
+---
+
+### Phase 3: Release Prep (Week 4)
+
+#### Task 3.1: CHANGELOG.md (HIGH PRIORITY) 🔴
+**Create honest, comprehensive changelog**
+
+**Sections:**
+```markdown
+## [1.0.0] - 2025-XX-XX
+
+### ✅ Production-Ready Modules
+- :resilience - Circuit breakers, retry policies (fully tested)
+- :core - Read-only stores with multi-layer caching (fully tested)
+- :mutations - CRUD operations with optimistic updates (fully tested)
+
+### ⚠️ Excluded from 1.0
+- :paging - Interface only, implementation coming in 1.1
+- :normalization - Complex graph operations, needs more testing
+- :interceptors, :serialization-kotlinx, :testing, :telemetry, :android, :compose, :ktor-client - Placeholder modules for future releases
+
+### 🎉 Architecture Improvements
+- Split monolithic :store into 16 focused modules
+- Added 3 convenience bundles (graphql, rest, android)
+- Improved thread safety with per-key locking
+- Added comprehensive resilience patterns
+
+### 📚 Breaking Changes
+- [List any API changes from Store5/Store6]
+```
+
+**Estimated Time**: 4 hours
+
+---
+
+#### Task 3.2: Sample Apps (MEDIUM PRIORITY) 🟡
+**Goal**: Working examples using ONLY tested modules
+
+**Create:**
+- [ ] `sample-basic/` - Core Store with resilience
+- [ ] `sample-mutations/` - CRUD operations example
+- [ ] Update `sample/build.gradle.kts` - Remove dependencies on untested modules
+
+**Estimated Time**: 8 hours
+
+---
+
+#### Task 3.3: Final Code Review (MEDIUM PRIORITY) 🟡
+**Polish before release**
+
+- [ ] Review all public APIs in `:core`, `:mutations`, `:resilience`
+- [ ] Verify KDoc completeness
+- [ ] Remove debug logging
+- [ ] Run `./gradlew spotlessApply` (if configured)
+- [ ] Search for TODO comments: `git grep -n "TODO"` in production modules only
+- [ ] Verify version numbers (1.0.0)
+
+**Estimated Time**: 8 hours
+
+---
+
+#### Task 3.4: Release (HIGH PRIORITY) 🔴
+**Prepare for Maven Central**
+
+- [ ] Test local publishing: `./gradlew publishToMavenLocal`
+- [ ] Verify BOM constraints
+- [ ] Check POM files for correct dependencies
+- [ ] Tag version: `git tag -a v1.0.0 -m "StoreX 1.0.0 - Foundation Release"`
+- [ ] Publish to Maven Central: `./gradlew publish --no-daemon`
+- [ ] Create GitHub release
+- [ ] Announce with honest feature set
+
+**Estimated Time**: 4 hours
+
+---
+
+## 🟢 Post-1.0 Enhancements
+
+### Milestone 1.1: Normalization (4-6 weeks)
+**Goal**: Make `:normalization:runtime` production-ready
+
+- [ ] Write comprehensive tests for graph normalization
+- [ ] Test edge cases (cycles, missing refs, deep graphs)
+- [ ] Performance benchmarks (large graph composition)
+- [ ] Platform compatibility tests
+- [ ] Documentation with real-world examples
+
+---
+
+### Milestone 1.2: Pagination (2-3 weeks)
+**Goal**: Actually implement `:paging` (currently just interfaces)
+
+**Implementation needed:**
+- [ ] `RealPageStore` class
+- [ ] Prefetch logic
+- [ ] Cursor-based pagination
+- [ ] Offset-based pagination
+- [ ] Tests for all pagination modes
+
+---
+
+### Milestone 1.3: Platform Integrations (8-12 weeks)
+**Goal**: Implement placeholder modules
+
+- [ ] `:compose` - Incremental recomposition
+- [ ] `:android` - Room/DataStore adapters
+- [ ] `:ktor-client` - HTTP client integration
+- [ ] `:serialization-kotlinx` - Automatic converters
+- [ ] `:testing` - Test utilities
+- [ ] `:telemetry` - OpenTelemetry support
+- [ ] `:interceptors` - Request/response transformation
+
+---
+
+## 📊 Test Coverage Goals
+
+| Module | Current | Target | Priority |
+|--------|---------|--------|----------|
+| `:resilience` | ✅ Tested | ✅ >80% | Maintain |
+| `:core` | ❌ 0% | 🎯 >80% | **CRITICAL** |
+| `:mutations` | ❌ 0% | 🎯 >80% | **CRITICAL** |
+| `:normalization:runtime` | ❌ 0% | 🎯 >80% | Post-1.0 |
+| `:normalization:ksp` | ❌ 0% | 🎯 >70% | Post-1.0 |
+
+---
+
+## 🚨 Known Issues & Risks
+
+### Critical Risks for 1.0
+
+1. **Value Class Platform Compatibility** (CRITICAL)
+   - `StoreNamespace`, `EntityId` use `@JvmInline`
+   - **Risk**: Serialization breaks on JS/Native
+   - **Mitigation**: Write platform-specific tests (Task 2.2)
+
+2. **Concurrency Safety** (HIGH)
+   - `SingleFlight`, `KeyMutex` not tested under load
+   - **Risk**: Race conditions in production
+   - **Mitigation**: Add stress tests (Task 1.1)
+
+3. **Memory Leaks** (MEDIUM)
+   - `MemoryCache` LRU eviction untested
+   - **Risk**: OOM in long-running apps
+   - **Mitigation**: Add leak tests (Task 1.1)
+
+4. **Mutation Rollback** (HIGH)
+   - Optimistic update rollback untested
+   - **Risk**: Data corruption on network failures
+   - **Mitigation**: Add rollback tests (Task 1.2)
+
+### Non-Critical (Post-1.0)
+
+5. **Policy Consolidation** (MEDIUM - Post-1.0)
+   - Multiple policy classes (CreatePolicy, UpdatePolicy, DeletePolicy, UpsertPolicy, ReplacePolicy)
+   - Could be unified before 1.0, but API breaking change
+   - **Decision**: Defer to 2.0 if needed
 
 ---
 
 ## 🎯 Success Criteria for 1.0 Release
 
 ### Code & Architecture ✅
-- [x] All 16 production modules compile independently
+- [x] All production modules compile independently
 - [x] Zero circular dependencies
-- [x] `:core` module < 6K LOC (actual: ~494 lines)
 - [x] Clean separation: reads in `:core`, writes in `:mutations`
-- [x] Legacy `:store` module deleted
 
-### Documentation ✅
-- [x] All modules have comprehensive README files
-- [x] Architecture documentation complete (400+ pages)
-- [x] Migration guides written
-- [x] Bundle usage guides complete
+### Testing 🎯 (PRIMARY FOCUS)
+- [ ] `:resilience` - ✅ Already tested (maintain)
+- [ ] `:core` - 🎯 >80% coverage with platform tests
+- [ ] `:mutations` - 🎯 >80% coverage with integration tests
+- [ ] Platform compatibility verified (JVM, JS, Native)
+- [ ] Concurrency safety verified (stress tests)
 
-### Testing ⚠️
-- [x] All modules compile on all platforms
-- [ ] Tests migrated from old `:store` module (Task #2)
-- [ ] Platform-specific tests written (Task #4)
-- [ ] >80% code coverage per module
-- [ ] Full test suite passes
+### Documentation ⚠️
+- [x] Module READMEs exist
+- [ ] Honest about what's tested vs experimental
+- [ ] Remove examples for unimplemented modules
+- [ ] Add TESTING.md showing coverage gaps
 
-### Quality 🟡
-- [x] All P0 critical issues resolved
-- [x] All P1 high priority issues resolved
-- [ ] Final code review complete (Task #5)
-- [ ] Policy consolidation (Task #3 - if time permits)
+### Quality 🎯
+- [ ] All production modules pass `./gradlew test`
+- [ ] Code review complete
+- [ ] No debug logging in production code
+- [ ] Version 1.0.0 tagged
 
 ### Release ⏳
-- [ ] CHANGELOG.md created (Task #6)
-- [ ] Samples updated (Task #1)
-- [ ] Version 1.0.0 tagged
-- [ ] Published to Maven Central (Task #7)
-- [ ] GitHub release created
+- [ ] CHANGELOG.md created (honest feature set)
+- [ ] Sample apps use only tested modules
+- [ ] Published to Maven Central
+- [ ] GitHub release with accurate description
 
 ---
 
 ## 🚀 Quick Commands
 
 ```bash
-# Full build (all modules, all platforms)
+# Test production-ready modules
+./gradlew :resilience:test        # ✅ Should pass (11 tests)
+./gradlew :core:test               # ❌ Currently NO-SOURCE
+./gradlew :mutations:test          # ❌ Currently NO-SOURCE
+
+# Full build (compiles, doesn't test everything)
 ./gradlew build
 
-# Run all tests
-./gradlew test
-
-# Check code coverage
+# Check test coverage (after writing tests)
 ./gradlew koverHtmlReport
 open build/reports/kover/html/index.html
 
-# Publish to local Maven for testing
+# Find TODOs in production code
+git grep -n "TODO" core/ mutations/ resilience/
+
+# Platform-specific tests (after writing them)
+./gradlew :core:jvmTest
+./gradlew :core:jsTest
+./gradlew :core:iosSimulatorArm64Test
+
+# Publish locally for testing
 ./gradlew publishToMavenLocal
 
-# Clean build
+# Clean build from scratch
 ./gradlew clean build
-
-# Format code (if spotless configured)
-./gradlew spotlessApply
-
-# Find TODOs
-git grep -n "TODO"
-
-# Check for unused dependencies (if configured)
-./gradlew buildHealth
 ```
 
 ---
 
 ## 📝 Prioritization Guide
 
-**Must Do Before 1.0** (9-12 hours):
-1. 🔴 Test Migration (2-3h) - **START HERE**
-2. 🔴 Platform Testing (2h)
-3. 🔴 Sample Apps (2h)
-4. 🔴 CHANGELOG (1h)
-5. 🔴 Release Prep (1h)
-6. 🟡 Code Review (1-2h)
-7. 🟡 Policy Consolidation (1h) - if time permits
+**Must Do Before 1.0** (3-4 weeks):
+1. 🔴 Test `:core` (40h) - **START HERE**
+2. 🔴 Test `:mutations` (40h)
+3. 🔴 Platform compatibility tests (16h)
+4. 🔴 Integration tests (16h)
+5. 🔴 CHANGELOG.md (4h)
+6. 🔴 Release prep (12h)
+7. 🟡 Code review (8h)
 
 **Nice to Have** (Post-1.0):
-8. 🟢 Incremental Recomposition (4-6h) - Ship in 1.1.0
-9. 🟢 Verify Pagination (2h) - May already be complete
+8. 🟢 Normalization tests + docs (4-6 weeks) - Ship in 1.1
+9. 🟢 Paging implementation (2-3 weeks) - Ship in 1.1
+10. 🟢 Compose recomposition (4-6 weeks) - Ship in 1.2
+11. 🟢 Platform integrations (8-12 weeks) - Ship in 1.x
+
+**Total Realistic Time to 1.0**: 128+ hours = **3-4 weeks** of focused work
 
 ---
 
@@ -378,4 +483,30 @@ Completed work archived in:
 
 ---
 
-**Ready to ship**: Complete tasks 1-7 above and StoreX 1.0.0 is ready for the world! 🎉
+## 💡 Recommendation
+
+**Recommended Path**: Option A (True Production 1.0)
+
+**Why:**
+- Builds trust with users by shipping only tested code
+- Reduces support burden (fewer bugs)
+- Sets high quality bar for future releases
+- 3-4 weeks is reasonable for 1.0
+
+**Marketing Message:**
+> "StoreX 1.0: A solid, battle-tested foundation for reactive state management in Kotlin Multiplatform. We ship only what we've thoroughly tested, with resilience patterns built in from day one."
+
+**What to communicate:**
+- ✅ Foundation is solid (`:core`, `:mutations`, `:resilience`)
+- 🔮 Advanced features coming in 1.1+ (normalization, paging, platform integrations)
+- 📊 Full transparency on test coverage
+
+---
+
+**Next Steps**:
+1. Review this roadmap
+2. Choose Option A, B, or C
+3. If Option A: Start with `Task 1.1: Core Module Tests`
+4. If Option B/C: Adjust timeline accordingly
+
+**Ready to ship a 1.0 you can be proud of.** 🎉
