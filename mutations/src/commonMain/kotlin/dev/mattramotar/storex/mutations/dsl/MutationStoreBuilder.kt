@@ -2,6 +2,7 @@ package dev.mattramotar.storex.mutations.dsl
 
 import dev.mattramotar.storex.core.StoreKey
 import dev.mattramotar.storex.mutations.MutationStore
+import dev.mattramotar.storex.mutations.dsl.internal.DefaultMutationStoreBuilderScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -55,6 +56,8 @@ fun <K : StoreKey, V : Any, P, D> mutationStore(
     scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     block: MutationStoreBuilderScope<K, V, P, D>.() -> Unit
 ): MutationStore<K, V, P, D> {
-    // TODO: Implement builder
-    throw NotImplementedError("MutationStore builder not yet implemented")
+    val builder = DefaultMutationStoreBuilderScope<K, V, P, D>()
+    builder.scope = scope
+    builder.block()
+    return builder.build()
 }
