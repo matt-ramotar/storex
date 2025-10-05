@@ -21,13 +21,14 @@ import dev.mattramotar.storex.core.internal.MemoryCache
 import dev.mattramotar.storex.core.internal.SourceOfTruth
 import dev.mattramotar.storex.mutations.CreatePolicy
 import dev.mattramotar.storex.mutations.CreateResult
-import dev.mattramotar.storex.mutations.Creator
+import dev.mattramotar.storex.mutations.DeleteClient
 import dev.mattramotar.storex.mutations.DeletePolicy
 import dev.mattramotar.storex.mutations.DeleteResult
-import dev.mattramotar.storex.mutations.Deleter
 import dev.mattramotar.storex.mutations.MutationEncoder
 import dev.mattramotar.storex.mutations.MutationStore
-import dev.mattramotar.storex.mutations.Putser
+import dev.mattramotar.storex.mutations.PatchClient
+import dev.mattramotar.storex.mutations.PostClient
+import dev.mattramotar.storex.mutations.PutClient
 import dev.mattramotar.storex.mutations.ReplacePolicy
 import dev.mattramotar.storex.mutations.ReplaceResult
 import dev.mattramotar.storex.mutations.UpdatePolicy
@@ -125,10 +126,10 @@ class RealMutationStore<
     >(
     private val sot: SourceOfTruth<Key, ReadEntity, WriteEntity>,
     private val fetcher: Fetcher<Key, NetworkResponse>,
-    private val updater: Updater<Key, Patch, NetworkPatch>?,
-    private val creator: Creator<Key, Draft, NetworkResponse>?,
-    private val deleter: Deleter<Key>?,
-    private val putser: Putser<Key, Domain, NetworkPut>?,
+    private val patchClient: PatchClient<Key, NetworkPatch, NetworkResponse>?,
+    private val postClient: PostClient<Key, Draft, NetworkResponse>?,
+    private val deleteClient: DeleteClient<Key>?,
+    private val putClient: PutClient<Key, NetworkPut, NetworkResponse>?,
     private val converter: Converter<Key, Domain, ReadEntity, NetworkResponse, WriteEntity>,
     private val encoder: MutationEncoder<Patch, Draft, Domain, NetworkPatch, NetworkDraft, NetworkPut>,
     private val bookkeeper: Bookkeeper<Key>,
@@ -220,28 +221,28 @@ class RealMutationStore<
             sot.withTransaction { sot.write(key, optimisticDb) }
         }
 
-        if (policy.requireOnline && updater == null) return UpdateResult.Failed(IllegalStateException("Updater not configured"))
-        if (updater == null) return UpdateResult.Enqueued
+        if (policy.requireOnline && patchClient == null) return UpdateResult.Failed(IllegalStateException("PatchClient not configured"))
+        if (patchClient == null) return UpdateResult.Enqueued
 
         val netPatch = encoder.fromPatch(patch, base) ?: return UpdateResult.Failed(IllegalStateException("NetPatch required"))
         return try {
-            when (val outcome = updater.update(key, patch, body = netPatch, precondition = policy.precondition)) {
-                is Updater.Outcome.Success<*> -> {
-                    val echo = outcome.echo
+            when (val response = patchClient.patch(key, payload = netPatch, precondition = policy.precondition)) {
+                is PatchClient.Response.Success<*> -> {
+                    val echo = response.echo
                     if (echo != null) {
                         val writeDb: WriteEntity = converter.netToDbWrite(key, echo as NetworkResponse)
                         sot.withTransaction { sot.write(key, writeDb) }
                     }
-                    bookkeeper.recordSuccess(key, (outcome as? Updater.Outcome.Success<*>)?.etag, now())
+                    bookkeeper.recordSuccess(key, (response as? PatchClient.Response.Success<*>)?.etag, now())
                     UpdateResult.Synced
                 }
-                is Updater.Outcome.Conflict -> {
+                is PatchClient.Response.Conflict -> {
                     bookkeeper.recordFailure(key, IllegalStateException("Conflict"), now())
                     UpdateResult.Failed(IllegalStateException("Conflict"))
                 }
-                is Updater.Outcome.Failure -> {
-                    bookkeeper.recordFailure(key, outcome.error, now())
-                    UpdateResult.Failed(outcome.error)
+                is PatchClient.Response.Failure -> {
+                    bookkeeper.recordFailure(key, response.error, now())
+                    UpdateResult.Failed(response.error)
                 }
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -253,23 +254,23 @@ class RealMutationStore<
     }
 
     override suspend fun create(draft: Draft, policy: CreatePolicy): CreateResult<Key> {
-        if (policy.requireOnline && creator == null) return CreateResult.Failed(null, IllegalStateException("Creator not configured"))
-        if (creator == null) return CreateResult.Failed(null, IllegalStateException("Creator not configured"))
+        if (policy.requireOnline && postClient == null) return CreateResult.Failed(null, IllegalStateException("PostClient not configured"))
+        if (postClient == null) return CreateResult.Failed(null, IllegalStateException("PostClient not configured"))
 
         return try {
-            when (val outcome = creator.create(draft)) {
-                is Creator.Outcome.Success -> {
-                    val canonical = outcome.canonicalKey
-                    outcome.echo?.let { echo ->
+            when (val response = postClient.post(draft)) {
+                is PostClient.Response.Success -> {
+                    val canonical = response.canonicalKey
+                    response.echo?.let { echo ->
                         val writeDb: WriteEntity = converter.netToDbWrite(canonical, echo)
                         sot.withTransaction { sot.write(canonical, writeDb) }
                     }
-                    bookkeeper.recordSuccess(canonical, outcome.etag, now())
+                    bookkeeper.recordSuccess(canonical, response.etag, now())
                     CreateResult.Synced(canonical, null)
                 }
-                is Creator.Outcome.Failure -> {
-                    bookkeeper.recordFailure(fakeKeyForCreate(), outcome.error, now())
-                    CreateResult.Failed(null, outcome.error)
+                is PostClient.Response.Failure -> {
+                    bookkeeper.recordFailure(fakeKeyForCreate(), response.error, now())
+                    CreateResult.Failed(null, response.error)
                 }
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -280,17 +281,17 @@ class RealMutationStore<
     }
 
     override suspend fun delete(key: Key, policy: DeletePolicy): DeleteResult {
-        if (policy.requireOnline && deleter == null) return DeleteResult.Failed(cause = IllegalStateException("Deleter not configured"), restored = false)
+        if (policy.requireOnline && deleteClient == null) return DeleteResult.Failed(cause = IllegalStateException("DeleteClient not configured"), restored = false)
         try {
             sot.withTransaction { sot.delete(key) }
         } catch (e: Exception) {
             // Optimistic delete - ignore failures
         }
-        if (deleter == null) return DeleteResult.Enqueued
+        if (deleteClient == null) return DeleteResult.Enqueued
         return try {
-            when (val out = deleter.delete(key, precondition = null)) {
-                is Deleter.Outcome.Success -> { bookkeeper.recordSuccess(key, out.etag, now()); DeleteResult.Synced(alreadyDeleted = out.alreadyDeleted) }
-                is Deleter.Outcome.Failure -> { bookkeeper.recordFailure(key, out.error, now()); DeleteResult.Failed(cause = out.error, restored = false) }
+            when (val response = deleteClient.delete(key, precondition = null)) {
+                is DeleteClient.Response.Success -> { bookkeeper.recordSuccess(key, response.etag, now()); DeleteResult.Synced(alreadyDeleted = response.alreadyDeleted) }
+                is DeleteClient.Response.Failure -> { bookkeeper.recordFailure(key, response.error, now()); DeleteResult.Failed(cause = response.error, restored = false) }
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
@@ -303,33 +304,33 @@ class RealMutationStore<
         val localDb: WriteEntity? = converter.domainToDbWrite(key, value)
         if (localDb != null) sot.withTransaction { sot.write(key, localDb) }
 
-        if (policy.requireOnline && putser == null) return UpsertResult.Failed(key = key, cause = IllegalStateException("Putser not configured"))
-        if (putser == null) return UpsertResult.Local(key)
+        if (policy.requireOnline && putClient == null) return UpsertResult.Failed(key = key, cause = IllegalStateException("PutClient not configured"))
+        if (putClient == null) return UpsertResult.Local(key)
 
-        val body = encoder.fromValue(value) ?: return UpsertResult.Failed(key = key, cause = IllegalStateException("NetPut required"))
+        val payload = encoder.fromValue(value) ?: return UpsertResult.Failed(key = key, cause = IllegalStateException("NetPut required"))
         return try {
-            when (val out = putser.put(key, value, body = body, precondition = null)) {
-                is Putser.Outcome.Created<*> -> {
-                    val echo = out.echo
+            when (val response = putClient.put(key, payload = payload, precondition = null)) {
+                is PutClient.Response.Created<*> -> {
+                    val echo = response.echo
                     if (echo != null) {
                         val writeDb: WriteEntity = converter.netToDbWrite(key, echo as NetworkResponse)
                         sot.withTransaction { sot.write(key, writeDb) }
                     }
-                    bookkeeper.recordSuccess(key, (out as? Putser.Outcome.Created<*>)?.etag, now())
+                    bookkeeper.recordSuccess(key, (response as? PutClient.Response.Created<*>)?.etag, now())
                     UpsertResult.Synced(key = key, created = true)
                 }
-                is Putser.Outcome.Replaced<*> -> {
-                    val echo = out.echo
+                is PutClient.Response.Replaced<*> -> {
+                    val echo = response.echo
                     if (echo != null) {
                         val writeDb: WriteEntity = converter.netToDbWrite(key, echo as NetworkResponse)
                         sot.withTransaction { sot.write(key, writeDb) }
                     }
-                    bookkeeper.recordSuccess(key, (out as? Putser.Outcome.Replaced<*>)?.etag, now())
+                    bookkeeper.recordSuccess(key, (response as? PutClient.Response.Replaced<*>)?.etag, now())
                     UpsertResult.Synced(key = key, created = false)
                 }
-                is Putser.Outcome.Failure -> {
-                    bookkeeper.recordFailure(key, out.error, now())
-                    UpsertResult.Failed(key = key, cause = out.error)
+                is PutClient.Response.Failure -> {
+                    bookkeeper.recordFailure(key, response.error, now())
+                    UpsertResult.Failed(key = key, cause = response.error)
                 }
             }
         } catch (e: kotlinx.coroutines.CancellationException) {
@@ -343,33 +344,33 @@ class RealMutationStore<
         val localDb: WriteEntity? = converter.domainToDbWrite(key, value)
         if (localDb != null) sot.withTransaction { sot.write(key, localDb) }
 
-        if (putser == null) return ReplaceResult.Enqueued
+        if (putClient == null) return ReplaceResult.Enqueued
 
-        val body = encoder.fromValue(value) ?: return ReplaceResult.Failed(cause = IllegalStateException("NetPut required"))
+        val payload = encoder.fromValue(value) ?: return ReplaceResult.Failed(cause = IllegalStateException("NetPut required"))
         return try {
-            when (val out = putser.put(key, value, body = body, precondition = policy.precondition)) {
-                is Putser.Outcome.Created<*> -> {
+            when (val response = putClient.put(key, payload = payload, precondition = policy.precondition)) {
+                is PutClient.Response.Created<*> -> {
                     // For replace, we expect Replaced not Created - this might be an error depending on server behavior
-                    val echo = out.echo
+                    val echo = response.echo
                     if (echo != null) {
                         val writeDb: WriteEntity = converter.netToDbWrite(key, echo as NetworkResponse)
                         sot.withTransaction { sot.write(key, writeDb) }
                     }
-                    bookkeeper.recordSuccess(key, (out as? Putser.Outcome.Created<*>)?.etag, now())
+                    bookkeeper.recordSuccess(key, (response as? PutClient.Response.Created<*>)?.etag, now())
                     ReplaceResult.Synced
                 }
-                is Putser.Outcome.Replaced<*> -> {
-                    val echo = out.echo
+                is PutClient.Response.Replaced<*> -> {
+                    val echo = response.echo
                     if (echo != null) {
                         val writeDb: WriteEntity = converter.netToDbWrite(key, echo as NetworkResponse)
                         sot.withTransaction { sot.write(key, writeDb) }
                     }
-                    bookkeeper.recordSuccess(key, (out as? Putser.Outcome.Replaced<*>)?.etag, now())
+                    bookkeeper.recordSuccess(key, (response as? PutClient.Response.Replaced<*>)?.etag, now())
                     ReplaceResult.Synced
                 }
-                is Putser.Outcome.Failure -> {
-                    bookkeeper.recordFailure(key, out.error, now())
-                    ReplaceResult.Failed(cause = out.error)
+                is PutClient.Response.Failure -> {
+                    bookkeeper.recordFailure(key, response.error, now())
+                    ReplaceResult.Failed(cause = response.error)
                 }
             }
         } catch (e: kotlinx.coroutines.CancellationException) {

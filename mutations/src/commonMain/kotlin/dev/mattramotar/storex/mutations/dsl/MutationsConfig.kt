@@ -1,10 +1,10 @@
 package dev.mattramotar.storex.mutations.dsl
 
 import dev.mattramotar.storex.core.StoreKey
-import dev.mattramotar.storex.mutations.CreateOutcome
-import dev.mattramotar.storex.mutations.DeleteOutcome
-import dev.mattramotar.storex.mutations.PutOutcome
-import dev.mattramotar.storex.mutations.internal.UpdateOutcome
+import dev.mattramotar.storex.mutations.DeleteClient
+import dev.mattramotar.storex.mutations.PatchClient
+import dev.mattramotar.storex.mutations.PostClient
+import dev.mattramotar.storex.mutations.PutClient
 
 /**
  * Configuration for mutation operations (update, create, delete, upsert, replace).
@@ -17,34 +17,34 @@ import dev.mattramotar.storex.mutations.internal.UpdateOutcome
 class MutationsConfig<K : StoreKey, V : Any, P, D> {
     /**
      * Function to perform partial updates (PATCH).
-     * Receives the key and patch, returns an UpdateOutcome.
+     * Receives the key and patch, returns a PatchClient.Response.
      */
-    var updater: (suspend (K, P) -> UpdateOutcome<*>)? = null
+    var patch: (suspend (K, P) -> PatchClient.Response<*>)? = null
 
     /**
      * Function to create new entities (POST).
-     * Receives a draft, returns a CreateOutcome with the canonical key.
+     * Receives a draft, returns a PostClient.Response with the canonical key.
      */
-    var creator: (suspend (D) -> CreateOutcome<K, *>)? = null
+    var post: (suspend (D) -> PostClient.Response<K, *>)? = null
 
     /**
      * Function to delete entities (DELETE).
-     * Receives the key, returns a DeleteOutcome.
+     * Receives the key, returns a DeleteClient.Response.
      */
-    var deleter: (suspend (K) -> DeleteOutcome)? = null
+    var delete: (suspend (K) -> DeleteClient.Response)? = null
 
     /**
      * Function to create-or-replace entities (PUT with upsert semantics).
-     * Receives the key and full value, returns a PutOutcome indicating whether created or replaced.
+     * Receives the key and full value, returns a PutClient.Response indicating whether created or replaced.
      */
-    var putser: (suspend (K, V) -> PutOutcome<K, *>)? = null
+    var put: (suspend (K, V) -> PutClient.Response<*>)? = null
 
     /**
      * Function to replace existing entities (PUT with replace-only semantics).
-     * Receives the key and full value, returns a PutOutcome.
+     * Receives the key and full value, returns a PutClient.Response.
      * Typically fails if the entity doesn't exist.
      */
-    var replacer: (suspend (K, V) -> PutOutcome<K, *>)? = null
+    var replace: (suspend (K, V) -> PutClient.Response<*>)? = null
 
     /**
      * Configure the update function for partial updates (PATCH).
@@ -53,12 +53,12 @@ class MutationsConfig<K : StoreKey, V : Any, P, D> {
      * ```kotlin
      * update { key, patch ->
      *     val response = api.updateUser(key.id, patch)
-     *     UpdateOutcome.Success(response, response.etag)
+     *     PatchClient.Response.Success(response, response.etag)
      * }
      * ```
      */
-    fun update(update: suspend (K, P) -> UpdateOutcome<*>) {
-        updater = update
+    fun update(update: suspend (K, P) -> PatchClient.Response<*>) {
+        patch = update
     }
 
     /**
@@ -68,16 +68,16 @@ class MutationsConfig<K : StoreKey, V : Any, P, D> {
      * ```kotlin
      * create { draft ->
      *     val response = api.createUser(draft)
-     *     CreateOutcome.Success(
+     *     PostClient.Response.Success(
      *         canonicalKey = UserKey(response.id),
-     *         networkEcho = response,
+     *         echo = response,
      *         etag = response.etag
      *     )
      * }
      * ```
      */
-    fun create(create: suspend (D) -> CreateOutcome<K, *>) {
-        creator = create
+    fun create(create: suspend (D) -> PostClient.Response<K, *>) {
+        post = create
     }
 
     /**
@@ -87,12 +87,12 @@ class MutationsConfig<K : StoreKey, V : Any, P, D> {
      * ```kotlin
      * delete { key ->
      *     api.deleteUser(key.id)
-     *     DeleteOutcome.Success(alreadyDeleted = false)
+     *     DeleteClient.Response.Success(alreadyDeleted = false)
      * }
      * ```
      */
-    fun delete(delete: suspend (K) -> DeleteOutcome) {
-        deleter = delete
+    fun delete(delete: suspend (K) -> DeleteClient.Response) {
+        this@MutationsConfig.delete = delete
     }
 
     /**
@@ -103,15 +103,15 @@ class MutationsConfig<K : StoreKey, V : Any, P, D> {
      * upsert { key, value ->
      *     val response = api.upsertUser(key.id, value)
      *     if (response.created) {
-     *         PutOutcome.Created(key, response, response.etag)
+     *         PutClient.Response.Created(response, response.etag)
      *     } else {
-     *         PutOutcome.Replaced(key, response, response.etag)
+     *         PutClient.Response.Replaced(response, response.etag)
      *     }
      * }
      * ```
      */
-    fun upsert(upsert: suspend (K, V) -> PutOutcome<K, *>) {
-        putser = upsert
+    fun upsert(upsert: suspend (K, V) -> PutClient.Response<*>) {
+        put = upsert
     }
 
     /**
@@ -121,11 +121,11 @@ class MutationsConfig<K : StoreKey, V : Any, P, D> {
      * ```kotlin
      * replace { key, value ->
      *     val response = api.replaceUser(key.id, value)
-     *     PutOutcome.Replaced(key, response, response.etag)
+     *     PutClient.Response.Replaced(response, response.etag)
      * }
      * ```
      */
-    fun replace(replace: suspend (K, V) -> PutOutcome<K, *>) {
-        replacer = replace
+    fun replace(replace: suspend (K, V) -> PutClient.Response<*>) {
+        this@MutationsConfig.replace = replace
     }
 }

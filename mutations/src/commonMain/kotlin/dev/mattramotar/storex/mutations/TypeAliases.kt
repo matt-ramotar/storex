@@ -86,9 +86,9 @@ import dev.mattramotar.storex.mutations.internal.RealMutationStore
  * val userStore: SimpleMutationStore<UserKey, User> = mutationStore {
  *     fetcher { key -> api.getUser(key.id) }
  *     mutations {
- *         update { key, user -> UpdateOutcome.Success(api.updateUser(key.id, user), null) }
- *         create { user -> CreateOutcome.Success(UserKey(user.id), user, null) }
- *         delete { key -> DeleteOutcome.Success(api.deleteUser(key.id), null) }
+ *         update { key, user -> PatchClient.Response.Success(api.updateUser(key.id, user), null) }
+ *         create { user -> PostClient.Response.Success(UserKey(user.id), user, null) }
+ *         delete { key -> DeleteClient.Response.Success(api.deleteUser(key.id), null) }
  *     }
  * }
  * ```
@@ -132,9 +132,9 @@ typealias SimpleMutationStore<Key, Domain> = RealMutationStore<
  *         writer { key, entity -> database.save(entity) }
  *     }
  *     mutations {
- *         update { key, patch -> UpdateOutcome.Success(api.patchArticle(key.id, patch), null) }
- *         create { draft -> CreateOutcome.Success(ArticleKey(draft.id), api.createArticle(draft), null) }
- *         delete { key -> DeleteOutcome.Success(api.deleteArticle(key.id), false, null) }
+ *         update { key, patch -> PatchClient.Response.Success(api.patchArticle(key.id, patch), null) }
+ *         create { draft -> PostClient.Response.Success(ArticleKey(draft.id), api.createArticle(draft), null) }
+ *         delete { key -> DeleteClient.Response.Success(api.deleteArticle(key.id), false, null) }
  *     }
  * }
  * ```

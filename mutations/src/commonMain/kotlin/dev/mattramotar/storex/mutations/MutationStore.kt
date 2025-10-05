@@ -43,17 +43,17 @@ import kotlin.time.Duration.Companion.milliseconds
  *     mutations {
  *         update { key, patch ->
  *             val response = api.updateUser(key.id, patch)
- *             UpdateOutcome.Success(response, response.etag)
+ *             PatchClient.Response.Success(response, response.etag)
  *         }
  *
  *         create { draft ->
  *             val response = api.createUser(draft)
- *             CreateOutcome.Success(UserKey(response.id), response, response.etag)
+ *             PostClient.Response.Success(UserKey(response.id), response, response.etag)
  *         }
  *
  *         delete { key ->
  *             api.deleteUser(key.id)
- *             DeleteOutcome.Success(alreadyDeleted = false)
+ *             DeleteClient.Response.Success(alreadyDeleted = false)
  *         }
  *     }
  * }
@@ -353,74 +353,149 @@ sealed interface Precondition {
 }
 
 /**
- * Interface for executing delete operations against a remote API.
+ * Interface for executing HTTP DELETE operations against a remote API.
  *
  * @param Key The [StoreKey] subtype
  */
-interface Deleter<Key : StoreKey> {
-    sealed interface Outcome {
-        data class Success(val alreadyDeleted: Boolean, val etag: String? = null) : Outcome
-        data class Failure(val error: Throwable) : Outcome
+interface DeleteClient<Key : StoreKey> {
+    sealed interface Response {
+        data class Success(val alreadyDeleted: Boolean, val etag: String? = null) : Response
+        data class Failure(val error: Throwable) : Response
     }
-    suspend fun delete(key: Key, precondition: Precondition?): Outcome
-}
-
-
-sealed interface DeleteOutcome {
-    data class Success(val alreadyDeleted: Boolean, val etag: String? = null) : DeleteOutcome
-    data class Failure(val error: Throwable, val retryAfter: Duration? = null) : DeleteOutcome
+    suspend fun delete(key: Key, precondition: Precondition?): Response
 }
 
 
 
 /**
- * Interface for executing PUT operations (upsert/replace) against a remote API.
+ * Interface for executing HTTP PUT operations (upsert/replace) against a remote API.
  *
  * @param Key The [StoreKey] subtype
- * @param Domain The application's domain model type
- * @param NetworkPut The network DTO for PUT requests
+ * @param PutRequest The network DTO for PUT requests
+ * @param Echo The network response type
  */
-interface Putser<Key : StoreKey, Domain, NetworkPut> {
-    sealed interface Outcome<out Net> {
-        data class Created<Net>(val echo: Net? = null, val etag: String? = null) : Outcome<Net>
-        data class Replaced<Net>(val echo: Net? = null, val etag: String? = null) : Outcome<Net>
-        data class Failure(val error: Throwable) : Outcome<Nothing>
+interface PutClient<Key : StoreKey, PutRequest, Echo> {
+    sealed interface Response<out E> {
+        data class Created<E>(val echo: E? = null, val etag: String? = null) : Response<E>
+        data class Replaced<E>(val echo: E? = null, val etag: String? = null) : Response<E>
+        data class Failure(val error: Throwable) : Response<Nothing>
     }
-    suspend fun put(key: Key, value: Domain, body: NetworkPut, precondition: Precondition?): Outcome<*>
-}
-
-sealed interface PutOutcome<out K, out Net> {
-    data class Created<K, Net>(val key: K, val echo: Net?, val etag: String?) : PutOutcome<K, Net>
-    data class Replaced<K, Net>(val key: K, val echo: Net?, val etag: String?) : PutOutcome<K, Net>
-    data class Failure(val error: Throwable, val retryAfter: Duration?) : PutOutcome<Nothing, Nothing>
+    suspend fun put(key: Key, payload: PutRequest, precondition: Precondition?): Response<Echo>
 }
 
 /**
- * Interface for executing POST/create operations against a remote API.
+ * Interface for executing HTTP POST (create) operations against a remote API.
  *
  * @param Key The [StoreKey] subtype
  * @param Draft The creation payload type
- * @param NetworkResponse The network response type
+ * @param Echo The network response type
  */
-interface Creator<Key : StoreKey, Draft, NetworkResponse> {
-    sealed interface Outcome<out K2 : StoreKey, out Net> {
-        data class Success<K2 : StoreKey, Net>(val canonicalKey: K2, val echo: Net? = null, val etag: String? = null) : Outcome<K2, Net>
-        data class Failure(val error: Throwable) : Outcome<Nothing, Nothing>
+interface PostClient<Key : StoreKey, Draft, Echo> {
+    sealed interface Response<out K : StoreKey, out E> {
+        data class Success<K : StoreKey, E>(
+            val canonicalKey: K,
+            val echo: E? = null,
+            val etag: String? = null
+        ) : Response<K, E>
+        data class Failure(val error: Throwable) : Response<Nothing, Nothing>
     }
-    suspend fun create(draft: Draft): Outcome<Key, NetworkResponse>
+    suspend fun post(draft: Draft): Response<Key, Echo>
 }
 
-sealed interface CreateOutcome<out K, out Net> {
-    data class Success<K, Net>(
-        val canonicalKey: K,
-        val networkEcho: Net? = null,
-        val etag: String? = null
-    ) : CreateOutcome<K, Net>
+/**
+ * Interface for executing HTTP PATCH (partial update) operations against a remote API.
+ *
+ * Performs partial updates with:
+ * - Optimistic concurrency control via preconditions
+ * - Network echo support for immediate local updates
+ * - Conflict detection and resolution
+ *
+ * @param Key The [StoreKey] subtype
+ * @param PatchRequest The network DTO for PATCH requests
+ * @param Echo The network response type
+ *
+ * ## Example: HTTP PATCH Implementation
+ * ```kotlin
+ * class HttpPatchClient(private val httpClient: HttpClient) : PatchClient<UserKey, UserPatchDto, UserDto> {
+ *     override suspend fun patch(
+ *         key: UserKey,
+ *         payload: UserPatchDto,
+ *         precondition: Precondition?
+ *     ): Response<UserDto> {
+ *         val headers = mutableMapOf<String, String>()
+ *         when (precondition) {
+ *             is Precondition.IfMatch -> headers["If-Match"] = precondition.etag
+ *             is Precondition.Version -> headers["If-Unmodified-Since-Version"] = precondition.value.toString()
+ *             else -> {}
+ *         }
+ *
+ *         return try {
+ *             val response = httpClient.patch("/users/${key.id}") {
+ *                 headers.forEach { (k, v) -> header(k, v) }
+ *                 setBody(payload)
+ *             }
+ *
+ *             when (response.status.value) {
+ *                 200 -> Response.Success(
+ *                     echo = response.body(),
+ *                     etag = response.headers["ETag"]
+ *                 )
+ *                 412 -> Response.Conflict(
+ *                     serverVersionTag = response.headers["ETag"]
+ *                 )
+ *                 else -> Response.Failure(
+ *                     HttpException(response.status.value, response.bodyAsText())
+ *                 )
+ *             }
+ *         } catch (e: Exception) {
+ *             Response.Failure(e)
+ *         }
+ *     }
+ * }
+ * ```
+ */
+interface PatchClient<Key : StoreKey, PatchRequest, Echo> {
+    /**
+     * Result of a patch operation.
+     *
+     * @param E The network response type
+     */
+    sealed interface Response<out E> {
+        /**
+         * Patch succeeded.
+         *
+         * @property echo Optional network response to update local cache
+         * @property etag Optional ETag for subsequent conditional requests
+         */
+        data class Success<E>(val echo: E? = null, val etag: String? = null) : Response<E>
 
-    data class Failure(
-        val error: Throwable,
-        val retryAfter: Duration? = null
-    ) : CreateOutcome<Nothing, Nothing>
+        /**
+         * Patch failed due to precondition violation (HTTP 412 Precondition Failed).
+         *
+         * Indicates that the provided ETag or version doesn't match the current server state.
+         * Client should refetch, merge changes, and retry.
+         *
+         * @property serverVersionTag Current ETag from server (if available)
+         */
+        data class Conflict(val serverVersionTag: String? = null) : Response<Nothing>
+
+        /**
+         * Patch failed with an error.
+         *
+         * @property error The error that occurred
+         */
+        data class Failure(val error: Throwable) : Response<Nothing>
+    }
+
+    /**
+     * Executes a patch/update operation against the remote API.
+     *
+     * @param key The entity identifier
+     * @param payload The network DTO to send
+     * @param precondition Optional precondition (If-Match, If-Unmodified-Since, etc.)
+     * @return Response indicating success, conflict, or failure
+     */
+    suspend fun patch(key: Key, payload: PatchRequest, precondition: Precondition?): Response<Echo>
 }
 
 /**
@@ -454,7 +529,7 @@ class KeyAliasMap<Key : StoreKey> {
         aliases.update { it + (old to new) }
     }
 
-    fun flow(): StateFlow<Map<Key, Key>> = aliases
+    fun asFlow(): StateFlow<Map<Key, Key>> = aliases
 }
 
 data class WritePolicy(

@@ -103,17 +103,17 @@ interface MutationStoreBuilderScope<K : StoreKey, V : Any, P, D> {
      * mutations {
      *     update { key, patch ->
      *         val response = api.updateUser(key.id, patch)
-     *         UpdateOutcome.Success(response, response.etag)
+     *         PatchClient.Response.Success(response, response.etag)
      *     }
      *
      *     create { draft ->
      *         val response = api.createUser(draft)
-     *         CreateOutcome.Success(UserKey(response.id), response, response.etag)
+     *         PostClient.Response.Success(UserKey(response.id), response, response.etag)
      *     }
      *
      *     delete { key ->
      *         api.deleteUser(key.id)
-     *         DeleteOutcome.Success(alreadyDeleted = false)
+     *         DeleteClient.Response.Success(alreadyDeleted = false)
      *     }
      * }
      * ```
