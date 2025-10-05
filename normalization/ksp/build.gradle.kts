@@ -5,7 +5,7 @@ import com.vanniktech.maven.publish.SonatypeHost.Companion.CENTRAL_PORTAL
 
 plugins {
     kotlin("multiplatform")
-    alias(libs.plugins.maven.publish)
+    id("plugin.storex.maven.publish")
     alias(libs.plugins.mokkery)
     alias(libs.plugins.kover)
 }
@@ -22,22 +22,6 @@ kotlin {
 
             kotlin.srcDir("src/main/kotlin")
             resources.srcDir("src/main/resources")
-        }
-    }
-}
-
-mavenPublishing {
-    publishToMavenCentral(CENTRAL_PORTAL, automaticRelease = true)
-    signAllPublications()
-}
-
-kover {
-    reports {
-        total {
-            xml {
-                onCheck = true
-                xmlFile.set(file("${layout.buildDirectory}/reports/kover/coverage.xml"))
-            }
         }
     }
 }

@@ -6,7 +6,7 @@ import dev.mattramotar.storex.tooling.extensions.android
 plugins {
     id("plugin.storex.android.library")
     id("plugin.storex.kotlin.multiplatform")
-    alias(libs.plugins.maven.publish)
+    id("plugin.storex.maven.publish")
     alias(libs.plugins.mokkery)
     alias(libs.plugins.kover)
 }
@@ -26,22 +26,6 @@ kotlin {
         commonMain {
             dependencies {
                 api(libs.kotlinx.coroutines.core)
-            }
-        }
-    }
-}
-
-mavenPublishing {
-    publishToMavenCentral(CENTRAL_PORTAL, automaticRelease = true)
-    signAllPublications()
-}
-
-kover {
-    reports {
-        total {
-            xml {
-                onCheck = true
-                xmlFile.set(file("${layout.buildDirectory}/reports/kover/coverage.xml"))
             }
         }
     }
