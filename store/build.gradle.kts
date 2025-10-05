@@ -52,4 +52,5 @@ kover {
 }
 
 group = "dev.mattramotar.storex"
-version = libs.versions.storex.store.get()
+// version = libs.versions.storex.store.get()  // TODO: Remove store module after migration
+version = "6.0.0-SNAPSHOT"
