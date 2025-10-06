@@ -8,6 +8,7 @@ plugins {
     id("plugin.storex.maven.publish")
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.mokkery)
+    alias(libs.plugins.kover)
 }
 
 group = "dev.mattramotar.storex"
