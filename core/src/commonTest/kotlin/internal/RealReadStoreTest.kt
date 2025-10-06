@@ -6,6 +6,7 @@ import dev.mattramotar.storex.core.Freshness
 import dev.mattramotar.storex.core.Origin
 import dev.mattramotar.storex.core.StoreKey
 import dev.mattramotar.storex.core.StoreResult
+import dev.mattramotar.storex.core.TimeSource
 import dev.mattramotar.storex.core.utils.FakeBookkeeper
 import dev.mattramotar.storex.core.utils.FakeFetcher
 import dev.mattramotar.storex.core.utils.FakeSourceOfTruth
@@ -16,10 +17,13 @@ import dev.mattramotar.storex.core.utils.TEST_USER_2
 import dev.mattramotar.storex.core.utils.TestException
 import dev.mattramotar.storex.core.utils.TestNetworkException
 import dev.mattramotar.storex.core.utils.TestUser
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -37,7 +41,7 @@ class RealReadStoreTest {
     @Test
     fun stream_givenNoCache_thenEmitsLoading() = runTest {
         // Given
-        val store = createStore()
+        val store = createStore(scope = backgroundScope)
 
         // When/Then
         store.stream(TEST_KEY_1).test {
@@ -53,7 +57,7 @@ class RealReadStoreTest {
         // Given
         val sot = FakeSourceOfTruth<StoreKey, TestUser>()
         sot.emit(TEST_KEY_1, TEST_USER_1)
-        val store = createStore(sot = sot)
+        val store = createStore(scope = backgroundScope, sot = sot)
 
         // When/Then
         store.stream(TEST_KEY_1).test {
@@ -71,7 +75,7 @@ class RealReadStoreTest {
         val fetcher = FakeFetcher<StoreKey, TestUser>()
         fetcher.respondWith(TEST_KEY_1, TEST_USER_1)
         val sot = FakeSourceOfTruth<StoreKey, TestUser>()
-        val store = createStore(sot = sot, fetcher = fetcher)
+        val store = createStore(scope = backgroundScope, sot = sot, fetcher = fetcher)
 
         // When/Then
         store.stream(TEST_KEY_1).test {
@@ -100,7 +104,7 @@ class RealReadStoreTest {
         // Given
         val fetcher = FakeFetcher<StoreKey, TestUser>()
         fetcher.respondWithError(TEST_KEY_1, TestNetworkException())
-        val store = createStore(fetcher = fetcher)
+        val store = createStore(scope = backgroundScope, fetcher = fetcher)
 
         // When/Then
         store.stream(TEST_KEY_1).test {
@@ -119,7 +123,7 @@ class RealReadStoreTest {
         // Given
         val fetcher = FakeFetcher<StoreKey, TestUser>()
         fetcher.respondWithError(TEST_KEY_1, TestNetworkException())
-        val store = createStore(fetcher = fetcher)
+        val store = createStore(scope = backgroundScope, fetcher = fetcher)
 
         // When/Then
         store.stream(TEST_KEY_1, Freshness.MustBeFresh).test {
@@ -138,7 +142,7 @@ class RealReadStoreTest {
         val fetcher = FakeFetcher<StoreKey, TestUser>()
         fetcher.respondWithError(TEST_KEY_1, TestNetworkException())
 
-        val store = createStore(sot = sot, fetcher = fetcher)
+        val store = createStore(scope = backgroundScope, sot = sot, fetcher = fetcher)
 
         // When/Then
         store.stream(TEST_KEY_1, Freshness.StaleIfError).test {
@@ -164,7 +168,7 @@ class RealReadStoreTest {
         val fetcher = FakeFetcher<StoreKey, TestUser>()
         fetcher.respondWithNotModified(TEST_KEY_1, etag = "etag-123")
 
-        val store = createStore(sot = sot, fetcher = fetcher)
+        val store = createStore(scope = backgroundScope, sot = sot, fetcher = fetcher)
 
         // When
         store.stream(TEST_KEY_1).test {
@@ -180,10 +184,10 @@ class RealReadStoreTest {
     @Test
     fun get_givenMemoryCache_thenReturnsFast() = runTest {
         // Given
-        val memory = MemoryCacheImpl<StoreKey, TestUser>(maxSize = 100, ttl = 10.minutes)
+        val memory = MemoryCacheImpl<StoreKey, TestUser>(maxSize = 100, ttl = 10.minutes, timeSource = TimeSource.SYSTEM)
         memory.put(TEST_KEY_1, TEST_USER_1)
         val fetcher = FakeFetcher<StoreKey, TestUser>()
-        val store = createStore(memory = memory, fetcher = fetcher)
+        val store = createStore(scope = backgroundScope, memory = memory, fetcher = fetcher)
 
         // When
         val result = store.get(TEST_KEY_1, Freshness.CachedOrFetch)
@@ -200,7 +204,7 @@ class RealReadStoreTest {
         val sot = FakeSourceOfTruth<StoreKey, TestUser>()
         sot.emit(TEST_KEY_1, TEST_USER_1)
         val fetcher = FakeFetcher<StoreKey, TestUser>()
-        val store = createStore(sot = sot, fetcher = fetcher)
+        val store = createStore(scope = backgroundScope, sot = sot, fetcher = fetcher)
 
         // When
         val result = store.get(TEST_KEY_1, Freshness.CachedOrFetch)
@@ -214,7 +218,7 @@ class RealReadStoreTest {
         // Given
         val fetcher = FakeFetcher<StoreKey, TestUser>()
         fetcher.respondWithError(TEST_KEY_1, TestNetworkException("Network error"))
-        val store = createStore(fetcher = fetcher)
+        val store = createStore(scope = backgroundScope, fetcher = fetcher)
 
         // When/Then
         try {
@@ -228,9 +232,9 @@ class RealReadStoreTest {
     @Test
     fun invalidate_givenKey_thenRemovesFromMemory() = runTest {
         // Given
-        val memory = MemoryCacheImpl<StoreKey, TestUser>(maxSize = 100, ttl = 10.minutes)
+        val memory = MemoryCacheImpl<StoreKey, TestUser>(maxSize = 100, ttl = 10.minutes, timeSource = TimeSource.SYSTEM)
         memory.put(TEST_KEY_1, TEST_USER_1)
-        val store = createStore(memory = memory)
+        val store = createStore(scope = backgroundScope, memory = memory)
 
         // When
         store.invalidate(TEST_KEY_1)
@@ -243,13 +247,14 @@ class RealReadStoreTest {
     @Test
     fun invalidateNamespace_thenClearsMemory() = runTest {
         // Given
-        val memory = MemoryCacheImpl<StoreKey, TestUser>(maxSize = 100, ttl = 10.minutes)
+        val memory = MemoryCacheImpl<StoreKey, TestUser>(maxSize = 100, ttl = 10.minutes, timeSource = TimeSource.SYSTEM)
         memory.put(TEST_KEY_1, TEST_USER_1)
         memory.put(TEST_KEY_2, TEST_USER_2)
-        val store = createStore(memory = memory)
+        val store = createStore(scope = backgroundScope, memory = memory)
 
         // When
         store.invalidateNamespace(TEST_KEY_1.namespace)
+        delay(1)  // Yield to allow launched coroutine to run
         advanceUntilIdle()
 
         // Then
@@ -260,10 +265,10 @@ class RealReadStoreTest {
     @Test
     fun invalidateAll_thenClearsMemory() = runTest {
         // Given
-        val memory = MemoryCacheImpl<StoreKey, TestUser>(maxSize = 100, ttl = 10.minutes)
+        val memory = MemoryCacheImpl<StoreKey, TestUser>(maxSize = 100, ttl = 10.minutes, timeSource = TimeSource.SYSTEM)
         memory.put(TEST_KEY_1, TEST_USER_1)
         memory.put(TEST_KEY_2, TEST_USER_2)
-        val store = createStore(memory = memory)
+        val store = createStore(scope = backgroundScope, memory = memory)
 
         // When
         store.invalidateAll()
@@ -277,7 +282,7 @@ class RealReadStoreTest {
     @Test
     fun close_thenCancelsScope() = runTest {
         // Given
-        val store = createStore()
+        val store = createStore(scope = backgroundScope)
 
         // When
         store.close()
@@ -292,7 +297,8 @@ class RealReadStoreTest {
         val fetcher = FakeFetcher<StoreKey, TestUser>()
         fetcher.respondWith(TEST_KEY_1, TEST_USER_1)
         fetcher.simulateDelay = 100 // Ensure concurrency
-        val store = createStore(fetcher = fetcher)
+        val sot = FakeSourceOfTruth<StoreKey, TestUser>()
+        val store = createStore(scope = backgroundScope, sot = sot, fetcher = fetcher)
 
         // When - 10 concurrent streams for same key
         val flows = (1..10).map {
@@ -302,7 +308,11 @@ class RealReadStoreTest {
         // Collect all
         flows.forEach { flow ->
             flow.test {
-                awaitItem() // All should get data
+                // Wait for data, not just first item
+                val item = awaitItem()
+                if (item is StoreResult.Loading) {
+                    awaitItem() // Wait for actual data
+                }
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -319,16 +329,23 @@ class RealReadStoreTest {
         val fetcher = FakeFetcher<StoreKey, TestUser>()
         fetcher.respondWith(TEST_KEY_1, TEST_USER_1)
         fetcher.respondWith(TEST_KEY_2, TEST_USER_2)
-        val store = createStore(fetcher = fetcher)
+        val sot = FakeSourceOfTruth<StoreKey, TestUser>()
+        val store = createStore(scope = backgroundScope, sot = sot, fetcher = fetcher)
 
         // When - concurrent streams for different keys
         store.stream(TEST_KEY_1).test {
-            awaitItem()
+            val item = awaitItem()
+            if (item is StoreResult.Loading) {
+                awaitItem() // Wait for actual data
+            }
             cancelAndIgnoreRemainingEvents()
         }
 
         store.stream(TEST_KEY_2).test {
-            awaitItem()
+            val item = awaitItem()
+            if (item is StoreResult.Loading) {
+                awaitItem() // Wait for actual data
+            }
             cancelAndIgnoreRemainingEvents()
         }
 
@@ -345,17 +362,22 @@ class RealReadStoreTest {
         val sot = FakeSourceOfTruth<StoreKey, TestUser>()
         val fetcher = FakeFetcher<StoreKey, TestUser>()
         fetcher.respondWith(TEST_KEY_1, TEST_USER_1)
-        val store = createStore(sot = sot, fetcher = fetcher)
+        val store = createStore(scope = backgroundScope, sot = sot, fetcher = fetcher)
 
         // When
         store.stream(TEST_KEY_1).test {
-            awaitItem()
-            advanceUntilIdle()
+            assertIs<StoreResult.Loading>(awaitItem())
+
+            val data = awaitItem()
+            assertIs<StoreResult.Data<TestUser>>(data)
+            assertEquals(TEST_USER_1, data.value)
+
             cancelAndIgnoreRemainingEvents()
         }
 
         // Then - write happened (KeyMutex protected it)
         assertEquals(1, sot.writes.size)
+        assertEquals(TEST_KEY_1 to TEST_USER_1, sot.writes.first())
     }
 
     @Test
@@ -364,12 +386,17 @@ class RealReadStoreTest {
         val bookkeeper = FakeBookkeeper<StoreKey>()
         val fetcher = FakeFetcher<StoreKey, TestUser>()
         fetcher.respondWith(TEST_KEY_1, TEST_USER_1, etag = "etag-123")
-        val store = createStore(fetcher = fetcher, bookkeeper = bookkeeper)
+        val sot = FakeSourceOfTruth<StoreKey, TestUser>()
+        val store = createStore(scope = backgroundScope, sot = sot, fetcher = fetcher, bookkeeper = bookkeeper)
 
         // When
         store.stream(TEST_KEY_1).test {
-            awaitItem()
-            advanceUntilIdle()
+            assertIs<StoreResult.Loading>(awaitItem())
+
+            // Wait for data from SOT (written after fetch)
+            val data = awaitItem()
+            assertIs<StoreResult.Data<TestUser>>(data)
+
             cancelAndIgnoreRemainingEvents()
         }
 
@@ -387,12 +414,16 @@ class RealReadStoreTest {
         val fetcher = FakeFetcher<StoreKey, TestUser>()
         val error = TestNetworkException("Failure")
         fetcher.respondWithError(TEST_KEY_1, error)
-        val store = createStore(fetcher = fetcher, bookkeeper = bookkeeper)
+        val store = createStore(scope = backgroundScope, fetcher = fetcher, bookkeeper = bookkeeper)
 
         // When
         store.stream(TEST_KEY_1).test {
-            awaitItem()
-            advanceUntilIdle()
+            assertIs<StoreResult.Loading>(awaitItem())
+
+            // Wait for error emission (ensures fetch completed)
+            val errorResult = awaitItem()
+            assertIs<StoreResult.Error>(errorResult)
+
             cancelAndIgnoreRemainingEvents()
         }
 
@@ -400,22 +431,28 @@ class RealReadStoreTest {
         assertEquals(1, bookkeeper.recordedFailures.size)
         val (key, recordedError, _) = bookkeeper.recordedFailures.first()
         assertEquals(TEST_KEY_1, key)
-        assertIs<TestNetworkException>(recordedError)
+        // FakeFetcher wraps errors in StoreException.from(), so TestNetworkException becomes StoreException.Unknown
+        assertIs<StoreException.Unknown>(recordedError)
+        assertEquals("Failure", recordedError.cause?.message)
     }
 
     @Test
     fun stream_updatesMemoryCacheAfterFetch() = runTest {
         // Given
-        val memory = MemoryCacheImpl<StoreKey, TestUser>(maxSize = 100, ttl = 10.minutes)
+        val memory = MemoryCacheImpl<StoreKey, TestUser>(maxSize = 100, ttl = 10.minutes, timeSource = TimeSource.SYSTEM)
         val fetcher = FakeFetcher<StoreKey, TestUser>()
         fetcher.respondWith(TEST_KEY_1, TEST_USER_1)
         val sot = FakeSourceOfTruth<StoreKey, TestUser>()
-        val store = createStore(memory = memory, fetcher = fetcher, sot = sot)
+        val store = createStore(scope = backgroundScope, memory = memory, fetcher = fetcher, sot = sot)
 
         // When
         store.stream(TEST_KEY_1).test {
-            awaitItem()
-            advanceUntilIdle()
+            assertIs<StoreResult.Loading>(awaitItem())
+
+            val data = awaitItem()
+            assertIs<StoreResult.Data<TestUser>>(data)
+            assertEquals(TEST_USER_1, data.value)
+
             cancelAndIgnoreRemainingEvents()
         }
 
@@ -435,7 +472,7 @@ class RealReadStoreTest {
 
         val sot = FakeSourceOfTruth<StoreKey, TestUser>()
         sot.emit(TEST_KEY_1, TEST_USER_1)
-        val store = createStore(sot = sot, converter = converter)
+        val store = createStore(scope = backgroundScope, sot = sot, converter = converter)
 
         // When/Then
         store.stream(TEST_KEY_1).test {
@@ -451,15 +488,19 @@ class RealReadStoreTest {
         // Given
         val now = Instant.fromEpochSeconds(1000)
         val cachedAt = now - 5.minutes
+        val timeSource = TimeSource { now }
         val converter = object : Converter<StoreKey, TestUser, TestUser, TestUser, TestUser> {
             override suspend fun netToDbWrite(key: StoreKey, net: TestUser) = net
             override suspend fun dbReadToDomain(key: StoreKey, db: TestUser) = db
-            override suspend fun dbMetaFromProjection(db: TestUser) = cachedAt // 5 min old
+            override suspend fun dbMetaFromProjection(db: TestUser) = DefaultDbMeta(
+                updatedAt = cachedAt,
+                etag = null
+            )
         }
 
         val sot = FakeSourceOfTruth<StoreKey, TestUser>()
         sot.emit(TEST_KEY_1, TEST_USER_1)
-        val store = createStore(sot = sot, converter = converter, now = { now })
+        val store = createStore(scope = backgroundScope, sot = sot, converter = converter, timeSource = timeSource)
 
         // When/Then
         store.stream(TEST_KEY_1).test {
@@ -477,8 +518,9 @@ class RealReadStoreTest {
         converter: Converter<StoreKey, TestUser, TestUser, TestUser, TestUser> = IdentityTestConverter(),
         bookkeeper: Bookkeeper<StoreKey> = FakeBookkeeper(),
         validator: FreshnessValidator<StoreKey, Any?> = DefaultFreshnessValidator<StoreKey>(ttl = 5.minutes) as FreshnessValidator<StoreKey, Any?>,
-        memory: MemoryCache<StoreKey, TestUser> = MemoryCacheImpl(maxSize = 100, ttl = 10.minutes),
-        now: () -> Instant = { Clock.System.now() }
+        memory: MemoryCache<StoreKey, TestUser> = MemoryCacheImpl(maxSize = 100, ttl = 10.minutes, timeSource = TimeSource.SYSTEM),
+        scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+        timeSource: TimeSource = TimeSource.SYSTEM
     ): RealReadStore<StoreKey, TestUser, TestUser, TestUser, TestUser> {
         return RealReadStore(
             sot = sot,
@@ -487,7 +529,8 @@ class RealReadStoreTest {
             bookkeeper = bookkeeper,
             validator = validator,
             memory = memory,
-            now = now
+            scope = scope,
+            timeSource = timeSource
         )
     }
 

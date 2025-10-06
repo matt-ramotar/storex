@@ -103,8 +103,10 @@ class FreshnessValidatorTest {
         // When
         val plan = validator.plan(context)
 
-        // Then
-        assertEquals(FetchPlan.Unconditional, plan)
+        // Then - Uses lastModified for conditional request (If-Modified-Since)
+        assertIs<FetchPlan.Conditional>(plan)
+        assertEquals(null, plan.request.etag)
+        assertEquals(cachedAt, plan.request.lastModified)
     }
 
     @Test
@@ -248,8 +250,10 @@ class FreshnessValidatorTest {
         // When
         val plan = validator.plan(context)
 
-        // Then
-        assertEquals(FetchPlan.Unconditional, plan)
+        // Then - Uses lastModified for conditional request (If-Modified-Since)
+        assertIs<FetchPlan.Conditional>(plan)
+        assertEquals(null, plan.request.etag)
+        assertEquals(cachedAt, plan.request.lastModified)
     }
 
     @Test

@@ -15,6 +15,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
@@ -149,11 +150,12 @@ class MemoryCacheTest {
     fun get_whenEntryExpired_thenReturnsNull() = runTest {
         // Given
         val ttl = 100.milliseconds
-        val cache = createCache(ttl = ttl)
+        val timeSource = dev.mattramotar.storex.core.utils.TestTimeSource.atNow()
+        val cache = createCache(ttl = ttl, timeSource = timeSource)
         cache.put(TEST_KEY_1, TEST_USER_1)
 
         // When - advance time beyond TTL
-        testScheduler.advanceTimeBy(ttl.inWholeMilliseconds + 1)
+        timeSource.advance(ttl + 1.milliseconds)
 
         // Get after expiration
         val result = cache.get(TEST_KEY_1)
@@ -166,17 +168,19 @@ class MemoryCacheTest {
     fun get_whenEntryExpired_thenRemovesFromCache() = runTest {
         // Given
         val ttl = 100.milliseconds
-        val cache = createCache(ttl = ttl)
+        val timeSource = dev.mattramotar.storex.core.utils.TestTimeSource.atNow()
+        val cache = createCache(ttl = ttl, timeSource = timeSource)
         cache.put(TEST_KEY_1, TEST_USER_1)
 
         // When - advance time and get (triggers removal)
-        testScheduler.advanceTimeBy(ttl.inWholeMilliseconds + 1)
+        timeSource.advance(ttl + 1.milliseconds)
         cache.get(TEST_KEY_1)
 
         // Add new entry (should not trigger eviction since expired entry was removed)
-        val cache2Items = createCache(maxSize = 1, ttl = ttl)
+        val timeSource2 = dev.mattramotar.storex.core.utils.TestTimeSource.atNow()
+        val cache2Items = createCache(maxSize = 1, ttl = ttl, timeSource = timeSource2)
         cache2Items.put(TEST_KEY_1, TEST_USER_1)
-        testScheduler.advanceTimeBy(ttl.inWholeMilliseconds + 1)
+        timeSource2.advance(ttl + 1.milliseconds)
         cache2Items.get(TEST_KEY_1) // Remove expired
         val putResult = cache2Items.put(TEST_KEY_2, TEST_USER_2)
 
@@ -188,11 +192,12 @@ class MemoryCacheTest {
     fun get_whenNotExpired_thenReturnsValue() = runTest {
         // Given
         val ttl = 1.hours
-        val cache = createCache(ttl = ttl)
+        val timeSource = dev.mattramotar.storex.core.utils.TestTimeSource.atNow()
+        val cache = createCache(ttl = ttl, timeSource = timeSource)
         cache.put(TEST_KEY_1, TEST_USER_1)
 
         // When - advance time but stay within TTL
-        testScheduler.advanceTimeBy(ttl.inWholeMilliseconds / 2)
+        timeSource.advance(ttl / 2)
         val result = cache.get(TEST_KEY_1)
 
         // Then
@@ -202,11 +207,12 @@ class MemoryCacheTest {
     @Test
     fun get_withInfiniteTTL_thenNeverExpires() = runTest {
         // Given
-        val cache = createCache(ttl = Duration.INFINITE)
+        val timeSource = dev.mattramotar.storex.core.utils.TestTimeSource.atNow()
+        val cache = createCache(ttl = Duration.INFINITE, timeSource = timeSource)
         cache.put(TEST_KEY_1, TEST_USER_1)
 
         // When - advance time significantly
-        testScheduler.advanceTimeBy(365L * 24 * 60 * 60 * 1000) // 1 year
+        timeSource.advance(365.days) // 1 year
         val result = cache.get(TEST_KEY_1)
 
         // Then
@@ -382,8 +388,9 @@ class MemoryCacheTest {
     // Helper functions
     private fun createCache(
         maxSize: Int = 100,
-        ttl: Duration = Duration.INFINITE
+        ttl: Duration = Duration.INFINITE,
+        timeSource: dev.mattramotar.storex.core.TimeSource = dev.mattramotar.storex.core.TimeSource.SYSTEM
     ): MemoryCache<dev.mattramotar.storex.core.StoreKey, TestUser> {
-        return MemoryCacheImpl(maxSize = maxSize, ttl = ttl)
+        return MemoryCacheImpl(maxSize = maxSize, ttl = ttl, timeSource = timeSource)
     }
 }

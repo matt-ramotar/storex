@@ -25,7 +25,7 @@ class StoreBuilderTest {
     @Test
     fun store_givenFetcher_thenCreatesStore() = runTest {
         // When
-        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser> {
+        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser>(scope = backgroundScope) {
             fetcher { key -> TEST_USER_1 }
         }
 
@@ -37,7 +37,7 @@ class StoreBuilderTest {
     fun store_givenNoFetcher_thenThrows() = runTest {
         // When/Then
         assertFailsWith<IllegalArgumentException> {
-            store<dev.mattramotar.storex.core.StoreKey, TestUser> {
+            store<dev.mattramotar.storex.core.StoreKey, TestUser>(scope = backgroundScope) {
                 // No fetcher configured
             }
         }
@@ -46,7 +46,7 @@ class StoreBuilderTest {
     @Test
     fun store_givenFetcherFunction_thenFetches() = runTest {
         // Given
-        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser> {
+        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser>(scope = backgroundScope) {
             fetcher { key -> TEST_USER_1 }
         }
 
@@ -63,7 +63,7 @@ class StoreBuilderTest {
     @Test
     fun store_givenCacheConfig_thenAppliesConfig() = runTest {
         // Given
-        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser> {
+        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser>(scope = backgroundScope) {
             fetcher { key -> TEST_USER_1 }
             cache {
                 maxSize = 50
@@ -87,7 +87,7 @@ class StoreBuilderTest {
         // Given
         val persistedData = mutableMapOf<dev.mattramotar.storex.core.StoreKey, TestUser>()
 
-        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser> {
+        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser>(scope = backgroundScope) {
             fetcher { key -> TEST_USER_1 }
 
             persistence {
@@ -108,7 +108,11 @@ class StoreBuilderTest {
     fun store_givenFreshnessConfig_thenAppliesTTL() = runTest {
         // Given
         var fetchCount = 0
-        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser> {
+        val timeSource = dev.mattramotar.storex.core.utils.TestTimeSource.atNow()
+        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser>(
+            scope = backgroundScope,
+            timeSource = timeSource
+        ) {
             fetcher { key ->
                 fetchCount++
                 TEST_USER_1
@@ -124,7 +128,7 @@ class StoreBuilderTest {
         advanceUntilIdle()
 
         // Second fetch within TTL (should not refetch)
-        testScheduler.advanceTimeBy(5.seconds.inWholeMilliseconds)
+        timeSource.advance(5.seconds)
         store.get(TEST_KEY_1, Freshness.CachedOrFetch)
         advanceUntilIdle()
 
@@ -135,7 +139,7 @@ class StoreBuilderTest {
     @Test
     fun inMemoryStore_givenFetcher_thenCreatesStore() = runTest {
         // Given
-        val store = inMemoryStore<dev.mattramotar.storex.core.StoreKey, TestUser> { key ->
+        val store = inMemoryStore<dev.mattramotar.storex.core.StoreKey, TestUser>(scope = backgroundScope) { key ->
             TEST_USER_1
         }
 
@@ -150,14 +154,14 @@ class StoreBuilderTest {
     fun inMemoryStore_thenFetchesOnEachRequest() = runTest {
         // Given
         var fetchCount = 0
-        val store = inMemoryStore<dev.mattramotar.storex.core.StoreKey, TestUser> { key ->
+        val store = inMemoryStore<dev.mattramotar.storex.core.StoreKey, TestUser>(scope = backgroundScope) { key ->
             fetchCount++
             TEST_USER_1
         }
 
-        // When - multiple gets
-        store.get(TEST_KEY_1)
-        store.get(TEST_KEY_1)
+        // When - multiple gets with MustBeFresh to bypass cache
+        store.get(TEST_KEY_1, Freshness.MustBeFresh)
+        store.get(TEST_KEY_1, Freshness.MustBeFresh)
 
         // Then - fetches each time (no caching)
         assertEquals(2, fetchCount)
@@ -167,9 +171,12 @@ class StoreBuilderTest {
     fun cachedStore_givenTTL_thenCachesWithinTTL() = runTest {
         // Given
         var fetchCount = 0
+        val timeSource = dev.mattramotar.storex.core.utils.TestTimeSource.atNow()
         val store = cachedStore<dev.mattramotar.storex.core.StoreKey, TestUser>(
+            scope = backgroundScope,
             ttl = 10.seconds,
-            maxSize = 100
+            maxSize = 100,
+            timeSource = timeSource
         ) { key ->
             fetchCount++
             TEST_USER_1
@@ -180,7 +187,7 @@ class StoreBuilderTest {
         advanceUntilIdle()
 
         // Second fetch within TTL
-        testScheduler.advanceTimeBy(5.seconds.inWholeMilliseconds)
+        timeSource.advance(5.seconds)
         store.get(TEST_KEY_1, Freshness.CachedOrFetch)
         advanceUntilIdle()
 
@@ -192,9 +199,12 @@ class StoreBuilderTest {
     fun cachedStore_givenExpiredTTL_thenRefetches() = runTest {
         // Given
         var fetchCount = 0
+        val timeSource = dev.mattramotar.storex.core.utils.TestTimeSource.atNow()
         val store = cachedStore<dev.mattramotar.storex.core.StoreKey, TestUser>(
+            scope = backgroundScope,
             ttl = 5.seconds,
-            maxSize = 100
+            maxSize = 100,
+            timeSource = timeSource
         ) { key ->
             fetchCount++
             TEST_USER_1
@@ -205,7 +215,7 @@ class StoreBuilderTest {
         advanceUntilIdle()
 
         // Second fetch after TTL expired
-        testScheduler.advanceTimeBy(6.seconds.inWholeMilliseconds)
+        timeSource.advance(6.seconds)
         store.get(TEST_KEY_1, Freshness.CachedOrFetch)
         advanceUntilIdle()
 
@@ -216,7 +226,7 @@ class StoreBuilderTest {
     @Test
     fun cachedStore_givenMaxSize_thenEvictsLRU() = runTest {
         // Given
-        val store = cachedStore<dev.mattramotar.storex.core.StoreKey, TestUser>(
+        val store = cachedStore<dev.mattramotar.storex.core.StoreKey, TestUser>(scope = backgroundScope,
             ttl = 10.minutes,
             maxSize = 1 // Only 1 item
         ) { key ->
@@ -239,7 +249,7 @@ class StoreBuilderTest {
     fun store_withPersistenceDeleter_thenConfigures() = runTest {
         // Given
         val persistedData = mutableMapOf<dev.mattramotar.storex.core.StoreKey, TestUser>()
-        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser> {
+        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser>(scope = backgroundScope) {
             fetcher { key -> TEST_USER_1 }
 
             persistence {
@@ -261,7 +271,7 @@ class StoreBuilderTest {
     fun store_withPersistenceTransaction_thenConfigures() = runTest {
         // Given
         var transactionCalled = false
-        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser> {
+        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser>(scope = backgroundScope) {
             fetcher { key -> TEST_USER_1 }
 
             persistence {
@@ -274,10 +284,6 @@ class StoreBuilderTest {
             }
         }
 
-        // When
-        store.get(TEST_KEY_1)
-        advanceUntilIdle()
-
         // Then - store configured (transaction available)
         assertNotNull(store)
     }
@@ -285,7 +291,7 @@ class StoreBuilderTest {
     @Test
     fun store_givenConverter_thenConfigures() = runTest {
         // Note: The current DSL doesn't expose converter, but tests that builder works
-        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser> {
+        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser>(scope = backgroundScope) {
             fetcher { key -> TEST_USER_1 }
         }
 
@@ -296,7 +302,7 @@ class StoreBuilderTest {
     @Test
     fun store_withFlowingFetcher_thenWorks() = runTest {
         // Given
-        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser> {
+        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser>(scope = backgroundScope) {
             fetcher { key ->
                 delay(10) // Simulate async work
                 TEST_USER_1

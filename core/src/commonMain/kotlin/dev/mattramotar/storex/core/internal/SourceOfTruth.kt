@@ -175,4 +175,22 @@ interface SourceOfTruth<K : StoreKey, ReadDb, WriteDb> {
     suspend fun rekey(old: K, new: K, reconcile: suspend (oldRead: ReadDb, serverRead: ReadDb?) -> ReadDb) {
         // Default: no-op. Override to support provisional key migration.
     }
+
+    /**
+     * Clears cached flow state for a specific key.
+     *
+     * This should:
+     * - Reset SharedFlow replay cache (if using hot flows)
+     * - Clear any in-memory cached state
+     * - NOT delete persisted data (use [delete] for that)
+     *
+     * Used by Store.invalidate() to force a fresh fetch on next read.
+     *
+     * Default implementation does nothing. Override to support cache invalidation.
+     *
+     * @param key The key to clear from cache
+     */
+    suspend fun clearCache(key: K) {
+        // Default: no-op. Override to support cache clearing.
+    }
 }
