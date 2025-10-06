@@ -81,18 +81,21 @@ class PageStoreBuilder<K : StoreKey, V : Any> {
 
 /**
  * Builder for [PagingConfig].
+ *
+ * Note: prefetchDistance and maxSize default to null and are calculated
+ * at build time based on the final pageSize value.
  */
 class PagingConfigBuilder {
     var pageSize: Int = 20
-    var prefetchDistance: Int = pageSize
-    var maxSize: Int = pageSize * 10
+    var prefetchDistance: Int? = null  // Defaults to pageSize at build time
+    var maxSize: Int? = null            // Defaults to pageSize * 10 at build time
     var placeholders: Boolean = false
     var jumpThreshold: Int = Int.MAX_VALUE
 
     fun build(): PagingConfig = PagingConfig(
         pageSize = pageSize,
-        prefetchDistance = prefetchDistance,
-        maxSize = maxSize,
+        prefetchDistance = prefetchDistance ?: pageSize,
+        maxSize = maxSize ?: (pageSize * 10),
         placeholders = placeholders,
         jumpThreshold = jumpThreshold
     )

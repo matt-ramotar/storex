@@ -1,5 +1,6 @@
 package dev.mattramotar.storex.paging
 
+import dev.mattramotar.storex.core.StoreKey
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -9,7 +10,7 @@ class PageStoreBuilderTest {
 
     @Test
     fun pageStore_builder_creates_instance() {
-        val store = pageStore<TestKey, TestItem> {
+        val store = pageStore<StoreKey, TestItem> {
             fetcher { _, _ -> generateTestPage(0, 20) }
         }
 
@@ -19,7 +20,7 @@ class PageStoreBuilderTest {
     @Test
     fun pageStore_builder_requires_fetcher() {
         assertFailsWith<IllegalArgumentException> {
-            pageStore<TestKey, TestItem> {
+            pageStore<StoreKey, TestItem> {
                 // No fetcher configured
             }
         }
@@ -27,7 +28,7 @@ class PageStoreBuilderTest {
 
     @Test
     fun pageStore_builder_accepts_config() {
-        val store = pageStore<TestKey, TestItem> {
+        val store = pageStore<StoreKey, TestItem> {
             fetcher { _, _ -> generateTestPage(0, 20) }
 
             config {
@@ -70,7 +71,7 @@ class PageStoreBuilderTest {
 
     @Test
     fun pageStore_builder_with_all_options() {
-        val store = pageStore<TestKey, TestItem> {
+        val store = pageStore<StoreKey, TestItem> {
             fetcher { key, token ->
                 generateTestPage(0, 20)
             }
@@ -87,10 +88,10 @@ class PageStoreBuilderTest {
 
     @Test
     fun pageStore_builder_fetcher_receives_key_and_token() {
-        var capturedKey: TestKey? = null
+        var capturedKey: StoreKey? = null
         var capturedToken: PageToken? = null
 
-        val store = pageStore<TestKey, TestItem> {
+        val store = pageStore<StoreKey, TestItem> {
             fetcher { key, token ->
                 capturedKey = key
                 capturedToken = token

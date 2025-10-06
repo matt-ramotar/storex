@@ -110,23 +110,24 @@ internal class RealPageStore<K : StoreKey, V : Any>(
                 return
             }
 
-            // Update state to loading
-            stateFlow.value = currentState.withLoadState(direction, LoadState.Loading)
+            // Update state to loading and capture the new state
+            val loadingState = currentState.withLoadState(direction, LoadState.Loading)
+            stateFlow.value = loadingState
 
             try {
                 // Fetch the page
                 val page = fetcher(key, token)
 
-                // Update state with the new page
-                val newState = currentState.addPage(page, direction)
+                // Update state with the new page using loadingState
+                val newState = loadingState.addPage(page, direction)
                 stateFlow.value = newState
 
             } catch (e: Exception) {
-                // Update state with error
-                val errorState = currentState.withError(
+                // Update state with error using loadingState
+                val errorState = loadingState.withError(
                     direction = direction,
                     error = e,
-                    canServeStale = currentState.pages.isNotEmpty()
+                    canServeStale = loadingState.pages.isNotEmpty()
                 )
                 stateFlow.value = errorState
             }

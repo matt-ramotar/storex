@@ -99,11 +99,25 @@ internal data class PagingState<V>(
             newPages
         }
 
+        // Update tokens based on direction
+        // APPEND: Update nextToken, preserve prevToken
+        // PREPEND: Update prevToken, preserve nextToken
+        // INITIAL: Update both tokens
+        val newNextToken = when (direction) {
+            LoadDirection.INITIAL, LoadDirection.APPEND -> page.next  // Always use new value
+            LoadDirection.PREPEND -> nextToken  // Keep existing when prepending
+        }
+
+        val newPrevToken = when (direction) {
+            LoadDirection.INITIAL, LoadDirection.PREPEND -> page.prev  // Always use new value
+            LoadDirection.APPEND -> prevToken  // Keep existing when appending
+        }
+
         return copy(
             pages = trimmedPages,
-            nextToken = page.next ?: nextToken,
-            prevToken = page.prev ?: prevToken,
-            fullyLoaded = page.next == null && page.prev == null,
+            nextToken = newNextToken,
+            prevToken = newPrevToken,
+            fullyLoaded = newNextToken == null && newPrevToken == null,
             loadStates = loadStates + (direction to LoadState.NotLoading)
         )
     }
