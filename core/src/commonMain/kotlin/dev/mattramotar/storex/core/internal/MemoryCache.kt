@@ -1,8 +1,8 @@
 package dev.mattramotar.storex.core.internal
 
+import dev.mattramotar.storex.core.TimeSource
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlin.time.Duration
 
@@ -70,7 +70,8 @@ interface MemoryCache<Key: Any, Value: Any> {
  */
 internal class MemoryCacheImpl<Key : Any, Value : Any>(
     private val maxSize: Int,
-    private val ttl: Duration
+    private val ttl: Duration,
+    private val timeSource: TimeSource = TimeSource.SYSTEM
 ): MemoryCache<Key, Value> {
     private val cache = HashMap<Key, CacheEntry<Value>>()
     private val accessOrder = LinkedHashSet<Key>()
@@ -105,7 +106,7 @@ internal class MemoryCacheImpl<Key : Any, Value : Any>(
 
         val previous = cache.put(key, CacheEntry(
             value = value,
-            timestamp = Clock.System.now()
+            timestamp = timeSource.now()
         ))
         accessOrder.remove(key)
         accessOrder.add(key)
@@ -126,7 +127,7 @@ internal class MemoryCacheImpl<Key : Any, Value : Any>(
 
     private fun isExpired(entry: CacheEntry<Value>): Boolean {
         if (ttl.isInfinite()) return false
-        return Clock.System.now() - entry.timestamp > ttl
+        return timeSource.now() - entry.timestamp > ttl
     }
 
     private data class CacheEntry<V>(

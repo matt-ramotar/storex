@@ -2,6 +2,7 @@ package dev.mattramotar.storex.core.dsl
 
 import dev.mattramotar.storex.core.Store
 import dev.mattramotar.storex.core.StoreKey
+import dev.mattramotar.storex.core.TimeSource
 import dev.mattramotar.storex.core.dsl.internal.DefaultStoreBuilderScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -41,10 +42,12 @@ import kotlin.time.Duration
  */
 fun <K : StoreKey, V : Any> store(
     scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+    timeSource: TimeSource = TimeSource.SYSTEM,
     block: StoreBuilderScope<K, V>.() -> Unit
 ): Store<K, V> {
     val builder = DefaultStoreBuilderScope<K, V>()
     builder.scope = scope
+    builder.timeSource = timeSource
     builder.block()
     return builder.build()
 }
@@ -62,12 +65,15 @@ fun <K : StoreKey, V : Any> store(
  *
  * @param K The store key type
  * @param V The domain value type
+ * @param scope Optional coroutine scope for the store. Defaults to a new scope with SupervisorJob.
  * @param fetch Suspending function to fetch data
  * @return A configured Store instance
  */
 fun <K : StoreKey, V : Any> inMemoryStore(
+    scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+    timeSource: TimeSource = TimeSource.SYSTEM,
     fetch: suspend (K) -> V
-): Store<K, V> = store {
+): Store<K, V> = store(scope, timeSource) {
     fetcher(fetch)
 }
 
@@ -88,14 +94,17 @@ fun <K : StoreKey, V : Any> inMemoryStore(
  * @param V The domain value type
  * @param ttl Time-to-live for cached items
  * @param maxSize Maximum number of items to cache (default: 100)
+ * @param scope Optional coroutine scope for the store. Defaults to a new scope with SupervisorJob.
  * @param fetch Suspending function to fetch data
  * @return A configured Store instance
  */
 fun <K : StoreKey, V : Any> cachedStore(
     ttl: Duration,
     maxSize: Int = 100,
+    scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+    timeSource: TimeSource = TimeSource.SYSTEM,
     fetch: suspend (K) -> V
-): Store<K, V> = store {
+): Store<K, V> = store(scope, timeSource) {
     fetcher(fetch)
     cache {
         this.maxSize = maxSize

@@ -9,19 +9,19 @@ import dev.mattramotar.storex.core.Store
 import dev.mattramotar.storex.core.StoreKey
 import dev.mattramotar.storex.core.StoreNamespace
 import dev.mattramotar.storex.core.StoreResult
+import dev.mattramotar.storex.core.TimeSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
-import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 
 /**
@@ -62,12 +62,13 @@ class RealReadStore<
     private val validator: FreshnessValidator<Key, Any?>,
     private val memory: MemoryCache<Key, Domain>,
     scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
-    private val now: () -> Instant = { Clock.System.now() }
+    private val timeSource: TimeSource = TimeSource.SYSTEM
 ) : Store<Key, Domain>, AutoCloseable {
 
     private val storeScope = scope
     private val fetchSingleFlight = SingleFlight<Key, Unit>()
     private val perKeyMutex = KeyMutex<Key>()
+    private fun now(): Instant = timeSource.now()
 
     override fun stream(key: Key, freshness: Freshness): Flow<StoreResult<Domain>> = channelFlow {
         val errorEvents = Channel<StoreResult.Error>(capacity = Channel.BUFFERED)
@@ -85,29 +86,37 @@ class RealReadStore<
         val plan = validator.plan(FreshnessContext(key, now(), freshness, dbMeta, status))
 
         // 3. Execute fetch if needed
-        suspend fun doFetch() {
-            runBlockingFetch(key, plan, errorEvents)
-        }
-
         when (freshness) {
             Freshness.MustBeFresh -> {
-                try {
-                    if (plan !is FetchPlan.Skip) doFetch()
-                } catch (e: kotlinx.coroutines.CancellationException) {
-                    throw e
-                } catch (t: Throwable) {
-                    send(StoreResult.Error(t, servedStale = false))
-                    return@channelFlow
+                if (plan !is FetchPlan.Skip) {
+                    try {
+                        runBlockingFetch(key, plan, errorEvents)
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (t: Throwable) {
+                        send(StoreResult.Error(t, servedStale = false))
+                        return@channelFlow
+                    }
                 }
             }
-            else -> if (plan !is FetchPlan.Skip) launch { doFetch() }
+            else -> if (plan !is FetchPlan.Skip) {
+                launch {
+                    try {
+                        runBlockingFetch(key, plan, errorEvents)
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (t: Throwable) {
+                        errorEvents.send(StoreResult.Error(t, servedStale = true))
+                    }
+                }
+            }
         }
 
         // 4. Emit loading state if no cached data
         if (initialDb == null) send(StoreResult.Loading(fromCache = false))
 
         // 5. Stream updates from SoT
-        val sotJob = launch {
+        launch {
             sot.reader(key).mapNotNull { it }.collect { dbValue ->
                 val domain = converter.dbReadToDomain(key, dbValue)
                 val meta = converter.dbMetaFromProjection(dbValue)
@@ -118,8 +127,10 @@ class RealReadStore<
             }
         }
 
-        val errJob = launch { for (e in errorEvents) send(e) }
-        joinAll(sotJob, errJob)
+        launch { for (e in errorEvents) send(e) }
+
+        // Keep flow open until canceled - jobs will be automatically canceled
+        awaitCancellation()
     }
 
     override suspend fun get(key: Key, freshness: Freshness): Domain {
@@ -139,15 +150,22 @@ class RealReadStore<
     }
 
     override fun invalidate(key: Key) {
-        storeScope.launch { memory.remove(key) }
+        storeScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+            memory.remove(key)
+            sot.clearCache(key)
+        }
     }
 
     override fun invalidateNamespace(ns: StoreNamespace) {
-        storeScope.launch { memory.clear() }
+        storeScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+            memory.clear()
+        }
     }
 
     override fun invalidateAll() {
-        storeScope.launch { memory.clear() }
+        storeScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+            memory.clear()
+        }
     }
 
     override fun close() {
@@ -156,40 +174,39 @@ class RealReadStore<
 
     private suspend fun runBlockingFetch(key: Key, plan: FetchPlan, errorEvents: Channel<StoreResult.Error>) {
         fetchSingleFlight.launch(storeScope, key) {
-            try {
-                val req = when (plan) {
-                    is FetchPlan.Conditional -> FetchRequest(conditional = plan.request)
-                    FetchPlan.Unconditional -> FetchRequest()
-                    FetchPlan.Skip -> return@launch
-                }
+            val req = when (plan) {
+                is FetchPlan.Conditional -> FetchRequest(conditional = plan.request)
+                FetchPlan.Unconditional -> FetchRequest()
+                FetchPlan.Skip -> return@launch
+            }
 
-                fetcher.fetch(key, req).collect { resp ->
-                    when (resp) {
-                        is FetcherResult.Success -> {
-                            val writeDb: WriteEntity = converter.netToDbWrite(key, resp.body)
-                            val m = perKeyMutex.forKey(key)
-                            m.withLock {
-                                sot.write(key, writeDb)
-                            }
-                            bookkeeper.recordSuccess(key, resp.etag, now())
+            fetcher.fetch(key, req).collect { resp ->
+                when (resp) {
+                    is FetcherResult.Success -> {
+                        val writeDb: WriteEntity = converter.netToDbWrite(key, resp.body)
+                        val m = perKeyMutex.forKey(key)
+                        m.withLock {
+                            sot.write(key, writeDb)
                         }
-                        is FetcherResult.NotModified -> {
-                            bookkeeper.recordSuccess(key, resp.etag, now())
-                        }
-                        is FetcherResult.Error -> {
-                            throw resp.error
-                        }
+                        bookkeeper.recordSuccess(key, resp.etag, now())
+                    }
+                    is FetcherResult.NotModified -> {
+                        bookkeeper.recordSuccess(key, resp.etag, now())
+                    }
+                    is FetcherResult.Error -> {
+                        bookkeeper.recordFailure(key, resp.error, now())
+                        // Let caller handle the error (for MustBeFresh) or send to errorEvents (for background fetch)
+                        throw resp.error
                     }
                 }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                throw e
-            } catch (t: Throwable) {
-                bookkeeper.recordFailure(key, t, now())
-                errorEvents.trySend(StoreResult.Error(t, servedStale = true))
             }
         }.await()
     }
 }
 
 /* Helper to extract updatedAt from arbitrary meta objects */
-private fun Any?.extractUpdatedAt(): Instant? = this as? Instant
+private fun Any?.extractUpdatedAt(): Instant? = when (this) {
+    is Instant -> this
+    is DefaultDbMeta -> this.updatedAt
+    else -> null
+}

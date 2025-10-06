@@ -5,6 +5,7 @@ import dev.mattramotar.storex.core.IdentityConverter
 import dev.mattramotar.storex.core.SimpleConverterAdapter
 import dev.mattramotar.storex.core.Store
 import dev.mattramotar.storex.core.StoreKey
+import dev.mattramotar.storex.core.TimeSource
 import dev.mattramotar.storex.core.dsl.CacheConfig
 import dev.mattramotar.storex.core.dsl.FreshnessConfig
 import dev.mattramotar.storex.core.dsl.PersistenceConfig
@@ -23,7 +24,9 @@ import dev.mattramotar.storex.core.internal.DefaultDbMeta
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.flow
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -37,6 +40,7 @@ internal class DefaultStoreBuilderScope<K : StoreKey, V : Any> : StoreBuilderSco
     override var cacheConfig: CacheConfig? = null
     override var persistenceConfig: PersistenceConfig<K, V>? = null
     override var freshnessConfig: FreshnessConfig? = null
+    var timeSource: TimeSource = TimeSource.SYSTEM
 
     override fun fetcher(fetch: suspend (K) -> V) {
         fetcher = fetcherOf(fetch)
@@ -72,7 +76,8 @@ internal class DefaultStoreBuilderScope<K : StoreKey, V : Any> : StoreBuilderSco
             bookkeeper = bookkeeper,
             validator = validator as FreshnessValidator<K, Any?>,
             memory = cache,
-            scope = actualScope
+            scope = actualScope,
+            timeSource = timeSource
         )
     }
 
@@ -80,7 +85,8 @@ internal class DefaultStoreBuilderScope<K : StoreKey, V : Any> : StoreBuilderSco
         val config = cacheConfig ?: CacheConfig()
         return MemoryCacheImpl(
             maxSize = config.maxSize,
-            ttl = config.ttl
+            ttl = config.ttl,
+            timeSource = timeSource
         )
     }
 
@@ -117,20 +123,35 @@ internal class DefaultStoreBuilderScope<K : StoreKey, V : Any> : StoreBuilderSco
 
 /**
  * In-memory source of truth (no persistence)
+ *
+ * Uses hot flows (MutableSharedFlow) to emit updates when data changes.
  */
 private class InMemorySot<K : StoreKey, V : Any> : SourceOfTruth<K, V, V> {
     private val data = mutableMapOf<K, V>()
+    private val flows = mutableMapOf<K, MutableSharedFlow<V?>>()
 
-    override fun reader(key: K): Flow<V?> = flow {
-        emit(data[key])
+    override fun reader(key: K): Flow<V?> {
+        return flows.getOrPut(key) {
+            MutableSharedFlow<V?>(
+                replay = 1,
+                onBufferOverflow = BufferOverflow.DROP_OLDEST
+            ).also { flow ->
+                // Emit current value immediately
+                flow.tryEmit(data[key])
+            }
+        }
     }
 
     override suspend fun write(key: K, value: V) {
         data[key] = value
+        // Emit to flow to notify active collectors
+        flows[key]?.emit(value)
     }
 
     override suspend fun delete(key: K) {
         data.remove(key)
+        // Emit null to flow to notify active collectors
+        flows[key]?.emit(null)
     }
 
     override suspend fun withTransaction(block: suspend () -> Unit) {
@@ -146,12 +167,22 @@ private class InMemorySot<K : StoreKey, V : Any> : SourceOfTruth<K, V, V> {
         if (oldValue != null) {
             val reconciled = reconcile(oldValue, data[new])
             data[new] = reconciled
+            // Emit to new key's flow
+            flows[new]?.emit(reconciled)
         }
+    }
+
+    override suspend fun clearCache(key: K) {
+        data.remove(key)
+        flows.remove(key)
     }
 }
 
 /**
  * Simple source of truth backed by user-provided functions
+ *
+ * Uses hot flows (MutableSharedFlow) to emit updates when data changes.
+ * Re-reads from the read function after writes to ensure consistency.
  */
 private class SimpleSot<K : StoreKey, V : Any>(
     private val readFn: suspend (K) -> V?,
@@ -159,17 +190,38 @@ private class SimpleSot<K : StoreKey, V : Any>(
     private val deleteFn: (suspend (K) -> Unit)?,
     private val transactional: suspend (suspend () -> Unit) -> Unit
 ) : SourceOfTruth<K, V, V> {
+    private val flows = mutableMapOf<K, MutableSharedFlow<V?>>()
 
-    override fun reader(key: K): Flow<V?> = flow {
-        emit(readFn.invoke(key))
+    override fun reader(key: K): Flow<V?> {
+        val sharedFlow = flows.getOrPut(key) {
+            MutableSharedFlow<V?>(
+                replay = 1,
+                onBufferOverflow = BufferOverflow.DROP_OLDEST
+            )
+        }
+
+        // Return a flow that emits from shared flow (initialized if needed)
+        return flow {
+            // Initialize shared flow if needed
+            if (sharedFlow.replayCache.isEmpty()) {
+                val initial = readFn(key)
+                sharedFlow.emit(initial)
+            }
+            // Collect from shared flow (will emit replay cache + future updates)
+            sharedFlow.collect { emit(it) }
+        }
     }
 
     override suspend fun write(key: K, value: V) {
         writeFn(key, value)
+        // Re-read and emit to notify active collectors
+        flows[key]?.emit(readFn(key))
     }
 
     override suspend fun delete(key: K) {
         deleteFn?.invoke(key)
+        // Emit null to notify active collectors
+        flows[key]?.emit(null)
     }
 
     override suspend fun withTransaction(block: suspend () -> Unit) {
@@ -187,7 +239,15 @@ private class SimpleSot<K : StoreKey, V : Any>(
         if (oldValue != null) {
             val reconciled = reconcile(oldValue, readFn(new))
             writeFn(new, reconciled)
+            // Emit updated value to new key's flow
+            flows[new]?.emit(reconciled)
         }
+    }
+
+    override suspend fun clearCache(key: K) {
+        // Remove SharedFlow to force fresh read on next access
+        // Note: This does NOT delete persisted data, only clears the flow cache
+        flows.remove(key)
     }
 }
 
