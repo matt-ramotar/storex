@@ -100,17 +100,17 @@ internal data class PagingState<V>(
         }
 
         // Update tokens based on direction
-        // APPEND: Update nextToken, preserve prevToken
-        // PREPEND: Update prevToken, preserve nextToken
-        // INITIAL: Update both tokens
+        // APPEND: Update nextToken from page, preserve prevToken
+        // PREPEND: Update prevToken from page, preserve nextToken
+        // INITIAL: Update both tokens from page
         val newNextToken = when (direction) {
-            LoadDirection.INITIAL, LoadDirection.APPEND -> page.next  // Always use new value
-            LoadDirection.PREPEND -> nextToken  // Keep existing when prepending
+            LoadDirection.INITIAL, LoadDirection.APPEND -> page.next
+            LoadDirection.PREPEND -> nextToken  // Preserve - still points to end of data
         }
 
         val newPrevToken = when (direction) {
-            LoadDirection.INITIAL, LoadDirection.PREPEND -> page.prev  // Always use new value
-            LoadDirection.APPEND -> prevToken  // Keep existing when appending
+            LoadDirection.INITIAL, LoadDirection.PREPEND -> page.prev
+            LoadDirection.APPEND -> prevToken  // Preserve - still points to start of data
         }
 
         return copy(
@@ -159,8 +159,21 @@ internal data class PagingState<V>(
                 keptPages.add(0, page)
                 totalItems += pageSize
             } else {
+                // Partially include this page if we have room
+                val remainingSpace = maxSize - totalItems
+                if (remainingSpace > 0) {
+                    val trimmedItems = page.items.takeLast(remainingSpace)
+                    keptPages.add(0, page.copy(items = trimmedItems))
+                }
                 break
             }
+        }
+
+        // Handle edge case: single page exceeds maxSize
+        if (keptPages.isEmpty() && pages.isNotEmpty()) {
+            val lastPage = pages.last()
+            val trimmedItems = lastPage.items.takeLast(maxSize)
+            return listOf(lastPage.copy(items = trimmedItems))
         }
 
         return keptPages
@@ -177,8 +190,21 @@ internal data class PagingState<V>(
                 keptPages.add(page)
                 totalItems += pageSize
             } else {
+                // Partially include this page if we have room
+                val remainingSpace = maxSize - totalItems
+                if (remainingSpace > 0) {
+                    val trimmedItems = page.items.take(remainingSpace)
+                    keptPages.add(page.copy(items = trimmedItems))
+                }
                 break
             }
+        }
+
+        // Handle edge case: single page exceeds maxSize
+        if (keptPages.isEmpty() && pages.isNotEmpty()) {
+            val firstPage = pages.first()
+            val trimmedItems = firstPage.items.take(maxSize)
+            return listOf(firstPage.copy(items = trimmedItems))
         }
 
         return keptPages

@@ -2,6 +2,8 @@ package dev.mattramotar.storex.paging.internal
 
 import dev.mattramotar.storex.paging.LoadDirection
 import dev.mattramotar.storex.paging.LoadState
+import dev.mattramotar.storex.paging.OffsetToken
+import dev.mattramotar.storex.paging.Page
 import dev.mattramotar.storex.paging.PagingConfig
 import dev.mattramotar.storex.paging.TestException
 import dev.mattramotar.storex.paging.TestItem
@@ -285,5 +287,94 @@ class PagingStateTest {
 
         // All 100 items should be retained
         assertEquals(100, state.items.size)
+    }
+
+    // ========== Oversized Single Page Tests ==========
+
+    @Test
+    fun single_page_exceeding_maxSize_not_trimmed_on_initial() {
+        val smallConfig = PagingConfig(pageSize = 20, maxSize = 30)
+        val state = PagingState.initial<TestItem>(smallConfig)
+
+        // Add a single page with 50 items (exceeds maxSize of 30)
+        val largePage = Page(
+            items = (0 until 50).map { TestItem("item-$it", "Value $it") },
+            next = OffsetToken(50),
+            prev = null
+        )
+
+        val newState = state.addPage(largePage, LoadDirection.INITIAL)
+
+        // INITIAL loads are not trimmed - this allows initial page to be any size
+        assertEquals(50, newState.items.size)
+    }
+
+    @Test
+    fun single_page_exceeding_maxSize_is_trimmed_on_append() {
+        val smallConfig = PagingConfig(pageSize = 20, maxSize = 30)
+        var state = PagingState.initial<TestItem>(smallConfig)
+
+        // Start with a small initial page
+        state = state.addPage(generateTestPage(0, 10), LoadDirection.INITIAL)
+        assertEquals(10, state.items.size)
+
+        // Append a very large page (40 items)
+        val largePage = Page(
+            items = (10 until 50).map { TestItem("item-$it", "Value $it") },
+            next = OffsetToken(50),
+            prev = null
+        )
+
+        val newState = state.addPage(largePage, LoadDirection.APPEND)
+
+        // Should trim to maxSize (30 items total)
+        assertTrue(newState.items.size <= 30, "Expected <= 30 items, got ${newState.items.size}")
+        // Should keep newest items (from the end)
+        assertTrue(newState.items.last().id.contains("49") || newState.items.last().id.contains("39"))
+    }
+
+    @Test
+    fun single_page_exceeding_maxSize_is_trimmed_on_prepend() {
+        val smallConfig = PagingConfig(pageSize = 20, maxSize = 30)
+        var state = PagingState.initial<TestItem>(smallConfig)
+
+        // Start with a small initial page at high offset
+        state = state.addPage(generateTestPage(100, 10), LoadDirection.INITIAL)
+        assertEquals(10, state.items.size)
+
+        // Prepend a very large page (40 items)
+        val largePage = Page(
+            items = (60 until 100).map { TestItem("item-$it", "Value $it") },
+            next = OffsetToken(100),
+            prev = null
+        )
+
+        val newState = state.addPage(largePage, LoadDirection.PREPEND)
+
+        // Should trim to maxSize (30 items total)
+        assertTrue(newState.items.size <= 30, "Expected <= 30 items, got ${newState.items.size}")
+        // Should keep newest items (from the start)
+        assertTrue(newState.items.first().id.contains("60") || newState.items.first().id.contains("70"))
+    }
+
+    @Test
+    fun partial_page_trimming_when_multiple_pages_exceed_maxSize() {
+        val smallConfig = PagingConfig(pageSize = 20, maxSize = 45)
+        var state = PagingState.initial<TestItem>(smallConfig)
+
+        // Add first page (20 items)
+        state = state.addPage(generateTestPage(0, 20), LoadDirection.INITIAL)
+
+        // Add second page (20 items, total 40)
+        state = state.addPage(generateTestPage(20, 20), LoadDirection.APPEND)
+        assertEquals(40, state.items.size)
+
+        // Add third page (20 items, total would be 60)
+        // Should trim to 45 by dropping from start and partially including pages
+        val newState = state.addPage(generateTestPage(40, 20), LoadDirection.APPEND)
+
+        assertEquals(45, newState.items.size)
+        // Should have kept most recent items
+        assertEquals("item-59", newState.items.last().id)
     }
 }
