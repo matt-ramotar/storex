@@ -480,9 +480,17 @@ class RealPageStoreTest {
         // Advance time to make data stale
         timeSource.advance(6.minutes)
 
-        // Load with CachedOrFetch - should fetch (stale)
+        // Load with CachedOrFetch - should serve cached immediately and trigger background refresh
         store.load(key, LoadDirection.INITIAL, freshness = Freshness.CachedOrFetch)
-        assertEquals(2, fetchCount) // New fetch
+
+        // Should still be 1 immediately (background refresh not yet complete)
+        assertEquals(1, fetchCount)
+
+        // Wait for background refresh to complete
+        testScheduler.advanceUntilIdle()
+
+        // Background refresh should have occurred
+        assertEquals(2, fetchCount)
     }
 
     @Test
@@ -599,6 +607,180 @@ class RealPageStoreTest {
     }
 
     @Test
+    fun load_append_with_no_token_and_no_pages_returns_early() = runTest {
+        var fetchCount = 0
+
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            fetcher { _, _ ->
+                fetchCount++
+                generateTestPage(0, 20)
+            }
+        }
+
+        val key = TestKey("append_no_token")
+
+        // Try to append without any initial load (no pages, no token)
+        store.load(key, LoadDirection.APPEND, freshness = Freshness.MustBeFresh)
+
+        // Should not fetch since there's no anchor point
+        assertEquals(0, fetchCount)
+
+        // Verify state has no pages
+        store.stream(key).test {
+            val snapshot = (awaitItem() as PagingEvent.Snapshot).value
+            assertTrue(snapshot.items.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun load_prepend_with_no_token_and_no_pages_returns_early() = runTest {
+        var fetchCount = 0
+
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            fetcher { _, _ ->
+                fetchCount++
+                generateTestPage(0, 20)
+            }
+        }
+
+        val key = TestKey("prepend_no_token")
+
+        // Try to prepend without any initial load (no pages, no token)
+        store.load(key, LoadDirection.PREPEND, freshness = Freshness.MustBeFresh)
+
+        // Should not fetch since there's no anchor point
+        assertEquals(0, fetchCount)
+
+        // Verify state has no pages
+        store.stream(key).test {
+            val snapshot = (awaitItem() as PagingEvent.Snapshot).value
+            assertTrue(snapshot.items.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun load_cached_or_fetch_serves_stale_immediately_and_refreshes_background() = runTest {
+        var fetchCount = 0
+        val timeSource = TestTimeSource.atNow()
+
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            timeSource(timeSource)
+            fetcher { _, _ ->
+                fetchCount++
+                generateTestPage(0, 20, hasNext = false)
+            }
+            config {
+                pageTtl = 5.minutes
+            }
+        }
+
+        val key = TestKey("cached_or_fetch_stale")
+
+        // Initial load
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.MustBeFresh)
+        assertEquals(1, fetchCount)
+
+        // Verify initial data is loaded
+        store.stream(key).test {
+            val snapshot = (awaitItem() as PagingEvent.Snapshot).value
+            assertEquals(20, snapshot.items.size)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        // Advance time to make data stale
+        timeSource.advance(6.minutes)
+
+        // Load with CachedOrFetch - should return immediately with cached data
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.CachedOrFetch)
+
+        // Should still have cached data available immediately (fetch count may increment in background)
+        store.stream(key).test {
+            val snapshot = (awaitItem() as PagingEvent.Snapshot).value
+            assertEquals(20, snapshot.items.size) // Cached data served
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        // Wait a bit for background refresh to complete
+        testScheduler.advanceUntilIdle()
+
+        // Background refresh should have been triggered
+        assertTrue(fetchCount >= 2, "Expected background refresh, fetchCount: $fetchCount")
+    }
+
+    @Test
+    fun load_min_age_freshness_applies_to_append_direction() = runTest {
+        var fetchCount = 0
+        val timeSource = TestTimeSource.atNow()
+
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            timeSource(timeSource)
+            fetcher { _, token ->
+                fetchCount++
+                val offset = token?.after?.toIntOrNull() ?: 0
+                generateTestPage(offset, 20)
+            }
+        }
+
+        val key = TestKey("min_age_append")
+
+        // Initial load
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.MustBeFresh)
+        assertEquals(1, fetchCount)
+
+        // Try to append with MinAge(3 minutes) - data is fresh, should not fetch
+        store.load(key, LoadDirection.APPEND, freshness = Freshness.MinAge(3.minutes))
+        assertEquals(1, fetchCount) // No new fetch
+
+        // Advance time by 4 minutes (exceeds MinAge)
+        timeSource.advance(4.minutes)
+
+        // Try to append with MinAge(3 minutes) - data is too old, should fetch
+        store.load(key, LoadDirection.APPEND, freshness = Freshness.MinAge(3.minutes))
+        testScheduler.advanceUntilIdle()
+        assertEquals(2, fetchCount) // New fetch
+    }
+
+    @Test
+    fun load_min_age_freshness_applies_to_prepend_direction() = runTest {
+        var fetchCount = 0
+        val timeSource = TestTimeSource.atNow()
+
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            timeSource(timeSource)
+            fetcher { _, token ->
+                fetchCount++
+                val offset = token?.after?.toIntOrNull() ?: 40
+                generateTestPage(offset, 20, hasPrev = offset > 0)
+            }
+        }
+
+        val key = TestKey("min_age_prepend")
+
+        // Initial load (starts at offset 40)
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.MustBeFresh)
+        assertEquals(1, fetchCount)
+
+        // Try to prepend with MinAge(3 minutes) - data is fresh, should not fetch
+        store.load(key, LoadDirection.PREPEND, freshness = Freshness.MinAge(3.minutes))
+        assertEquals(1, fetchCount) // No new fetch
+
+        // Advance time by 4 minutes (exceeds MinAge)
+        timeSource.advance(4.minutes)
+
+        // Try to prepend with MinAge(3 minutes) - data is too old, should fetch
+        store.load(key, LoadDirection.PREPEND, freshness = Freshness.MinAge(3.minutes))
+        testScheduler.advanceUntilIdle()
+        assertEquals(2, fetchCount) // New fetch
+    }
+
+    @Test
     fun load_checks_page_ttl_from_config() = runTest {
         var fetchCount = 0
         val timeSource = TestTimeSource.atNow()
@@ -632,8 +814,16 @@ class RealPageStoreTest {
         // Advance time by 6 more minutes (total 11 minutes, exceeds 10 min TTL)
         timeSource.advance(6.minutes)
 
-        // Load with CachedOrFetch - should fetch (stale)
+        // Load with CachedOrFetch - should serve cached immediately and trigger background refresh
         store.load(key, LoadDirection.INITIAL, freshness = Freshness.CachedOrFetch)
-        assertEquals(2, fetchCount) // New fetch due to staleness
+
+        // Should still be 1 immediately (background refresh not yet complete)
+        assertEquals(1, fetchCount)
+
+        // Wait for background refresh to complete
+        testScheduler.advanceUntilIdle()
+
+        // Background refresh should have occurred
+        assertEquals(2, fetchCount)
     }
 }

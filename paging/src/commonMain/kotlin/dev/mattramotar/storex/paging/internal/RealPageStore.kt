@@ -106,44 +106,87 @@ internal class RealPageStore<K : StoreKey, V : Any>(
                 LoadDirection.PREPEND -> from ?: currentState.prevToken
             }
 
-            // Don't load if no token available (end of list)
-            if (direction == LoadDirection.APPEND && token == null && currentState.pages.isNotEmpty()) {
+            // Don't load if no token available (no anchor point for pagination)
+            if (direction == LoadDirection.APPEND && token == null) {
                 return
             }
-            if (direction == LoadDirection.PREPEND && token == null && currentState.pages.isNotEmpty()) {
+            if (direction == LoadDirection.PREPEND && token == null) {
                 return
             }
 
-            // Check freshness - only for INITIAL loads (refreshes)
-            // APPEND and PREPEND always fetch if token available (user-initiated pagination)
-            val shouldFetch = if (direction == LoadDirection.INITIAL) {
+            // Check freshness
+            // For INITIAL: controls re-fetching of existing data
+            // For APPEND/PREPEND: prevents redundant rapid loads
+            if (direction == LoadDirection.INITIAL) {
+                // INITIAL load freshness - check if we should re-fetch existing data
                 when (freshness) {
                     is Freshness.CachedOrFetch -> {
-                        // Serve cached if available and fresh, trigger background refresh if stale
-                        currentState.pages.isEmpty() || isStale(currentState, currentState.config.pageTtl)
+                        // Serve cached if available, trigger background refresh if stale
+                        if (currentState.pages.isNotEmpty()) {
+                            if (isStale(currentState, currentState.config.pageTtl)) {
+                                // Data is stale but available - trigger background refresh
+                                scope.launch {
+                                    // Use MustBeFresh to force refresh without recursion
+                                    try {
+                                        load(key, direction, from, Freshness.MustBeFresh)
+                                    } catch (e: Exception) {
+                                        // Silently fail background refresh - caller already has cached data
+                                    }
+                                }
+                            }
+                            // Serve cached data immediately (fresh or stale)
+                            return
+                        }
+                        // No cached data - fall through to fetch
                     }
                     is Freshness.MinAge -> {
                         // Fetch if older than required minimum age
-                        currentState.lastLoadTime == null ||
-                        (timeSource.now() - currentState.lastLoadTime) > freshness.notOlderThan
+                        val isFreshEnough = currentState.lastLoadTime?.let { lastLoad ->
+                            (timeSource.now() - lastLoad) <= freshness.notOlderThan
+                        } ?: false
+
+                        if (isFreshEnough && currentState.pages.isNotEmpty()) {
+                            return // Data is fresh enough, don't fetch
+                        }
+                        // Data is too old or not available - fall through to fetch
                     }
                     is Freshness.MustBeFresh -> {
                         // Always fetch to ensure data is fresh
-                        true
+                        // Fall through to fetch
                     }
                     is Freshness.StaleIfError -> {
                         // Try to fetch, will handle errors by serving stale in catch block
-                        true
+                        // Fall through to fetch
                     }
                 }
             } else {
-                // APPEND and PREPEND always fetch (pagination actions)
-                true
-            }
+                // APPEND/PREPEND freshness - prevent redundant rapid pagination
+                when (freshness) {
+                    is Freshness.CachedOrFetch -> {
+                        // For pagination, always fetch new pages
+                        // CachedOrFetch doesn't apply to loading new pages
+                        // Fall through to fetch
+                    }
+                    is Freshness.MinAge -> {
+                        // Check if we recently did ANY load
+                        val isTooRecent = currentState.lastLoadTime?.let { lastLoad ->
+                            (timeSource.now() - lastLoad) <= freshness.notOlderThan
+                        } ?: false
 
-            // Early return if cached data is acceptable (only for INITIAL loads)
-            if (!shouldFetch && currentState.pages.isNotEmpty()) {
-                return
+                        if (isTooRecent) {
+                            return // Too soon since last load, skip this pagination request
+                        }
+                        // Enough time has passed - fall through to fetch
+                    }
+                    is Freshness.MustBeFresh -> {
+                        // Always fetch
+                        // Fall through to fetch
+                    }
+                    is Freshness.StaleIfError -> {
+                        // Try to fetch, will handle errors by serving stale in catch block
+                        // Fall through to fetch
+                    }
+                }
             }
 
             // Update state to loading and capture the new state
