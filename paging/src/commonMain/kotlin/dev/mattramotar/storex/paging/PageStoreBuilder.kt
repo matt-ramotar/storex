@@ -1,10 +1,13 @@
 package dev.mattramotar.storex.paging
 
 import dev.mattramotar.storex.core.StoreKey
+import dev.mattramotar.storex.core.TimeSource
 import dev.mattramotar.storex.paging.internal.RealPageStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * DSL builder for creating [PageStore] instances.
@@ -29,6 +32,7 @@ class PageStoreBuilder<K : StoreKey, V : Any> {
     private var fetcherFn: (suspend (key: K, token: PageToken?) -> Page<V>)? = null
     private var config: PagingConfig = PagingConfig(pageSize = 20)
     private var scope: CoroutineScope? = null
+    private var timeSource: TimeSource = TimeSource.SYSTEM
 
     /**
      * Define how to fetch pages.
@@ -64,6 +68,16 @@ class PageStoreBuilder<K : StoreKey, V : Any> {
         this.scope = scope
     }
 
+    /**
+     * Provide a custom time source for timestamp tracking and freshness validation.
+     *
+     * Optional - defaults to TimeSource.SYSTEM.
+     * Primarily useful for testing with TestTimeSource.
+     */
+    fun timeSource(timeSource: TimeSource) {
+        this.timeSource = timeSource
+    }
+
     internal fun build(): PageStore<K, V> {
         val fetcher = requireNotNull(fetcherFn) {
             "fetcher must be configured. Use fetcher { key, token -> ... }"
@@ -74,7 +88,8 @@ class PageStoreBuilder<K : StoreKey, V : Any> {
         return RealPageStore(
             fetcher = fetcher,
             config = config,
-            scope = actualScope
+            scope = actualScope,
+            timeSource = timeSource
         )
     }
 }
@@ -91,13 +106,17 @@ class PagingConfigBuilder {
     var maxSize: Int? = null            // Defaults to pageSize * 10 at build time
     var placeholders: Boolean = false
     var jumpThreshold: Int = Int.MAX_VALUE
+    var pageTtl: kotlin.time.Duration = 5.minutes
+    var retryBackoffBase: kotlin.time.Duration = 1.seconds
 
     fun build(): PagingConfig = PagingConfig(
         pageSize = pageSize,
         prefetchDistance = prefetchDistance ?: pageSize,
         maxSize = maxSize ?: (pageSize * 10),
         placeholders = placeholders,
-        jumpThreshold = jumpThreshold
+        jumpThreshold = jumpThreshold,
+        pageTtl = pageTtl,
+        retryBackoffBase = retryBackoffBase
     )
 }
 

@@ -3,6 +3,9 @@ package dev.mattramotar.storex.paging
 import dev.mattramotar.storex.core.QueryKey
 import dev.mattramotar.storex.core.StoreKey
 import dev.mattramotar.storex.core.StoreNamespace
+import dev.mattramotar.storex.core.TimeSource
+import kotlinx.datetime.Instant
+import kotlin.time.Duration
 
 /**
  * Test key for pagination tests - uses QueryKey to avoid sealed class issues.
@@ -98,3 +101,20 @@ class TestException(message: String) : Exception(message)
  * Test network exception.
  */
 class TestNetworkException(message: String) : Exception(message)
+
+/**
+ * Mutable time source for tests.
+ */
+class TestTimeSource(
+    private var currentTime: Instant = Instant.fromEpochMilliseconds(1700000000000)
+) : TimeSource {
+    override fun now(): Instant = currentTime
+
+    fun advance(duration: Duration) {
+        currentTime = currentTime.plus(duration)
+    }
+
+    companion object {
+        fun atNow(): TestTimeSource = TestTimeSource()
+    }
+}

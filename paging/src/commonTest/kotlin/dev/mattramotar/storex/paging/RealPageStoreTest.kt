@@ -1,6 +1,7 @@
 package dev.mattramotar.storex.paging
 
 import app.cash.turbine.test
+import dev.mattramotar.storex.core.Freshness
 import dev.mattramotar.storex.core.QueryKey
 import dev.mattramotar.storex.core.StoreKey
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -13,6 +14,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class RealPageStoreTest {
@@ -123,8 +126,8 @@ class RealPageStoreTest {
             val appended = (awaitItem() as PagingEvent.Snapshot).value
             assertEquals(40, appended.items.size)
 
-            // Load initial again - should replace everything
-            store.load(key, LoadDirection.INITIAL)
+            // Load initial again with MustBeFresh - should replace everything
+            store.load(key, LoadDirection.INITIAL, freshness = Freshness.MustBeFresh)
             skipItems(1) // Skip loading state
             val refreshed = (awaitItem() as PagingEvent.Snapshot).value
             assertEquals(20, refreshed.items.size)
@@ -369,9 +372,268 @@ class RealPageStoreTest {
             store.load(key, LoadDirection.APPEND)
             skipItems(1) // Skip loading state
             val third = (awaitItem() as PagingEvent.Snapshot).value
-            assertTrue(third.items.size <= 50)
+            assertTrue(third.items.size <= 50, "Expected <= 50 items, got ${third.items.size}")
 
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    // ========== Freshness Tests ==========
+
+    @Test
+    fun stream_uses_per_operation_config() = runTest {
+        // Create store with default config (maxSize = 100)
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            fetcher(createTestFetcher(totalItems = 100, pageSize = 20))
+            config {
+                pageSize = 20
+                maxSize = 100
+            }
+        }
+
+        val key = TestKey("stream_custom_config")
+
+        // Stream with custom config - should use smaller maxSize of 30
+        val customConfig = PagingConfig(pageSize = 20, maxSize = 30)
+
+        store.stream(key, config = customConfig).test {
+            // Initial load: 20 items
+            val initial = awaitLoadedState()
+            assertEquals(20, initial.items.size)
+
+            // Append second page: would be 40 items, but trim to maxSize=30
+            store.load(key, LoadDirection.APPEND)
+            skipItems(1)
+            val second = (awaitItem() as PagingEvent.Snapshot).value
+            assertTrue(second.items.size <= 30, "Expected <= 30 items after second page, got ${second.items.size}")
+
+            // Append third page: should still respect maxSize of 30
+            store.load(key, LoadDirection.APPEND)
+            skipItems(1)
+            val third = (awaitItem() as PagingEvent.Snapshot).value
+            assertTrue(third.items.size <= 30, "Expected <= 30 items after third page, got ${third.items.size}")
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun stream_passes_freshness_to_initial_load() = runTest {
+        var fetchCount = 0
+        val timeSource = TestTimeSource.atNow()
+
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            timeSource(timeSource)
+            fetcher { _, _ ->
+                fetchCount++
+                generateTestPage(0, 20)
+            }
+        }
+
+        val key = TestKey("stream_freshness")
+
+        // First stream with MustBeFresh - should fetch
+        store.stream(key, freshness = Freshness.MustBeFresh).test {
+            awaitLoadedState()
+            assertEquals(1, fetchCount)
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        // Second stream with CachedOrFetch - should serve cached (not fetch)
+        store.stream(key, freshness = Freshness.CachedOrFetch).test {
+            val snapshot = (awaitItem() as PagingEvent.Snapshot).value
+            assertTrue(snapshot.items.isNotEmpty()) // Has cached data
+            assertEquals(1, fetchCount) // No new fetch
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun load_respects_cached_or_fetch_freshness() = runTest {
+        var fetchCount = 0
+        val timeSource = TestTimeSource.atNow()
+
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            timeSource(timeSource)
+            fetcher { _, _ ->
+                fetchCount++
+                generateTestPage(0, 20)
+            }
+            config {
+                pageTtl = 5.minutes
+            }
+        }
+
+        val key = TestKey("cached_or_fetch")
+
+        // Initial load
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.MustBeFresh)
+        assertEquals(1, fetchCount)
+
+        // Load again with CachedOrFetch - should serve cached (fresh)
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.CachedOrFetch)
+        assertEquals(1, fetchCount) // No new fetch
+
+        // Advance time to make data stale
+        timeSource.advance(6.minutes)
+
+        // Load with CachedOrFetch - should fetch (stale)
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.CachedOrFetch)
+        assertEquals(2, fetchCount) // New fetch
+    }
+
+    @Test
+    fun load_respects_min_age_freshness() = runTest {
+        var fetchCount = 0
+        val timeSource = TestTimeSource.atNow()
+
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            timeSource(timeSource)
+            fetcher { _, _ ->
+                fetchCount++
+                generateTestPage(0, 20)
+            }
+        }
+
+        val key = TestKey("min_age")
+
+        // Initial load
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.MustBeFresh)
+        assertEquals(1, fetchCount)
+
+        // Load with MinAge(3 minutes) - data is fresh, should not fetch
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.MinAge(3.minutes))
+        assertEquals(1, fetchCount) // No new fetch
+
+        // Advance time by 2 minutes (total 2 minutes old)
+        timeSource.advance(2.minutes)
+
+        // Load with MinAge(3 minutes) - still fresh enough, should not fetch
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.MinAge(3.minutes))
+        assertEquals(1, fetchCount) // No new fetch
+
+        // Advance time by 2 more minutes (total 4 minutes old)
+        timeSource.advance(2.minutes)
+
+        // Load with MinAge(3 minutes) - too old, should fetch
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.MinAge(3.minutes))
+        assertEquals(2, fetchCount) // New fetch
+    }
+
+    @Test
+    fun load_respects_must_be_fresh_freshness() = runTest {
+        var fetchCount = 0
+        val timeSource = TestTimeSource.atNow()
+
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            timeSource(timeSource)
+            fetcher { _, _ ->
+                fetchCount++
+                generateTestPage(0, 20)
+            }
+        }
+
+        val key = TestKey("must_be_fresh")
+
+        // Initial load with MustBeFresh
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.MustBeFresh)
+        assertEquals(1, fetchCount)
+
+        // Load again with MustBeFresh - should always fetch
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.MustBeFresh)
+        assertEquals(2, fetchCount) // Always fetches
+
+        // Load third time - should always fetch
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.MustBeFresh)
+        assertEquals(3, fetchCount) // Always fetches
+    }
+
+    @Test
+    fun load_respects_stale_if_error_freshness() = runTest {
+        var fetchCount = 0
+        var shouldFail = false
+        val timeSource = TestTimeSource.atNow()
+
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            timeSource(timeSource)
+            fetcher { _, _ ->
+                fetchCount++
+                if (shouldFail) {
+                    throw TestNetworkException("Network error")
+                }
+                generateTestPage(0, 20)
+            }
+        }
+
+        val key = TestKey("stale_if_error")
+
+        // Initial successful load
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.StaleIfError)
+        assertEquals(1, fetchCount)
+
+        // Make next fetch fail
+        shouldFail = true
+
+        // Load with StaleIfError - should try to fetch, but serve cached on error
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.StaleIfError)
+        assertEquals(2, fetchCount) // Attempted fetch
+
+        // Verify cached data is still available
+        store.stream(key).test {
+            val snapshot = (awaitItem() as PagingEvent.Snapshot).value
+            assertTrue(snapshot.items.isNotEmpty()) // Has cached data
+
+            // Check load state indicates error but can serve stale
+            val loadState = snapshot.sourceStates[LoadDirection.INITIAL]
+            assertIs<LoadState.Error>(loadState)
+            assertTrue(loadState.canServeStale)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun load_checks_page_ttl_from_config() = runTest {
+        var fetchCount = 0
+        val timeSource = TestTimeSource.atNow()
+
+        // Create store with custom TTL
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            timeSource(timeSource)
+            fetcher { _, _ ->
+                fetchCount++
+                generateTestPage(0, 20)
+            }
+            config {
+                pageTtl = 10.minutes // Custom TTL
+            }
+        }
+
+        val key = TestKey("page_ttl")
+
+        // Initial load
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.MustBeFresh)
+        assertEquals(1, fetchCount)
+
+        // Advance time by 5 minutes (within TTL)
+        timeSource.advance(5.minutes)
+
+        // Load with CachedOrFetch - should serve cached (still fresh)
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.CachedOrFetch)
+        assertEquals(1, fetchCount) // No new fetch
+
+        // Advance time by 6 more minutes (total 11 minutes, exceeds 10 min TTL)
+        timeSource.advance(6.minutes)
+
+        // Load with CachedOrFetch - should fetch (stale)
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.CachedOrFetch)
+        assertEquals(2, fetchCount) // New fetch due to staleness
     }
 }

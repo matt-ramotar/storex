@@ -6,6 +6,7 @@ import dev.mattramotar.storex.paging.Page
 import dev.mattramotar.storex.paging.PageToken
 import dev.mattramotar.storex.paging.PagingConfig
 import dev.mattramotar.storex.paging.PagingSnapshot
+import kotlinx.datetime.Instant
 
 /**
  * Internal state machine for managing paged data.
@@ -15,6 +16,7 @@ import dev.mattramotar.storex.paging.PagingSnapshot
  * - Load states for each direction (INITIAL, APPEND, PREPEND)
  * - Current page tokens (next, prev)
  * - Fully loaded status
+ * - Last load timestamp for freshness validation
  *
  * Thread-safe through immutability - all mutations return new instances.
  */
@@ -28,7 +30,8 @@ internal data class PagingState<V>(
     val nextToken: PageToken? = null,
     val prevToken: PageToken? = null,
     val fullyLoaded: Boolean = false,
-    val config: PagingConfig
+    val config: PagingConfig,
+    val lastLoadTime: Instant? = null
 ) {
 
     /**
@@ -65,8 +68,12 @@ internal data class PagingState<V>(
 
     /**
      * Add a page in the specified direction.
+     *
+     * @param page The page to add
+     * @param direction The direction (INITIAL, APPEND, PREPEND)
+     * @param timestamp The time this page was loaded (for freshness validation)
      */
-    fun addPage(page: Page<V>, direction: LoadDirection): PagingState<V> {
+    fun addPage(page: Page<V>, direction: LoadDirection, timestamp: Instant? = null): PagingState<V> {
         val newPages = when (direction) {
             LoadDirection.INITIAL -> {
                 // Initial load replaces everything
@@ -118,7 +125,8 @@ internal data class PagingState<V>(
             nextToken = newNextToken,
             prevToken = newPrevToken,
             fullyLoaded = newNextToken == null && newPrevToken == null,
-            loadStates = loadStates + (direction to LoadState.NotLoading)
+            loadStates = loadStates + (direction to LoadState.NotLoading),
+            lastLoadTime = timestamp ?: lastLoadTime  // Update timestamp if provided, otherwise preserve
         )
     }
 
