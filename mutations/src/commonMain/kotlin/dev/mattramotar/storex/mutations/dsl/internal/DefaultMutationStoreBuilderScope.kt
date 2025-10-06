@@ -22,8 +22,6 @@ import dev.mattramotar.storex.mutations.PatchClient
 import dev.mattramotar.storex.mutations.PostClient
 import dev.mattramotar.storex.mutations.Precondition
 import dev.mattramotar.storex.mutations.PutClient
-import dev.mattramotar.storex.mutations.SimpleMutationEncoder
-import dev.mattramotar.storex.mutations.SimpleMutationEncoderAdapter
 import dev.mattramotar.storex.mutations.dsl.MutationStoreBuilderScope
 import dev.mattramotar.storex.mutations.dsl.MutationsConfig
 import dev.mattramotar.storex.mutations.internal.RealMutationStore
@@ -77,8 +75,7 @@ internal class DefaultMutationStoreBuilderScope<K : StoreKey, V : Any, P, D> : M
         val converter = createConverter()
         val validator = createFreshnessValidator()
         val bookkeeper = createBookkeeper()
-        val simpleEncoder = createEncoder()
-        val encoder = SimpleMutationEncoderAdapter(simpleEncoder)
+        val encoder = createEncoder()
 
         val patchClient = createPatchClient()
         val postClient = createPostClient()
@@ -86,15 +83,15 @@ internal class DefaultMutationStoreBuilderScope<K : StoreKey, V : Any, P, D> : M
         val putClient = createPutClient()
 
         @Suppress("UNCHECKED_CAST")
-        return RealMutationStore<K, V, V, V, V, P, D, V, V, V>(
+        return RealMutationStore<K, V, V, V, V, P, D, P, D, V>(
             sot = sot as SourceOfTruth<K, V, V>,
             fetcher = actualFetcher as Fetcher<K, V>,
-            patchClient = patchClient as PatchClient<K, V, V>?,
-            postClient = postClient as PostClient<K, D, V>?,
+            patchClient = patchClient,
+            postClient = postClient,
             deleteClient = deleteClient,
-            putClient = putClient as PutClient<K, V, V>?,
+            putClient = putClient,
             converter = converter as Converter<K, V, V, V, V>,
-            encoder = encoder as MutationEncoder<P, D, V, V, V, V>,
+            encoder = encoder,
             bookkeeper = bookkeeper,
             validator = validator as FreshnessValidator<K, Any?>,
             memory = cache,
@@ -147,24 +144,24 @@ internal class DefaultMutationStoreBuilderScope<K : StoreKey, V : Any, P, D> : M
         return InMemoryBookkeeper()
     }
 
-    private fun createEncoder(): SimpleMutationEncoder<P, D, V, V> {
-        return object : SimpleMutationEncoder<P, D, V, V> {
-            @Suppress("UNCHECKED_CAST")
-            override suspend fun encodePatch(patch: P, base: V?): V? = patch as? V
-            @Suppress("UNCHECKED_CAST")
-            override suspend fun encodeDraft(draft: D): V? = draft as? V
-            override suspend fun encodeValue(value: V): V = value
+    private fun createEncoder(): MutationEncoder<P, D, V, P, D, V> {
+        // Identity encoder - no conversion needed for the simple DSL builder
+        // User functions handle their own serialization/encoding
+        return object : MutationEncoder<P, D, V, P, D, V> {
+            override suspend fun fromPatch(patch: P, base: V?): P = patch
+            override suspend fun fromDraft(draft: D): D = draft
+            override suspend fun fromValue(value: V): V = value
         }
     }
 
-    private fun createPatchClient(): PatchClient<K, V, V>? {
+    private fun createPatchClient(): PatchClient<K, P, V>? {
         val mutations = mutationsConfig ?: return null
         val patchFn = mutations.patch ?: return null
 
-        return object : PatchClient<K, V, V> {
-            override suspend fun patch(key: K, payload: V, precondition: Precondition?): PatchClient.Response<V> {
+        return object : PatchClient<K, P, V> {
+            override suspend fun patch(key: K, payload: P, precondition: Precondition?): PatchClient.Response<V> {
                 @Suppress("UNCHECKED_CAST")
-                return patchFn(key, payload as P) as PatchClient.Response<V>
+                return patchFn(key, payload) as PatchClient.Response<V>
             }
         }
     }
@@ -194,6 +191,18 @@ internal class DefaultMutationStoreBuilderScope<K : StoreKey, V : Any, P, D> : M
 
     private fun createPutClient(): PutClient<K, V, V>? {
         val mutations = mutationsConfig ?: return null
+
+        // Use mutations.put if available, otherwise fall back to mutations.replace
+        // Note: This is a limitation of the current architecture where RealMutationStore
+        // uses the same putClient for both upsert() and replace() operations.
+        //
+        // Ideally:
+        // - mutations.put should provide upsert semantics (create OR replace)
+        // - mutations.replace should provide replace-only semantics (fail if doesn't exist)
+        //
+        // However, since both operations use the same putClient, this fallback allows
+        // replace-only configurations to work, though upsert() may fail if the entity
+        // doesn't exist when only mutations.replace is configured.
         val putFn = mutations.put ?: mutations.replace ?: return null
 
         return object : PutClient<K, V, V> {
