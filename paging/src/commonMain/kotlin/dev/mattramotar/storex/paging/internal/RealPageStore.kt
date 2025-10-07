@@ -29,6 +29,7 @@ import kotlinx.coroutines.sync.withLock
  * - Immutable [PagingState]
  * - Mutex-protected load operations
  * - StateFlow for reactive updates
+ * - Tracked state per key with config validation
  */
 internal class RealPageStore<K : StoreKey, V : Any>(
     private val fetcher: suspend (key: K, token: PageToken?) -> Page<V>,
@@ -37,8 +38,20 @@ internal class RealPageStore<K : StoreKey, V : Any>(
     private val timeSource: TimeSource = TimeSource.SYSTEM
 ) : PageStore<K, V> {
 
-    // State per user key
-    private val states = mutableMapOf<K, MutableStateFlow<PagingState<V>>>()
+    /**
+     * Tracked state per key, including:
+     * - The StateFlow for reactive updates
+     * - The config used to create this state
+     * - Whether initial load has been triggered
+     */
+    private data class KeyState<V>(
+        val stateFlow: MutableStateFlow<PagingState<V>>,
+        val config: PagingConfig,
+        var initialLoadTriggered: Boolean = false
+    )
+
+    // State per user key with config tracking
+    private val keyStates = mutableMapOf<K, KeyState<V>>()
 
     // Mutex per user key to prevent concurrent loads
     private val loadMutexes = mutableMapOf<K, Mutex>()
@@ -49,19 +62,28 @@ internal class RealPageStore<K : StoreKey, V : Any>(
         config: PagingConfig?,
         freshness: Freshness
     ): Flow<PagingEvent<V>> {
-        // Get or create state flow synchronously
-        val stateFlow = synchronized(this) {
-            states.getOrPut(key) {
+        // Get or create tracked state synchronously
+        val (stateFlow, shouldTriggerLoad) = synchronized(this) {
+            val keyState = keyStates.getOrPut(key) {
                 // Use per-operation config if provided, otherwise use instance config
                 val effectiveConfig = config ?: this.config
                 val flow = MutableStateFlow(PagingState.initial<V>(effectiveConfig))
+                KeyState(flow, effectiveConfig, initialLoadTriggered = false)
+            }
 
-                // Trigger initial load automatically with specified freshness
-                scope.launch {
-                    load(key, LoadDirection.INITIAL, initial, freshness)
-                }
+            // Check if we should trigger initial load
+            val shouldTrigger = !keyState.initialLoadTriggered
+            if (shouldTrigger) {
+                keyState.initialLoadTriggered = true
+            }
 
-                flow
+            keyState.stateFlow to shouldTrigger
+        }
+
+        // Trigger initial load if this is the first stream() call for this key
+        if (shouldTriggerLoad) {
+            scope.launch {
+                load(key, LoadDirection.INITIAL, initial, freshness)
             }
         }
 
@@ -76,10 +98,13 @@ internal class RealPageStore<K : StoreKey, V : Any>(
         from: PageToken?,
         freshness: Freshness
     ) {
+        // Get or create tracked state
         val stateFlow = synchronized(this) {
-            states.getOrPut(key) {
-                MutableStateFlow(PagingState.initial<V>(config))
-            }
+            keyStates.getOrPut(key) {
+                // If load() is called before stream(), create state with instance config
+                val flow = MutableStateFlow(PagingState.initial<V>(config))
+                KeyState(flow, config, initialLoadTriggered = true)
+            }.stateFlow
         }
 
         val mutex = synchronized(this) {
@@ -234,7 +259,7 @@ internal class RealPageStore<K : StoreKey, V : Any>(
      */
     internal fun getState(key: K): StateFlow<PagingState<V>>? {
         return synchronized(this) {
-            states[key]
+            keyStates[key]?.stateFlow
         }
     }
 }

@@ -13,6 +13,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
@@ -832,6 +833,136 @@ class RealPageStoreTest {
         store.load(key, LoadDirection.PREPEND, freshness = Freshness.MinAge(3.minutes))
         testScheduler.advanceUntilIdle()
         assertEquals(2, fetchCount) // New fetch
+    }
+
+    @Test
+    fun concurrent_stream_calls_trigger_only_one_initial_load() = runTest {
+        var fetchCount = 0
+        val timeSource = TestTimeSource.atNow()
+
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            timeSource(timeSource)
+            fetcher { _, _ ->
+                fetchCount++
+                kotlinx.coroutines.delay(100) // Simulate network delay
+                generateTestPage(0, 20)
+            }
+        }
+
+        val key = TestKey("concurrent_stream")
+
+        // Launch multiple concurrent stream() calls
+        val job1 = launch {
+            store.stream(key).test {
+                awaitLoadedState()
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+        val job2 = launch {
+            store.stream(key).test {
+                awaitLoadedState()
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+        val job3 = launch {
+            store.stream(key).test {
+                awaitLoadedState()
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+        // Wait for all streams to complete
+        job1.join()
+        job2.join()
+        job3.join()
+
+        // Should only have ONE fetch despite 3 concurrent stream() calls
+        assertEquals(1, fetchCount, "Expected exactly 1 fetch for concurrent stream calls")
+    }
+
+    @Test
+    fun stream_config_consistency_first_caller_wins() = runTest {
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            fetcher(createTestFetcher(totalItems = 100, pageSize = 20))
+            config {
+                pageSize = 20
+                maxSize = 100  // Instance default
+            }
+        }
+
+        val key = TestKey("config_consistency")
+
+        // First stream() call with custom config (maxSize = 30)
+        val customConfig1 = PagingConfig(pageSize = 20, maxSize = 30)
+        store.stream(key, config = customConfig1).test {
+            val initial = awaitLoadedState()
+            assertEquals(20, initial.items.size)
+
+            // Append first page - would be 40 items, but should trim to maxSize = 30
+            store.load(key, LoadDirection.APPEND)
+            skipItems(1)
+            val second = (awaitItem() as PagingEvent.Snapshot).value
+            assertTrue(second.items.size <= 30, "Expected maxSize=30 to be enforced, got ${second.items.size}")
+
+            // Append another page - should still respect maxSize = 30
+            store.load(key, LoadDirection.APPEND)
+            skipItems(1)
+            val third = (awaitItem() as PagingEvent.Snapshot).value
+            // Should still trim to maxSize = 30 (from first stream call)
+            assertTrue(third.items.size <= 30, "Expected maxSize=30 from first stream call, got ${third.items.size}")
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun load_before_stream_uses_instance_config() = runTest {
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            fetcher(createTestFetcher(totalItems = 100, pageSize = 20))
+            config {
+                pageSize = 20
+                maxSize = 100  // Instance default
+            }
+        }
+
+        val key = TestKey("load_before_stream")
+
+        // Call load() directly before stream() - creates state with instance config
+        store.load(key, LoadDirection.INITIAL, freshness = Freshness.MustBeFresh)
+
+        // Wait for load to complete
+        testScheduler.advanceUntilIdle()
+
+        // Now call stream() with custom config - should use existing state (instance config)
+        val customConfig = PagingConfig(pageSize = 20, maxSize = 30)
+        store.stream(key, config = customConfig).test {
+            val initial = (awaitItem() as PagingEvent.Snapshot).value
+            assertEquals(20, initial.items.size)
+
+            // Append multiple pages - should respect instance maxSize = 100, not custom maxSize = 30
+            store.load(key, LoadDirection.APPEND)
+            skipItems(1)
+            val second = (awaitItem() as PagingEvent.Snapshot).value
+            assertEquals(40, second.items.size)
+
+            store.load(key, LoadDirection.APPEND)
+            skipItems(1)
+            val third = (awaitItem() as PagingEvent.Snapshot).value
+            assertEquals(60, third.items.size)
+
+            // Should be able to go beyond 30 because instance config has maxSize = 100
+            store.load(key, LoadDirection.APPEND)
+            skipItems(1)
+            val fourth = (awaitItem() as PagingEvent.Snapshot).value
+            assertEquals(80, fourth.items.size)  // Would be trimmed at 30 if custom config was used
+
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test
