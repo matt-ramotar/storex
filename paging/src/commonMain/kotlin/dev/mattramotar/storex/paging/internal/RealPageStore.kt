@@ -94,23 +94,19 @@ internal class RealPageStore<K : StoreKey, V : Any>(
                 return
             }
 
-            // Don't load if already fully loaded
-            if (currentState.fullyLoaded && direction != LoadDirection.INITIAL) {
-                return
-            }
-
-            // Determine which token to use
+            // Determine which token to use (considers explicit 'from' parameter)
             val token = when (direction) {
                 LoadDirection.INITIAL -> from
                 LoadDirection.APPEND -> from ?: currentState.nextToken
                 LoadDirection.PREPEND -> from ?: currentState.prevToken
             }
 
-            // Don't load if no token available (no anchor point for pagination)
-            if (direction == LoadDirection.APPEND && token == null) {
-                return
-            }
-            if (direction == LoadDirection.PREPEND && token == null) {
+            // Don't load if no token available for non-INITIAL loads
+            // This properly handles:
+            // - Unidirectional pagination (one token always null)
+            // - Explicit tokens via 'from' parameter
+            // - One direction exhausted while other still has data
+            if (direction != LoadDirection.INITIAL && token == null) {
                 return
             }
 

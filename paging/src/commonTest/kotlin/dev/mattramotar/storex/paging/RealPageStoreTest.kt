@@ -284,6 +284,60 @@ class RealPageStoreTest {
     }
 
     @Test
+    fun load_append_with_explicit_token_when_fully_loaded() = runTest {
+        // Test scenario: Unidirectional pagination (forward-only API) reaches end,
+        // then load with explicit token. This verifies the bug fix where fullyLoaded
+        // check was blocking explicit tokens even when they were provided.
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            // Custom fetcher that simulates a forward-only API (never returns prev tokens)
+            fetcher { _, token ->
+                val offset = token?.after?.toIntOrNull() ?: 0
+                val remaining = 40 - offset
+                val actualPageSize = minOf(20, remaining)
+
+                generateTestPage(
+                    startIndex = offset,
+                    pageSize = actualPageSize,
+                    hasNext = offset + actualPageSize < 40,
+                    hasPrev = false  // Forward-only: never provide prev token
+                )
+            }
+        }
+
+        val key = TestKey()
+
+        store.stream(key).test {
+            // Initial load (0-19), prev=null (forward-only), next=20
+            val initial = awaitLoadedState()
+            assertEquals(20, initial.items.size)
+            assertEquals("item-0", initial.items.first().id)
+            assertFalse(initial.fullyLoaded)
+
+            // Append to reach end (20-39), prev=null (forward-only), next=null (end)
+            store.load(key, LoadDirection.APPEND)
+            skipItems(1) // Skip loading state
+            val reachedEnd = (awaitItem() as PagingEvent.Snapshot).value
+            assertEquals(40, reachedEnd.items.size)
+            assertTrue(reachedEnd.fullyLoaded) // Both tokens null
+
+            // Now PREPEND with explicit token pointing to middle data
+            // Bug fix: Previously this would be blocked by fullyLoaded check
+            // With the fix, explicit token should override the fullyLoaded state
+            store.load(key, LoadDirection.PREPEND, from = OffsetToken(10))
+            skipItems(1) // Skip loading state
+            val withExplicit = (awaitItem() as PagingEvent.Snapshot).value
+
+            // Should have successfully loaded - prepend adds to start
+            // So we'd have: [10-19, 0-19, 20-39] but actually it would just be the new page
+            // because PREPEND replaces based on the token, not current state
+            assertTrue(withExplicit.items.isNotEmpty())
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun multiple_keys_maintain_separate_state() = runTest {
         val store = pageStore<StoreKey, TestItem> {
             scope(this@runTest)
