@@ -97,7 +97,7 @@ internal data class PagingState<V>(
                 when (direction) {
                     LoadDirection.APPEND -> dropOldestFromStart(newPages, config.maxSize)
                     LoadDirection.PREPEND -> dropOldestFromEnd(newPages, config.maxSize)
-                    LoadDirection.INITIAL -> newPages // Don't trim initial load
+                    LoadDirection.INITIAL -> dropOldestFromEnd(newPages, config.maxSize) // Trim from end, keep beginning
                 }
             } else {
                 newPages
@@ -106,18 +106,39 @@ internal data class PagingState<V>(
             newPages
         }
 
-        // Update tokens based on direction
-        // APPEND: Update nextToken from page, preserve prevToken
-        // PREPEND: Update prevToken from page, preserve nextToken
-        // INITIAL: Update both tokens from page
+        // Update tokens based on direction and trimming results
+        // After trimming, tokens must point to the actual boundaries of retained data
+        val wasTrimmed = trimmedPages.size < newPages.size ||
+                        trimmedPages.sumOf { it.items.size } < newPages.sumOf { it.items.size }
+
         val newNextToken = when (direction) {
-            LoadDirection.INITIAL, LoadDirection.APPEND -> page.next
-            LoadDirection.PREPEND -> nextToken  // Preserve - still points to end of data
+            LoadDirection.INITIAL, LoadDirection.APPEND -> {
+                // For INITIAL and APPEND, nextToken comes from the last page
+                trimmedPages.lastOrNull()?.next
+            }
+            LoadDirection.PREPEND -> {
+                // For PREPEND, update nextToken if trimming dropped pages from the end
+                if (wasTrimmed) {
+                    trimmedPages.lastOrNull()?.next
+                } else {
+                    nextToken  // Preserve - still points to end of data
+                }
+            }
         }
 
         val newPrevToken = when (direction) {
-            LoadDirection.INITIAL, LoadDirection.PREPEND -> page.prev
-            LoadDirection.APPEND -> prevToken  // Preserve - still points to start of data
+            LoadDirection.INITIAL, LoadDirection.PREPEND -> {
+                // For INITIAL and PREPEND, prevToken comes from the first page
+                trimmedPages.firstOrNull()?.prev
+            }
+            LoadDirection.APPEND -> {
+                // For APPEND, update prevToken if trimming dropped pages from the start
+                if (wasTrimmed) {
+                    trimmedPages.firstOrNull()?.prev
+                } else {
+                    prevToken  // Preserve - still points to start of data
+                }
+            }
         }
 
         return copy(

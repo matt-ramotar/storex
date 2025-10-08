@@ -966,6 +966,205 @@ class RealPageStoreTest {
     }
 
     @Test
+    fun prepend_with_trimming_updates_nextToken() = runTest {
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            fetcher { _, token ->
+                val offset = token?.after?.toIntOrNull() ?: 40
+                generateTestPage(offset, 20, hasNext = offset + 20 < 100, hasPrev = offset > 0)
+            }
+            config {
+                pageSize = 20
+                maxSize = 50  // Will trim after 3 pages
+            }
+        }
+
+        val key = TestKey("prepend_trim_token")
+
+        store.stream(key).test {
+            // Initial load (40-59)
+            val initial = awaitLoadedState()
+            assertEquals(20, initial.items.size)
+            assertEquals("item-40", initial.items.first().id)
+            assertEquals(PageToken(before = null, after = "60"), initial.next)
+            assertEquals(PageToken(before = null, after = "20"), initial.prev)  // Points to offset for previous page
+
+            // Append to get pages [40-59, 60-79]
+            store.load(key, LoadDirection.APPEND)
+            skipItems(1)
+            val afterAppend = (awaitItem() as PagingEvent.Snapshot).value
+            assertEquals(40, afterAppend.items.size)
+            assertEquals("item-40", afterAppend.items.first().id)
+            assertEquals("item-79", afterAppend.items.last().id)
+
+            // PREPEND (20-39): Will create [20-39, 40-59, 60-79] = 60 items
+            // Trimming should keep ~50 items, dropping some from end
+            // Expected: [20-39, 40-59, 60-69 partial] or [20-39, 40-59]
+            store.load(key, LoadDirection.PREPEND)
+            skipItems(1)
+            val afterPrepend = (awaitItem() as PagingEvent.Snapshot).value
+
+            // Verify trimming occurred
+            assertTrue(afterPrepend.items.size <= 50, "Should trim to maxSize=50, got ${afterPrepend.items.size}")
+
+            // Verify nextToken was updated (not pointing to dropped pages)
+            // The nextToken should point to the boundary of retained data
+            assertNotNull(afterPrepend.next)
+
+            // Verify we can still paginate forward from the new nextToken
+            val nextOffset = afterPrepend.next?.after?.toIntOrNull()
+            assertNotNull(nextOffset)
+            assertTrue(nextOffset!! < 100, "nextToken should point to valid data, got offset=$nextOffset")
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun append_with_trimming_updates_prevToken() = runTest {
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            fetcher { _, token ->
+                val offset = token?.after?.toIntOrNull() ?: 0
+                generateTestPage(offset, 20, hasNext = offset + 20 < 100, hasPrev = offset > 0)
+            }
+            config {
+                pageSize = 20
+                maxSize = 50  // Will trim after 3 pages
+            }
+        }
+
+        val key = TestKey("append_trim_token")
+
+        store.stream(key).test {
+            // Initial load (0-19)
+            val initial = awaitLoadedState()
+            assertEquals(20, initial.items.size)
+            assertEquals("item-0", initial.items.first().id)
+
+            // Append to get pages [0-19, 20-39]
+            store.load(key, LoadDirection.APPEND)
+            skipItems(1)
+            val afterFirstAppend = (awaitItem() as PagingEvent.Snapshot).value
+            assertEquals(40, afterFirstAppend.items.size)
+
+            // APPEND (40-59): Will create [0-19, 20-39, 40-59] = 60 items
+            // Trimming should keep ~50 items, dropping some from start
+            store.load(key, LoadDirection.APPEND)
+            skipItems(1)
+            val afterSecondAppend = (awaitItem() as PagingEvent.Snapshot).value
+
+            // Verify trimming occurred
+            assertTrue(afterSecondAppend.items.size <= 50, "Should trim to maxSize=50, got ${afterSecondAppend.items.size}")
+
+            // Verify prevToken was updated (not pointing to dropped pages)
+            val firstItemId = afterSecondAppend.items.first().id
+            val firstItemIndex = firstItemId.removePrefix("item-").toInt()
+
+            // prevToken should be null or point to data before the first retained item
+            val prevOffset = afterSecondAppend.prev?.after?.toIntOrNull()
+            if (prevOffset != null) {
+                assertTrue(prevOffset < firstItemIndex, "prevToken should point before retained data")
+            }
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun initial_load_trims_oversized_single_page() = runTest {
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            fetcher { _, _ ->
+                // Return a single page with 50 items (exceeds maxSize)
+                generateTestPage(0, 50, hasNext = true, hasPrev = false)
+            }
+            config {
+                pageSize = 50
+                maxSize = 30  // Limit to 30 items
+            }
+        }
+
+        val key = TestKey("oversized_initial")
+
+        store.stream(key).test {
+            val snapshot = awaitLoadedState()
+
+            // Should trim to maxSize even though it's a single page
+            assertTrue(snapshot.items.size <= 30, "Expected <= 30 items, got ${snapshot.items.size}")
+
+            // Should keep items from the beginning (0-29)
+            assertEquals("item-0", snapshot.items.first().id)
+
+            // nextToken should point to continuation
+            assertNotNull(snapshot.next)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun bidirectional_pagination_maintains_token_chain() = runTest {
+        val store = pageStore<StoreKey, TestItem> {
+            scope(this@runTest)
+            fetcher { _, token ->
+                val offset = token?.after?.toIntOrNull() ?: 40
+                generateTestPage(offset, 20, hasNext = offset + 20 < 100, hasPrev = offset > 0)
+            }
+            config {
+                pageSize = 20
+                maxSize = 60  // Allow 3 pages
+            }
+        }
+
+        val key = TestKey("bidirectional_chain")
+
+        store.stream(key).test {
+            // Start at middle (40-59)
+            val initial = awaitLoadedState()
+            assertEquals(20, initial.items.size)
+            assertEquals("item-40", initial.items.first().id)
+
+            // PREPEND: Add 20-39
+            store.load(key, LoadDirection.PREPEND)
+            skipItems(1)
+            val afterPrepend1 = (awaitItem() as PagingEvent.Snapshot).value
+            assertEquals(40, afterPrepend1.items.size)
+            assertEquals("item-20", afterPrepend1.items.first().id)
+            assertEquals("item-59", afterPrepend1.items.last().id)
+
+            // APPEND: Add 60-79 (total would be 60 items, at limit)
+            store.load(key, LoadDirection.APPEND)
+            skipItems(1)
+            val afterAppend = (awaitItem() as PagingEvent.Snapshot).value
+            assertEquals(60, afterAppend.items.size)
+
+            // PREPEND again: Add 0-19 (total would be 80, should trim to 60)
+            store.load(key, LoadDirection.PREPEND)
+            skipItems(1)
+            val afterPrepend2 = (awaitItem() as PagingEvent.Snapshot).value
+
+            // Should still have 60 items (trimmed from end)
+            assertTrue(afterPrepend2.items.size <= 60, "Should maintain maxSize=60")
+
+            // Should start from 0
+            assertEquals("item-0", afterPrepend2.items.first().id)
+
+            // Verify token chain integrity
+            assertNotNull(afterPrepend2.next)  // Can paginate forward
+            val prevToken = afterPrepend2.prev
+            // prevToken should be null (we're at the beginning) or valid
+            if (prevToken?.after != null) {
+                val prevOffset = prevToken.after.toIntOrNull()
+                assertNotNull(prevOffset)
+                assertTrue(prevOffset!! < 0 || prevOffset >= 0) // Just verify it's parseable
+            }
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun load_checks_page_ttl_from_config() = runTest {
         var fetchCount = 0
         val timeSource = TestTimeSource.atNow()

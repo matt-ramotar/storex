@@ -12,6 +12,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class PagingStateTest {
@@ -292,7 +293,7 @@ class PagingStateTest {
     // ========== Oversized Single Page Tests ==========
 
     @Test
-    fun single_page_exceeding_maxSize_not_trimmed_on_initial() {
+    fun single_page_exceeding_maxSize_is_trimmed_on_initial() {
         val smallConfig = PagingConfig(pageSize = 20, maxSize = 30)
         val state = PagingState.initial<TestItem>(smallConfig)
 
@@ -305,8 +306,14 @@ class PagingStateTest {
 
         val newState = state.addPage(largePage, LoadDirection.INITIAL)
 
-        // INITIAL loads are not trimmed - this allows initial page to be any size
-        assertEquals(50, newState.items.size)
+        // INITIAL loads are now trimmed to respect maxSize
+        // Should keep first 30 items (trimming from end)
+        assertEquals(30, newState.items.size)
+        assertEquals("item-0", newState.items.first().id)
+        assertEquals("item-29", newState.items.last().id)
+
+        // nextToken should be updated to point to the boundary of retained data
+        assertNotNull(newState.nextToken)
     }
 
     @Test
