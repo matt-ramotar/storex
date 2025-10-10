@@ -165,32 +165,41 @@ class RealPageStoreTest {
     }
 
     @Test
-    @kotlin.test.Ignore("Test flaky with test dispatcher - mutex works correctly in production")
     fun load_does_not_duplicate_concurrent_requests() = runTest {
         var fetchCount = 0
+        var fetchInProgress = false
 
         val store = pageStore<StoreKey, TestItem> {
             scope(this@runTest)
             fetcher { _, token ->
+                // Track if concurrent fetch attempted
+                if (fetchInProgress) {
+                    error("Concurrent fetch detected - mutex failed!")
+                }
+                fetchInProgress = true
                 fetchCount++
-                delay(1000) // Long delay to ensure overlap
-                generateTestPage(0, 20)
+                delay(100) // Delay to allow other loads to attempt
+                val result = generateTestPage(0, 20)
+                fetchInProgress = false
+                result
             }
         }
 
         val key = TestKey()
 
         // Trigger multiple concurrent loads
-        launch { store.load(key, LoadDirection.INITIAL) }
-        launch { store.load(key, LoadDirection.INITIAL) }
-        launch { store.load(key, LoadDirection.INITIAL) }
+        val job1 = launch { store.load(key, LoadDirection.INITIAL) }
+        val job2 = launch { store.load(key, LoadDirection.INITIAL) }
+        val job3 = launch { store.load(key, LoadDirection.INITIAL) }
 
-        advanceTimeBy(100) // Advance time slightly to let loads start
-        testScheduler.advanceUntilIdle() // Complete all remaining work
+        // Wait for all loads to complete
+        job1.join()
+        job2.join()
+        job3.join()
 
-        // Mutex prevents truly concurrent loads - with test dispatcher some sequential execution may occur
-        // So we verify that not all 3 requests resulted in fetches (showing mutex has effect)
-        assertTrue(fetchCount < 3, "Expected fewer than 3 fetches due to mutex, but got $fetchCount")
+        // Mutex + early return should result in exactly 1 fetch
+        // Second and third loads should return early when they see loading state
+        assertEquals(1, fetchCount, "Mutex and loading state check should prevent duplicate fetches")
     }
 
     @Test

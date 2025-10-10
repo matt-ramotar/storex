@@ -56,17 +56,20 @@ internal class RealPageStore<K : StoreKey, V : Any>(
     // Mutex per user key to prevent concurrent loads
     private val loadMutexes = mutableMapOf<K, Mutex>()
 
+    // Mutex for protecting keyStates and loadMutexes map access
+    private val stateMutex = Mutex()
+
     override fun stream(
         key: K,
         initial: PageToken?,
         config: PagingConfig?,
         freshness: Freshness
-    ): Flow<PagingEvent<V>> {
-        // Get or create tracked state synchronously
-        val (stateFlow, shouldTriggerLoad) = synchronized(this) {
+    ): Flow<PagingEvent<V>> = kotlinx.coroutines.flow.flow {
+        // Get or create tracked state
+        val (stateFlow, shouldTriggerLoad) = stateMutex.withLock {
             val keyState = keyStates.getOrPut(key) {
                 // Use per-operation config if provided, otherwise use instance config
-                val effectiveConfig = config ?: this.config
+                val effectiveConfig = config ?: this@RealPageStore.config
                 val flow = MutableStateFlow(PagingState.initial<V>(effectiveConfig))
                 KeyState(flow, effectiveConfig, initialLoadTriggered = false)
             }
@@ -87,8 +90,11 @@ internal class RealPageStore<K : StoreKey, V : Any>(
             }
         }
 
-        return stateFlow.map { state ->
+        // Emit snapshots from the state flow
+        stateFlow.map { state ->
             PagingEvent.Snapshot(state.toSnapshot())
+        }.collect { event ->
+            emit(event)
         }
     }
 
@@ -99,7 +105,7 @@ internal class RealPageStore<K : StoreKey, V : Any>(
         freshness: Freshness
     ) {
         // Get or create tracked state
-        val stateFlow = synchronized(this) {
+        val stateFlow = stateMutex.withLock {
             keyStates.getOrPut(key) {
                 // If load() is called before stream(), create state with instance config
                 val flow = MutableStateFlow(PagingState.initial<V>(config))
@@ -107,7 +113,7 @@ internal class RealPageStore<K : StoreKey, V : Any>(
             }.stateFlow
         }
 
-        val mutex = synchronized(this) {
+        val mutex = stateMutex.withLock {
             loadMutexes.getOrPut(key) { Mutex() }
         }
 
@@ -257,8 +263,8 @@ internal class RealPageStore<K : StoreKey, V : Any>(
     /**
      * Get current state for a key (for testing).
      */
-    internal fun getState(key: K): StateFlow<PagingState<V>>? {
-        return synchronized(this) {
+    internal suspend fun getState(key: K): StateFlow<PagingState<V>>? {
+        return stateMutex.withLock {
             keyStates[key]?.stateFlow
         }
     }
