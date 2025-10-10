@@ -1,0 +1,267 @@
+package dev.mattramotar.storex.paging.internal
+
+import dev.mattramotar.storex.paging.LoadDirection
+import dev.mattramotar.storex.paging.LoadState
+import dev.mattramotar.storex.paging.Page
+import dev.mattramotar.storex.paging.PageToken
+import dev.mattramotar.storex.paging.PagingConfig
+import dev.mattramotar.storex.paging.PagingSnapshot
+import kotlinx.datetime.Instant
+
+/**
+ * Internal state machine for managing paged data.
+ *
+ * Tracks:
+ * - All loaded pages in order
+ * - Load states for each direction (INITIAL, APPEND, PREPEND)
+ * - Current page tokens (next, prev)
+ * - Fully loaded status
+ * - Last load timestamp for freshness validation
+ *
+ * Thread-safe through immutability - all mutations return new instances.
+ */
+internal data class PagingState<V>(
+    val pages: List<Page<V>> = emptyList(),
+    val loadStates: Map<LoadDirection, LoadState> = mapOf(
+        LoadDirection.INITIAL to LoadState.NotLoading,
+        LoadDirection.APPEND to LoadState.NotLoading,
+        LoadDirection.PREPEND to LoadState.NotLoading
+    ),
+    val nextToken: PageToken? = null,
+    val prevToken: PageToken? = null,
+    val fullyLoaded: Boolean = false,
+    val config: PagingConfig,
+    val lastLoadTime: Instant? = null,
+    // Track whether we've reached actual data boundaries (from API, not trimming)
+    private val reachedEndForward: Boolean = false,
+    private val reachedEndBackward: Boolean = false
+) {
+
+    /**
+     * Get all items from all loaded pages.
+     */
+    val items: List<V>
+        get() = pages.flatMap { it.items }
+
+    /**
+     * Check if currently loading in any direction.
+     */
+    val isLoading: Boolean
+        get() = loadStates.values.any { it is LoadState.Loading }
+
+    /**
+     * Create a snapshot for external consumption.
+     */
+    fun toSnapshot(): PagingSnapshot<V> = PagingSnapshot(
+        items = items,
+        next = nextToken,
+        prev = prevToken,
+        sourceStates = loadStates,
+        fullyLoaded = fullyLoaded
+    )
+
+    /**
+     * Update load state for a specific direction.
+     */
+    fun withLoadState(direction: LoadDirection, state: LoadState): PagingState<V> {
+        return copy(
+            loadStates = loadStates + (direction to state)
+        )
+    }
+
+    /**
+     * Add a page in the specified direction.
+     *
+     * @param page The page to add
+     * @param direction The direction (INITIAL, APPEND, PREPEND)
+     * @param timestamp The time this page was loaded (for freshness validation)
+     */
+    fun addPage(page: Page<V>, direction: LoadDirection, timestamp: Instant? = null): PagingState<V> {
+        val newPages = when (direction) {
+            LoadDirection.INITIAL -> {
+                // Initial load replaces everything
+                listOf(page)
+            }
+            LoadDirection.APPEND -> {
+                // Add to end
+                pages + page
+            }
+            LoadDirection.PREPEND -> {
+                // Add to beginning
+                listOf(page) + pages
+            }
+        }
+
+        // Apply max size constraint by dropping oldest pages
+        val trimmedPages = if (config.maxSize > 0) {
+            val totalItems = newPages.sumOf { it.items.size }
+            if (totalItems > config.maxSize) {
+                // Drop from the direction opposite to load direction
+                when (direction) {
+                    LoadDirection.APPEND -> dropOldestFromStart(newPages, config.maxSize)
+                    LoadDirection.PREPEND -> dropOldestFromEnd(newPages, config.maxSize)
+                    LoadDirection.INITIAL -> dropOldestFromEnd(newPages, config.maxSize) // Trim from end, keep beginning
+                }
+            } else {
+                newPages
+            }
+        } else {
+            newPages
+        }
+
+        // Update tokens based on direction and trimming results
+        // After trimming, tokens must point to the actual boundaries of retained data
+        val newPagesItemCount = newPages.sumOf { it.items.size }
+        val trimmedPagesItemCount = trimmedPages.sumOf { it.items.size }
+        val wasTrimmed = trimmedPages.size < newPages.size || trimmedPagesItemCount < newPagesItemCount
+
+        val newNextToken = when (direction) {
+            LoadDirection.INITIAL, LoadDirection.APPEND -> {
+                // For INITIAL and APPEND, nextToken comes from the last page
+                trimmedPages.lastOrNull()?.next
+            }
+            LoadDirection.PREPEND -> {
+                // For PREPEND, update nextToken if trimming dropped pages from the end
+                if (wasTrimmed) {
+                    trimmedPages.lastOrNull()?.next
+                } else {
+                    nextToken  // Preserve - still points to end of data
+                }
+            }
+        }
+
+        val newPrevToken = when (direction) {
+            LoadDirection.INITIAL, LoadDirection.PREPEND -> {
+                // For INITIAL and PREPEND, prevToken comes from the first page
+                trimmedPages.firstOrNull()?.prev
+            }
+            LoadDirection.APPEND -> {
+                // For APPEND, update prevToken if trimming dropped pages from the start
+                if (wasTrimmed) {
+                    trimmedPages.firstOrNull()?.prev
+                } else {
+                    prevToken  // Preserve - still points to start of data
+                }
+            }
+        }
+
+        // Track if we've reached actual data boundaries (from API response, not trimming)
+        val newReachedEndForward = when (direction) {
+            LoadDirection.INITIAL, LoadDirection.APPEND -> page.next == null
+            LoadDirection.PREPEND -> reachedEndForward // Preserve existing state
+        }
+
+        val newReachedEndBackward = when (direction) {
+            LoadDirection.INITIAL, LoadDirection.PREPEND -> page.prev == null
+            LoadDirection.APPEND -> reachedEndBackward // Preserve existing state
+        }
+
+        return copy(
+            pages = trimmedPages,
+            nextToken = newNextToken,
+            prevToken = newPrevToken,
+            fullyLoaded = newReachedEndForward && newReachedEndBackward,
+            loadStates = loadStates + (direction to LoadState.NotLoading),
+            lastLoadTime = timestamp ?: lastLoadTime,  // Update timestamp if provided, otherwise preserve
+            reachedEndForward = newReachedEndForward,
+            reachedEndBackward = newReachedEndBackward
+        )
+    }
+
+    /**
+     * Handle error for a specific direction.
+     */
+    fun withError(direction: LoadDirection, error: Throwable, canServeStale: Boolean): PagingState<V> {
+        return copy(
+            loadStates = loadStates + (direction to LoadState.Error(error, canServeStale))
+        )
+    }
+
+    /**
+     * Reset to initial state (for refresh).
+     */
+    fun reset(): PagingState<V> {
+        return copy(
+            pages = emptyList(),
+            loadStates = mapOf(
+                LoadDirection.INITIAL to LoadState.NotLoading,
+                LoadDirection.APPEND to LoadState.NotLoading,
+                LoadDirection.PREPEND to LoadState.NotLoading
+            ),
+            nextToken = null,
+            prevToken = null,
+            fullyLoaded = false
+        )
+    }
+
+    private fun dropOldestFromStart(pages: List<Page<V>>, maxSize: Int): List<Page<V>> {
+        var totalItems = 0
+        val keptPages = mutableListOf<Page<V>>()
+
+        // Keep pages from the end until we hit maxSize
+        for (page in pages.reversed()) {
+            val pageSize = page.items.size
+            if (totalItems + pageSize <= maxSize) {
+                keptPages.add(0, page)
+                totalItems += pageSize
+            } else {
+                // Partially include this page if we have room
+                val remainingSpace = maxSize - totalItems
+                if (remainingSpace > 0) {
+                    val trimmedItems = page.items.takeLast(remainingSpace)
+                    keptPages.add(0, page.copy(items = trimmedItems))
+                }
+                break
+            }
+        }
+
+        // Handle edge case: single page exceeds maxSize
+        if (keptPages.isEmpty() && pages.isNotEmpty()) {
+            val lastPage = pages.last()
+            val trimmedItems = lastPage.items.takeLast(maxSize)
+            return listOf(lastPage.copy(items = trimmedItems))
+        }
+
+        return keptPages
+    }
+
+    private fun dropOldestFromEnd(pages: List<Page<V>>, maxSize: Int): List<Page<V>> {
+        var totalItems = 0
+        val keptPages = mutableListOf<Page<V>>()
+
+        // Keep pages from the start until we hit maxSize
+        for (page in pages) {
+            val pageSize = page.items.size
+            if (totalItems + pageSize <= maxSize) {
+                keptPages.add(page)
+                totalItems += pageSize
+            } else {
+                // Partially include this page if we have room
+                val remainingSpace = maxSize - totalItems
+                if (remainingSpace > 0) {
+                    val trimmedItems = page.items.take(remainingSpace)
+                    keptPages.add(page.copy(items = trimmedItems))
+                }
+                break
+            }
+        }
+
+        // Handle edge case: single page exceeds maxSize
+        if (keptPages.isEmpty() && pages.isNotEmpty()) {
+            val firstPage = pages.first()
+            val trimmedItems = firstPage.items.take(maxSize)
+            return listOf(firstPage.copy(items = trimmedItems))
+        }
+
+        return keptPages
+    }
+
+    companion object {
+        /**
+         * Create initial empty state.
+         */
+        fun <V> initial(config: PagingConfig): PagingState<V> {
+            return PagingState(config = config)
+        }
+    }
+}

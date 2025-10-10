@@ -17,7 +17,7 @@ interface PageStore<K : StoreKey, V> {
     fun stream(
         key: K,
         initial: PageToken? = null,
-        config: PagingConfig = PagingConfig(pageSize = 30),
+        config: PagingConfig? = null,
         freshness: Freshness = Freshness.CachedOrFetch
     ): Flow<PagingEvent<V>>
 
