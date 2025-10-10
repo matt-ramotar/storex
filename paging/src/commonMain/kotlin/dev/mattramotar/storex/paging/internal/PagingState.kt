@@ -31,7 +31,10 @@ internal data class PagingState<V>(
     val prevToken: PageToken? = null,
     val fullyLoaded: Boolean = false,
     val config: PagingConfig,
-    val lastLoadTime: Instant? = null
+    val lastLoadTime: Instant? = null,
+    // Track whether we've reached actual data boundaries (from API, not trimming)
+    private val reachedEndForward: Boolean = false,
+    private val reachedEndBackward: Boolean = false
 ) {
 
     /**
@@ -108,8 +111,9 @@ internal data class PagingState<V>(
 
         // Update tokens based on direction and trimming results
         // After trimming, tokens must point to the actual boundaries of retained data
-        val wasTrimmed = trimmedPages.size < newPages.size ||
-                        trimmedPages.sumOf { it.items.size } < newPages.sumOf { it.items.size }
+        val newPagesItemCount = newPages.sumOf { it.items.size }
+        val trimmedPagesItemCount = trimmedPages.sumOf { it.items.size }
+        val wasTrimmed = trimmedPages.size < newPages.size || trimmedPagesItemCount < newPagesItemCount
 
         val newNextToken = when (direction) {
             LoadDirection.INITIAL, LoadDirection.APPEND -> {
@@ -141,13 +145,26 @@ internal data class PagingState<V>(
             }
         }
 
+        // Track if we've reached actual data boundaries (from API response, not trimming)
+        val newReachedEndForward = when (direction) {
+            LoadDirection.INITIAL, LoadDirection.APPEND -> page.next == null
+            LoadDirection.PREPEND -> reachedEndForward // Preserve existing state
+        }
+
+        val newReachedEndBackward = when (direction) {
+            LoadDirection.INITIAL, LoadDirection.PREPEND -> page.prev == null
+            LoadDirection.APPEND -> reachedEndBackward // Preserve existing state
+        }
+
         return copy(
             pages = trimmedPages,
             nextToken = newNextToken,
             prevToken = newPrevToken,
-            fullyLoaded = newNextToken == null && newPrevToken == null,
+            fullyLoaded = newReachedEndForward && newReachedEndBackward,
             loadStates = loadStates + (direction to LoadState.NotLoading),
-            lastLoadTime = timestamp ?: lastLoadTime  // Update timestamp if provided, otherwise preserve
+            lastLoadTime = timestamp ?: lastLoadTime,  // Update timestamp if provided, otherwise preserve
+            reachedEndForward = newReachedEndForward,
+            reachedEndBackward = newReachedEndBackward
         )
     }
 

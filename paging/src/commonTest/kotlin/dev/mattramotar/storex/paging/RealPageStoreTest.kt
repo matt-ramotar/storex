@@ -24,7 +24,11 @@ class RealPageStoreTest {
     // Helper to wait for non-empty state
     private suspend fun app.cash.turbine.ReceiveTurbine<PagingEvent<TestItem>>.awaitLoadedState(): PagingSnapshot<TestItem> {
         var snapshot = (awaitItem() as PagingEvent.Snapshot).value
+        var attempts = 0
         while (snapshot.items.isEmpty()) {
+            if (attempts++ >= 10) {
+                error("awaitLoadedState() timeout: items never loaded after $attempts attempts")
+            }
             snapshot = (awaitItem() as PagingEvent.Snapshot).value
         }
         return snapshot
@@ -178,10 +182,12 @@ class RealPageStoreTest {
                 }
                 fetchInProgress = true
                 fetchCount++
-                delay(100) // Delay to allow other loads to attempt
-                val result = generateTestPage(0, 20)
-                fetchInProgress = false
-                result
+                try {
+                    delay(100) // Delay to allow other loads to attempt
+                    generateTestPage(0, 20)
+                } finally {
+                    fetchInProgress = false
+                }
             }
         }
 

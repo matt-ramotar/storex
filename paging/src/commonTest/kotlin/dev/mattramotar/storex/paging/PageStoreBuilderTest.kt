@@ -100,6 +100,10 @@ class PageStoreBuilderTest {
         }
 
         assertNotNull(store)
-        // Fetcher will be called when stream is collected
+        // Note: This test verifies the builder accepts a fetcher lambda with key and token parameters
+        // The captured variables remain null until the fetcher is invoked by stream() or load()
+        // See RealPageStoreTest for integration tests that verify fetcher behavior
+        assertEquals(null, capturedKey, "Fetcher not yet invoked during builder phase")
+        assertEquals(null, capturedToken, "Fetcher not yet invoked during builder phase")
     }
 }

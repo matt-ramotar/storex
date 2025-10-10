@@ -56,6 +56,9 @@ internal class RealPageStore<K : StoreKey, V : Any>(
     // Mutex per user key to prevent concurrent loads
     private val loadMutexes = mutableMapOf<K, Mutex>()
 
+    // Track background refresh jobs per key to prevent duplicate refreshes
+    private val backgroundRefreshJobs = mutableMapOf<K, kotlinx.coroutines.Job>()
+
     // Mutex for protecting keyStates and loadMutexes map access
     private val stateMutex = Mutex()
 
@@ -68,7 +71,11 @@ internal class RealPageStore<K : StoreKey, V : Any>(
         // Get or create tracked state
         val (stateFlow, shouldTriggerLoad) = stateMutex.withLock {
             val keyState = keyStates.getOrPut(key) {
-                // Use per-operation config if provided, otherwise use instance config
+                // Config behavior: "First caller wins"
+                // - If this is the first stream() call for this key, use per-operation config (if provided) or instance config
+                // - Once created, the config is persisted for this key and cannot be changed
+                // - Subsequent stream() calls ignore the config parameter and use the stored config
+                // - This ensures consistency: pagination state (maxSize, trimming) stays consistent throughout the key's lifetime
                 val effectiveConfig = config ?: this@RealPageStore.config
                 val flow = MutableStateFlow(PagingState.initial<V>(effectiveConfig))
                 KeyState(flow, effectiveConfig, initialLoadTriggered = false)
@@ -117,10 +124,13 @@ internal class RealPageStore<K : StoreKey, V : Any>(
             loadMutexes.getOrPut(key) { Mutex() }
         }
 
+        // Mutex ensures atomic check-and-set for load state
+        // Prevents race conditions between concurrent load() calls for same key
         mutex.withLock {
             val currentState = stateFlow.value
 
             // Don't load if already loading in this direction
+            // This check is thread-safe because it's inside the mutex
             if (currentState.loadStates[direction] is LoadState.Loading) {
                 return
             }
@@ -151,14 +161,20 @@ internal class RealPageStore<K : StoreKey, V : Any>(
                         // Serve cached if available, trigger background refresh if stale
                         if (currentState.pages.isNotEmpty()) {
                             if (isStale(currentState, currentState.config.pageTtl)) {
-                                // Data is stale but available - trigger background refresh
-                                scope.launch {
-                                    // Use MustBeFresh to force refresh without recursion
-                                    try {
-                                        load(key, direction, from, Freshness.MustBeFresh)
-                                    } catch (e: Exception) {
-                                        // Silently fail background refresh - caller already has cached data
+                                // Data is stale but available - trigger background refresh if not already in progress
+                                val existingJob = backgroundRefreshJobs[key]
+                                if (existingJob == null || !existingJob.isActive) {
+                                    val refreshJob = scope.launch {
+                                        try {
+                                            load(key, direction, from, Freshness.MustBeFresh)
+                                        } catch (e: Exception) {
+                                            // Silently fail background refresh - caller already has cached data
+                                        } finally {
+                                            // Clean up completed job
+                                            backgroundRefreshJobs.remove(key)
+                                        }
                                     }
+                                    backgroundRefreshJobs[key] = refreshJob
                                 }
                             }
                             // Serve cached data immediately (fresh or stale)
@@ -230,7 +246,10 @@ internal class RealPageStore<K : StoreKey, V : Any>(
 
             } catch (e: Exception) {
                 // Handle StaleIfError freshness - serve cached data if available
-                if (freshness is Freshness.StaleIfError && loadingState.pages.isNotEmpty()) {
+                // Use currentState.pages to check pre-fetch state (not loadingState)
+                val hasStaleData = currentState.pages.isNotEmpty()
+
+                if (freshness is Freshness.StaleIfError && hasStaleData) {
                     // Keep existing pages, just update load state to error
                     val errorState = loadingState.withError(
                         direction = direction,
@@ -243,7 +262,7 @@ internal class RealPageStore<K : StoreKey, V : Any>(
                     val errorState = loadingState.withError(
                         direction = direction,
                         error = e,
-                        canServeStale = loadingState.pages.isNotEmpty()
+                        canServeStale = hasStaleData
                     )
                     stateFlow.value = errorState
                 }

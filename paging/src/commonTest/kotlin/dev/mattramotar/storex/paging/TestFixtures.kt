@@ -70,8 +70,9 @@ fun createTestFetcher(
         kotlinx.coroutines.delay(delay)
     }
 
-    val offsetStr = token?.after
-    val offset = offsetStr?.toIntOrNull() ?: 0
+    val offset = token?.after?.let { offsetStr ->
+        offsetStr.toIntOrNull() ?: error("Invalid token offset: $offsetStr")
+    } ?: 0
     val remaining = totalItems - offset
     val actualPageSize = minOf(pageSize, remaining)
 
@@ -106,7 +107,7 @@ class TestNetworkException(message: String) : Exception(message)
  * Mutable time source for tests.
  */
 class TestTimeSource(
-    private var currentTime: Instant = Instant.fromEpochMilliseconds(1700000000000)
+    private var currentTime: Instant = DEFAULT_TEST_TIME
 ) : TimeSource {
     override fun now(): Instant = currentTime
 
@@ -115,6 +116,9 @@ class TestTimeSource(
     }
 
     companion object {
+        // Default test timestamp: November 14, 2023 22:13:20 UTC
+        private val DEFAULT_TEST_TIME = Instant.fromEpochMilliseconds(1700000000000)
+
         fun atNow(): TestTimeSource = TestTimeSource()
     }
 }

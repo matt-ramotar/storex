@@ -109,15 +109,23 @@ class PagingConfigBuilder {
     var pageTtl: kotlin.time.Duration = 5.minutes
     var retryBackoffBase: kotlin.time.Duration = 1.seconds
 
-    fun build(): PagingConfig = PagingConfig(
-        pageSize = pageSize,
-        prefetchDistance = prefetchDistance ?: pageSize,
-        maxSize = maxSize ?: (pageSize * 10),
-        placeholders = placeholders,
-        jumpThreshold = jumpThreshold,
-        pageTtl = pageTtl,
-        retryBackoffBase = retryBackoffBase
-    )
+    fun build(): PagingConfig {
+        val resolvedMaxSize = maxSize ?: (pageSize * 10)
+
+        // Validate maxSize
+        require(resolvedMaxSize >= 0) { "maxSize must be non-negative, got: $resolvedMaxSize" }
+        // Note: maxSize < pageSize is allowed - the page will be trimmed immediately after fetching
+
+        return PagingConfig(
+            pageSize = pageSize,
+            prefetchDistance = prefetchDistance ?: pageSize,
+            maxSize = resolvedMaxSize.coerceAtMost(10_000),
+            placeholders = placeholders,
+            jumpThreshold = jumpThreshold,
+            pageTtl = pageTtl,
+            retryBackoffBase = retryBackoffBase
+        )
+    }
 }
 
 /**

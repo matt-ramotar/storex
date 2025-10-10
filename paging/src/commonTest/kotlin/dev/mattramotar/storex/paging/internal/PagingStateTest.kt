@@ -298,11 +298,7 @@ class PagingStateTest {
         val state = PagingState.initial<TestItem>(smallConfig)
 
         // Add a single page with 50 items (exceeds maxSize of 30)
-        val largePage = Page(
-            items = (0 until 50).map { TestItem("item-$it", "Value $it") },
-            next = OffsetToken(50),
-            prev = null
-        )
+        val largePage = generateTestPage(0, 50, hasNext = true, hasPrev = false)
 
         val newState = state.addPage(largePage, LoadDirection.INITIAL)
 
@@ -326,11 +322,7 @@ class PagingStateTest {
         assertEquals(10, state.items.size)
 
         // Append a very large page (40 items)
-        val largePage = Page(
-            items = (10 until 50).map { TestItem("item-$it", "Value $it") },
-            next = OffsetToken(50),
-            prev = null
-        )
+        val largePage = generateTestPage(10, 40, hasNext = true, hasPrev = true)
 
         val newState = state.addPage(largePage, LoadDirection.APPEND)
 
@@ -350,11 +342,7 @@ class PagingStateTest {
         assertEquals(10, state.items.size)
 
         // Prepend a very large page (40 items)
-        val largePage = Page(
-            items = (60 until 100).map { TestItem("item-$it", "Value $it") },
-            next = OffsetToken(100),
-            prev = null
-        )
+        val largePage = generateTestPage(60, 40, hasNext = true, hasPrev = true)
 
         val newState = state.addPage(largePage, LoadDirection.PREPEND)
 
