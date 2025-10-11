@@ -14,6 +14,7 @@ import dev.mattramotar.storex.core.utils.TEST_KEY_1
 import dev.mattramotar.storex.core.utils.TEST_KEY_2
 import dev.mattramotar.storex.core.utils.TEST_USER_1
 import dev.mattramotar.storex.core.utils.TEST_USER_2
+import dev.mattramotar.storex.core.internal.StoreException
 import dev.mattramotar.storex.core.utils.TestException
 import dev.mattramotar.storex.core.utils.TestNetworkException
 import dev.mattramotar.storex.core.utils.TestUser
@@ -27,6 +28,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -112,7 +114,7 @@ class RealReadStoreTest {
 
             val error = awaitItem()
             assertIs<StoreResult.Error>(error)
-            assertTrue(error.servedStale)
+            assertFalse(error.servedStale)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -227,6 +229,22 @@ class RealReadStoreTest {
         } catch (e: Exception) {
             assertNotNull(e)
         }
+    }
+
+    @Test
+    fun get_cachedOrFetch_givenFetchErrorWithoutCache_thenPropagatesStoreException() = runTest {
+        // Given
+        val fetcher = FakeFetcher<StoreKey, TestUser>()
+        val networkError = TestNetworkException("Network error")
+        fetcher.respondWithError(TEST_KEY_1, networkError)
+        val store = createStore(scope = backgroundScope, fetcher = fetcher)
+
+        // When/Then
+        val thrown = assertFailsWith<StoreException> {
+            store.get(TEST_KEY_1, Freshness.CachedOrFetch)
+        }
+        assertIs<StoreException.Unknown>(thrown)
+        assertEquals("Network error", thrown.cause?.message)
     }
 
     @Test
