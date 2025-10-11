@@ -181,6 +181,14 @@ private class InMemorySot<K : StoreKey, V : Any> : SourceOfTruth<K, V, V> {
 }
 
 /**
+ * Holds a SharedFlow and its initialization Mutex together to ensure thread-safe creation.
+ */
+private data class FlowState<V>(
+    val flow: MutableSharedFlow<V?>,
+    val initMutex: Mutex
+)
+
+/**
  * Simple source of truth backed by user-provided functions
  *
  * Uses hot flows (MutableSharedFlow) to emit updates when data changes.
@@ -192,42 +200,43 @@ private class SimpleSot<K : StoreKey, V : Any>(
     private val deleteFn: (suspend (K) -> Unit)?,
     private val transactional: suspend (suspend () -> Unit) -> Unit
 ) : SourceOfTruth<K, V, V> {
-    private val flows = mutableMapOf<K, MutableSharedFlow<V?>>()
-    private val initMutexes = mutableMapOf<K, Mutex>()
+    private val flowStates = mutableMapOf<K, FlowState<V>>()
 
     override fun reader(key: K): Flow<V?> {
-        val sharedFlow = flows.getOrPut(key) {
-            MutableSharedFlow<V?>(
-                replay = 1,
-                onBufferOverflow = BufferOverflow.DROP_OLDEST
+        val state = flowStates.getOrPut(key) {
+            FlowState(
+                flow = MutableSharedFlow(
+                    replay = 1,
+                    onBufferOverflow = BufferOverflow.DROP_OLDEST
+                ),
+                initMutex = Mutex()
             )
         }
-        val mutex = initMutexes.getOrPut(key) { Mutex() }
 
         // Return a flow that emits from shared flow (initialized if needed)
         return flow {
             // Atomically initialize shared flow if needed
-            mutex.withLock {
-                if (sharedFlow.replayCache.isEmpty()) {
+            state.initMutex.withLock {
+                if (state.flow.replayCache.isEmpty()) {
                     val initial = readFn(key)
-                    sharedFlow.emit(initial)
+                    state.flow.emit(initial)
                 }
             }
             // Emit all values from shared flow (replay cache + future updates)
-            emitAll(sharedFlow)
+            emitAll(state.flow)
         }
     }
 
     override suspend fun write(key: K, value: V) {
         writeFn(key, value)
         // Re-read and emit to notify active collectors
-        flows[key]?.emit(readFn(key))
+        flowStates[key]?.flow?.emit(readFn(key))
     }
 
     override suspend fun delete(key: K) {
         deleteFn?.invoke(key)
         // Emit null to notify active collectors
-        flows[key]?.emit(null)
+        flowStates[key]?.flow?.emit(null)
     }
 
     override suspend fun withTransaction(block: suspend () -> Unit) {
@@ -246,14 +255,14 @@ private class SimpleSot<K : StoreKey, V : Any>(
             val reconciled = reconcile(oldValue, readFn(new))
             writeFn(new, reconciled)
             // Emit updated value to new key's flow
-            flows[new]?.emit(reconciled)
+            flowStates[new]?.flow?.emit(reconciled)
         }
     }
 
     override suspend fun clearCache(key: K) {
-        // Remove SharedFlow to force fresh read on next access
+        // Remove FlowState (both SharedFlow and Mutex) to force fresh read on next access
         // Note: This does NOT delete persisted data, only clears the flow cache
-        flows.remove(key)
+        flowStates.remove(key)
     }
 }
 
