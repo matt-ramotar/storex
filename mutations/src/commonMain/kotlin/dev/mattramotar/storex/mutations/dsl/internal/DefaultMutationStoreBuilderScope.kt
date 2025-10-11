@@ -136,7 +136,6 @@ internal class DefaultMutationStoreBuilderScope<K : StoreKey, V : Any, P, D> : M
         val config = freshnessConfig ?: FreshnessConfig()
         return DefaultFreshnessValidator(
             ttl = config.ttl,
-            staleIfError = config.staleIfError
         )
     }
 
