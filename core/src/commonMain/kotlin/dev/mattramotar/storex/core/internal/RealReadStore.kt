@@ -79,6 +79,7 @@ class RealReadStore<
         } catch (e: Exception) {
             null
         }
+        val hadCachedData = initialDb != null
 
         // 2. Determine if we need to fetch
         val dbMeta = initialDb?.let { converter.dbMetaFromProjection(it) }
@@ -106,7 +107,7 @@ class RealReadStore<
                     } catch (e: kotlinx.coroutines.CancellationException) {
                         throw e
                     } catch (t: Throwable) {
-                        errorEvents.send(StoreResult.Error(t, servedStale = true))
+                        errorEvents.send(StoreResult.Error(t, servedStale = hadCachedData))
                     }
                 }
             }
