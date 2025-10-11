@@ -358,10 +358,9 @@ class FreshnessValidatorTest {
 
     @Test
     fun plan_staleIfError_withCustomTTL_thenUsesStaleWindow() = runTest {
-        // Given - staleIfError window is 10 minutes
+        // Given
         val validator = DefaultFreshnessValidator<dev.mattramotar.storex.core.StoreKey>(
-            ttl = 5.minutes,
-            staleIfError = 10.minutes
+            ttl = 5.minutes
         )
         val now = Instant.fromEpochSeconds(1000)
         val cachedAt = now - 8.minutes // 8 minutes old (within stale window)

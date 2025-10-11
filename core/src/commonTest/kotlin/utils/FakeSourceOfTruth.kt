@@ -87,7 +87,13 @@ class FakeSourceOfTruth<K : StoreKey, V : Any> : SourceOfTruth<K, V, V> {
         } else {
             data.remove(key)
         }
-        flows[key]?.emit(value)
+
+        flows.getOrPut(key) {
+            MutableSharedFlow(
+                replay = 1,
+                onBufferOverflow = BufferOverflow.DROP_OLDEST
+            )
+        }.emit(value)
     }
 
     /**

@@ -111,8 +111,7 @@ internal class DefaultStoreBuilderScope<K : StoreKey, V : Any> : StoreBuilderSco
     private fun createFreshnessValidator(): FreshnessValidator<K, DefaultDbMeta> {
         val config = freshnessConfig ?: FreshnessConfig()
         return DefaultFreshnessValidator(
-            ttl = config.ttl,
-            staleIfError = config.staleIfError
+            ttl = config.ttl
         )
     }
 

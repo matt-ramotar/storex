@@ -4,7 +4,6 @@ import dev.mattramotar.storex.core.Freshness
 import dev.mattramotar.storex.core.StoreKey
 import kotlinx.datetime.Instant
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.minutes
 
 /**
  * Inputs to decide whether a fetch is necessary and whether it can be conditional.
@@ -66,7 +65,6 @@ data class DefaultDbMeta(
  */
 class DefaultFreshnessValidator<K : StoreKey>(
     private val ttl: Duration,
-    private val staleIfError: Duration? = 10.minutes
 ) : FreshnessValidator<K, DefaultDbMeta> {
 
     override fun plan(ctx: FreshnessContext<K, DefaultDbMeta>): FetchPlan {
@@ -83,11 +81,13 @@ class DefaultFreshnessValidator<K : StoreKey>(
                     else -> conditional(ctx.sotMeta.etag, ctx.sotMeta.updatedAt)
                 }
             }
+
             is Freshness.MinAge -> {
                 val maxAge = ctx.freshness.notOlderThan
                 if (age == null || age > maxAge) conditional(ctx.sotMeta?.etag, ctx.sotMeta?.updatedAt)
                 else FetchPlan.Skip
             }
+
             Freshness.MustBeFresh -> unconditional()
             Freshness.StaleIfError -> {
                 // Prefer conditional to save bytes; if network fails upstream, Store serves stale.

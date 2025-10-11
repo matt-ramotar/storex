@@ -1,11 +1,10 @@
 package dev.mattramotar.storex.core.utils
 
 import dev.mattramotar.storex.core.StoreKey
-import dev.mattramotar.storex.core.internal.Fetcher
 import dev.mattramotar.storex.core.internal.FetchRequest
+import dev.mattramotar.storex.core.internal.Fetcher
 import dev.mattramotar.storex.core.internal.FetcherResult
 import dev.mattramotar.storex.core.internal.StoreException
-import dev.mattramotar.storex.core.utils.TestException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.datetime.Instant
@@ -64,23 +63,6 @@ class FakeFetcher<K : StoreKey, N : Any> : Fetcher<K, N> {
      */
     fun respondWithError(key: K, error: Throwable) {
         responses[key] = FetcherResult.Error(StoreException.from(error))
-    }
-
-    /**
-     * Configure a success response for all keys (default).
-     */
-    fun respondWithSuccess(body: N, etag: String? = null) {
-        // No-op helper - configure responses per key instead
-    }
-
-    /**
-     * Clear all responses and recordings.
-     */
-    fun clear() {
-        responses.clear()
-        fetchedKeys.clear()
-        fetchRequests.clear()
-        simulateDelay = 0
     }
 
     /**

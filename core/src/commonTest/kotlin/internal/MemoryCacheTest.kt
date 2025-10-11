@@ -165,27 +165,52 @@ class MemoryCacheTest {
     }
 
     @Test
-    fun get_whenEntryExpired_thenRemovesFromCache() = runTest {
-        // Given
+    fun get_whenEntryExpired_thenActuallyRemovesFromCache() = runTest {
+        // Given - single cache with maxSize=1
         val ttl = 100.milliseconds
         val timeSource = dev.mattramotar.storex.core.utils.TestTimeSource.atNow()
-        val cache = createCache(ttl = ttl, timeSource = timeSource)
+        val cache = createCache(maxSize = 1, ttl = ttl, timeSource = timeSource)
         cache.put(TEST_KEY_1, TEST_USER_1)
 
-        // When - advance time and get (triggers removal)
+        // When - advance time past TTL and access (triggers removal)
         timeSource.advance(ttl + 1.milliseconds)
-        cache.get(TEST_KEY_1)
+        val expiredResult = cache.get(TEST_KEY_1)
 
-        // Add new entry (should not trigger eviction since expired entry was removed)
-        val timeSource2 = dev.mattramotar.storex.core.utils.TestTimeSource.atNow()
-        val cache2Items = createCache(maxSize = 1, ttl = ttl, timeSource = timeSource2)
-        cache2Items.put(TEST_KEY_1, TEST_USER_1)
-        timeSource2.advance(ttl + 1.milliseconds)
-        cache2Items.get(TEST_KEY_1) // Remove expired
-        val putResult = cache2Items.put(TEST_KEY_2, TEST_USER_2)
+        // Then - expired entry should return null and be removed
+        assertNull(expiredResult, "Expired entry should return null")
 
-        // Then
-        assertTrue(putResult, "Should be able to add new entry after expired one removed")
+        // When - add new entry
+        val putResult = cache.put(TEST_KEY_2, TEST_USER_2)
+
+        // Then - should succeed because expired entry was physically removed
+        assertTrue(putResult, "New entry should be added successfully")
+        assertNotNull(cache.get(TEST_KEY_2), "New entry should be retrievable")
+    }
+
+    @Test
+    fun put_afterExpiredEntryRemoved_thenDoesNotCountTowardCapacity() = runTest {
+        // Given - cache with maxSize=2 and one expired entry
+        val ttl = 100.milliseconds
+        val timeSource = dev.mattramotar.storex.core.utils.TestTimeSource.atNow()
+        val cache = createCache(maxSize = 2, ttl = ttl, timeSource = timeSource)
+        cache.put(TEST_KEY_1, TEST_USER_1)
+
+        // When - advance time past TTL, add a fresh entry, then trigger removal of expired
+        timeSource.advance(ttl + 1.milliseconds)
+        cache.put(TEST_KEY_2, TEST_USER_2)
+        cache.get(TEST_KEY_1) // triggers removal of expired TEST_KEY_1
+
+        // Add third entry (should fit because expired entry was removed)
+        val key3 = dev.mattramotar.storex.core.ByIdKey(
+            namespace = TEST_KEY_1.namespace,
+            entity = dev.mattramotar.storex.core.EntityId("User", "user-3")
+        )
+        val putResult = cache.put(key3, TEST_USER_1.copy(id = "user-3"))
+
+        // Then - all non-expired entries should be present
+        assertTrue(putResult, "Should add new entry after expired one removed")
+        assertNotNull(cache.get(TEST_KEY_2), "Fresh entry should remain")
+        assertNotNull(cache.get(key3), "New entry should be present")
     }
 
     @Test
