@@ -38,5 +38,10 @@ gradlePlugin {
             id = "plugin.storex.kotlin.multiplatform"
             implementationClass = "dev.mattramotar.storex.tooling.plugins.KotlinMultiplatformConventionPlugin"
         }
+
+        register("mavenPublishPlugin") {
+            id = "plugin.storex.maven.publish"
+            implementationClass = "dev.mattramotar.storex.tooling.plugins.MavenPublishConventionPlugin"
+        }
     }
 }

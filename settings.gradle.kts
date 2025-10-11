@@ -21,6 +21,13 @@ dependencyResolutionManagement {
         maven("https://oss.sonatype.org/content/repositories/snapshots/")
     }
 }
+
 rootProject.name = "storex"
 
+include(":core")
 include(":resilience")
+include(":mutations")
+include(":normalization:runtime")
+include(":normalization:ksp")
+include(":paging")
+include(":sample")
