@@ -64,8 +64,12 @@ class NormalizedEntitySot<K : StoreKey, V: Any>(
     }
 
     override suspend fun delete(key: K) {
-        // Deleting the *root projection* isn't a single write; callers should send a change-set with deletes.
-        // We no-op to avoid accidental destructive behavior.
+        // Clean up the root dependency mapping to prevent memory leaks.
+        // Note: This does NOT delete the normalized entities themselves, as they may be
+        // shared by other roots. Callers should explicitly send a NormalizedWrite with
+        // a changeSet containing entity deletes if they want to remove the underlying data.
+        val rootRef = RootRef(key, shape.id)
+        backend.updateRootDependencies(rootRef, emptySet())
     }
 
     override suspend fun withTransaction(block: suspend () -> Unit) = block()
