@@ -107,7 +107,7 @@ class RealReadStoreTest {
         // Given
         val fetcher = FakeFetcher<StoreKey, TestUser>()
         fetcher.respondWithError(TEST_KEY_1, TestNetworkException())
-        val store = createStore(scope = backgroundScope, fetcher = fetcher)
+        val store = createStore(fetcher = fetcher)
 
         // When/Then
         store.stream(TEST_KEY_1).test {
@@ -280,7 +280,7 @@ class RealReadStoreTest {
         val fetcher = FakeFetcher<StoreKey, TestUser>()
         val networkError = TestNetworkException("Network error")
         fetcher.respondWithError(TEST_KEY_1, networkError)
-        val store = createStore(scope = backgroundScope, fetcher = fetcher)
+        val store = createStore(fetcher = fetcher)
 
         // When/Then
         val thrown = assertFailsWith<StoreException> {

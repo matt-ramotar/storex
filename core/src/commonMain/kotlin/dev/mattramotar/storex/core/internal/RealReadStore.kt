@@ -91,6 +91,7 @@ class RealReadStore<
         val latestMeta = MutableStateFlow<Any?>(dbMeta)
 
         fun canServeStaleNow(): Boolean {
+            if (!hadCachedData) return false
             val window = staleErrorDuration ?: return true
             val meta = latestMeta.value?.extractUpdatedAt()
                 ?: bookkeeper.lastStatus(key).lastSuccessAt
