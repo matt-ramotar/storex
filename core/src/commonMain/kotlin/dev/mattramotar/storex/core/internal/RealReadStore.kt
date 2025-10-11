@@ -82,6 +82,7 @@ class RealReadStore<
         } catch (e: Exception) {
             null
         }
+        val hadCachedData = initialDb != null
 
         // 2. Determine if we need to fetch
         val dbMeta = initialDb?.let { converter.dbMetaFromProjection(it) }
@@ -167,6 +168,7 @@ class RealReadStore<
         storeScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
             memory.remove(key)
             sot.clearCache(key)
+            sot.delete(key)
         }
     }
 

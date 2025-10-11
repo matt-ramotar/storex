@@ -14,7 +14,28 @@ jobs:
     strategy:
       matrix:
         module-config:
+          - name: "core"
+            version_key: "storex-core"
+            version_env: "CORE_VERSION_NAME"
+            path: ":core"
+          - name: "mutations"
+            version_key: "storex-mutations"
+            version_env: "MUTATIONS_VERSION_NAME"
+            path: ":mutations"
+          - name: "paging"
+            version_key: "storex-paging"
+            version_env: "PAGING_VERSION_NAME"
+            path: ":paging"
+          - name: "normalization-runtime"
+            version_key: "storex-normalization"
+            version_env: "NORMALIZATION_VERSION_NAME"
+            path: ":normalization:runtime"
+          - name: "normalization-ksp"
+            version_key: "storex-normalization"
+            version_env: "NORMALIZATION_VERSION_NAME"
+            path: ":normalization:ksp"
           - name: "resilience"
+            version_key: "storex-resilience"
             version_env: "RESILIENCE_VERSION_NAME"
             path: ":resilience"
     steps:
@@ -32,8 +53,10 @@ jobs:
 
       - name: Set Version Environment Variables
         run: |
-          RESILIENCE_VERSION=$(grep "^RESILIENCE_VERSION_NAME=" gradle.properties | cut -d'=' -f2)
-          echo "RESILIENCE_VERSION_NAME=$RESILIENCE_VERSION" >> $GITHUB_ENV          
+          # Extract version from libs.versions.toml based on the version_key
+          VERSION=$(grep "^${{ matrix.module-config.version_key }} = " gradle/libs.versions.toml | sed 's/.*= "\(.*\)"/\1/')
+          echo "${{ matrix.module-config.version_env }}=$VERSION" >> $GITHUB_ENV
+          echo "Extracted version for ${{ matrix.module-config.name }}: $VERSION"          
 
       - name: Publish Artifacts to Maven Central
         if: ${{ !endsWith(env[matrix.module-config.version_env], '-SNAPSHOT') }}

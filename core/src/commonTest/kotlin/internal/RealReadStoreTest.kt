@@ -14,6 +14,7 @@ import dev.mattramotar.storex.core.utils.TEST_KEY_1
 import dev.mattramotar.storex.core.utils.TEST_KEY_2
 import dev.mattramotar.storex.core.utils.TEST_USER_1
 import dev.mattramotar.storex.core.utils.TEST_USER_2
+import dev.mattramotar.storex.core.internal.StoreException
 import dev.mattramotar.storex.core.utils.TestException
 import dev.mattramotar.storex.core.utils.TestNetworkException
 import dev.mattramotar.storex.core.utils.TestUser
@@ -28,6 +29,7 @@ import kotlinx.datetime.Instant
 import dev.mattramotar.storex.core.internal.DefaultDbMeta
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
@@ -113,7 +115,7 @@ class RealReadStoreTest {
 
             val error = awaitItem()
             assertIs<StoreResult.Error>(error)
-            assertTrue(error.servedStale)
+            assertFalse(error.servedStale)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -273,6 +275,22 @@ class RealReadStoreTest {
     }
 
     @Test
+    fun get_cachedOrFetch_givenFetchErrorWithoutCache_thenPropagatesStoreException() = runTest {
+        // Given
+        val fetcher = FakeFetcher<StoreKey, TestUser>()
+        val networkError = TestNetworkException("Network error")
+        fetcher.respondWithError(TEST_KEY_1, networkError)
+        val store = createStore(scope = backgroundScope, fetcher = fetcher)
+
+        // When/Then
+        val thrown = assertFailsWith<StoreException> {
+            store.get(TEST_KEY_1, Freshness.CachedOrFetch)
+        }
+        assertIs<StoreException.Unknown>(thrown)
+        assertEquals("Network error", thrown.cause?.message)
+    }
+
+    @Test
     fun invalidate_givenKey_thenRemovesFromMemory() = runTest {
         // Given
         val memory = MemoryCacheImpl<StoreKey, TestUser>(maxSize = 100, ttl = 10.minutes, timeSource = TimeSource.SYSTEM)
@@ -285,6 +303,28 @@ class RealReadStoreTest {
 
         // Then
         assertNull(memory.get(TEST_KEY_1))
+    }
+
+    @Test
+    fun invalidate_givenKey_thenDeletesFromSOT() = runTest {
+        // Given
+        val sot = FakeSourceOfTruth<StoreKey, TestUser>()
+        sot.emit(TEST_KEY_1, TEST_USER_1)
+        val memory = MemoryCacheImpl<StoreKey, TestUser>(maxSize = 100, ttl = 10.minutes, timeSource = TimeSource.SYSTEM)
+        memory.put(TEST_KEY_1, TEST_USER_1)
+        val store = createStore(scope = backgroundScope, memory = memory, sot = sot)
+
+        // When
+        store.invalidate(TEST_KEY_1)
+        advanceUntilIdle()
+
+        // Then - memory cleared
+        assertNull(memory.get(TEST_KEY_1))
+        // And SoT data deleted
+        assertEquals(1, sot.deletes.size)
+        assertEquals(TEST_KEY_1, sot.deletes.first())
+        // Verify data is actually gone from SoT
+        assertNull(sot.getData(TEST_KEY_1))
     }
 
     @Test
