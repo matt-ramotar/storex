@@ -2,7 +2,6 @@ package dev.mattramotar.storex.core.utils
 
 import kotlinx.datetime.Instant
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 
 /**
  * Test clock for controlling time in tests.

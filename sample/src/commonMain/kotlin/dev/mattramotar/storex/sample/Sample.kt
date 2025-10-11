@@ -2,7 +2,6 @@ package dev.mattramotar.storex.sample
 
 import dev.mattramotar.storex.normalization.EntityId
 import dev.mattramotar.storex.normalization.EntityRef
-import dev.mattramotar.storex.normalization.EntityRefId
 import dev.mattramotar.storex.normalization.EntityRefs
 import dev.mattramotar.storex.normalization.Normalizable
 
