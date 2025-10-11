@@ -25,6 +25,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
+import dev.mattramotar.storex.core.internal.DefaultDbMeta
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -155,6 +156,48 @@ class RealReadStoreTest {
             val error = awaitItem()
             assertIs<StoreResult.Error>(error)
             assertTrue(error.servedStale)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun stream_staleIfError_givenStaleWindowExceeded_thenEmitsNonStaleError() = runTest {
+        // Given
+        val timeSource = dev.mattramotar.storex.core.utils.TestTimeSource.atNow()
+        val staleWindow = 2.minutes
+        val cachedAt = timeSource.now() - (staleWindow + 1.minutes)
+
+        val metaByUser = mutableMapOf<String, Instant>(TEST_USER_1.id to cachedAt)
+        val converter = object : Converter<StoreKey, TestUser, TestUser, TestUser, TestUser> {
+            override suspend fun netToDbWrite(key: StoreKey, net: TestUser) = net
+            override suspend fun dbReadToDomain(key: StoreKey, db: TestUser) = db
+            override suspend fun dbMetaFromProjection(db: TestUser) =
+                metaByUser[db.id]?.let { DefaultDbMeta(updatedAt = it) }
+        }
+
+        val sot = FakeSourceOfTruth<StoreKey, TestUser>()
+        sot.emit(TEST_KEY_1, TEST_USER_1)
+        val fetcher = FakeFetcher<StoreKey, TestUser>()
+        fetcher.respondWithError(TEST_KEY_1, TestNetworkException())
+
+        val store = createStore(
+            scope = backgroundScope,
+            sot = sot,
+            fetcher = fetcher,
+            converter = converter,
+            timeSource = timeSource,
+            staleIfError = staleWindow
+        )
+
+        // When/Then
+        store.stream(TEST_KEY_1, Freshness.StaleIfError).test {
+            val data = awaitItem()
+            assertIs<StoreResult.Data<TestUser>>(data)
+
+            val error = awaitItem()
+            assertIs<StoreResult.Error>(error)
+            assertFalse(error.servedStale)
 
             cancelAndIgnoreRemainingEvents()
         }
@@ -520,7 +563,8 @@ class RealReadStoreTest {
         validator: FreshnessValidator<StoreKey, Any?> = DefaultFreshnessValidator<StoreKey>(ttl = 5.minutes) as FreshnessValidator<StoreKey, Any?>,
         memory: MemoryCache<StoreKey, TestUser> = MemoryCacheImpl(maxSize = 100, ttl = 10.minutes, timeSource = TimeSource.SYSTEM),
         scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
-        timeSource: TimeSource = TimeSource.SYSTEM
+        timeSource: TimeSource = TimeSource.SYSTEM,
+        staleIfError: kotlin.time.Duration? = null
     ): RealReadStore<StoreKey, TestUser, TestUser, TestUser, TestUser> {
         return RealReadStore(
             sot = sot,
@@ -529,6 +573,7 @@ class RealReadStoreTest {
             bookkeeper = bookkeeper,
             validator = validator,
             memory = memory,
+            staleErrorDuration = staleIfError,
             scope = scope,
             timeSource = timeSource
         )
