@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Instant
+import kotlin.time.Duration
 
 /**
  * Read-only store implementation.
@@ -84,7 +85,17 @@ class RealReadStore<
         // 2. Determine if we need to fetch
         val dbMeta = initialDb?.let { converter.dbMetaFromProjection(it) }
         val status = bookkeeper.lastStatus(key)
-        val plan = validator.plan(FreshnessContext(key, now(), freshness, dbMeta, status))
+        val nowInstant = now()
+        val plan = validator.plan(FreshnessContext(key, nowInstant, freshness, dbMeta, status))
+        val staleWindow = (validator as? StaleIfErrorPolicy)?.staleIfErrorDuration
+        val serveStaleOnError = shouldServeStale(
+            freshness = freshness,
+            hadCachedData = hadCachedData,
+            staleWindow = staleWindow,
+            dbMeta = dbMeta,
+            status = status,
+            now = nowInstant
+        )
 
         // 3. Execute fetch if needed
         when (freshness) {
@@ -107,7 +118,7 @@ class RealReadStore<
                     } catch (e: kotlinx.coroutines.CancellationException) {
                         throw e
                     } catch (t: Throwable) {
-                        errorEvents.send(StoreResult.Error(t, servedStale = hadCachedData))
+                        errorEvents.send(StoreResult.Error(t, servedStale = serveStaleOnError))
                     }
                 }
             }
@@ -204,6 +215,31 @@ class RealReadStore<
             }
         }.await()
     }
+}
+
+private fun shouldServeStale(
+    freshness: Freshness,
+    hadCachedData: Boolean,
+    staleWindow: Duration?,
+    dbMeta: Any?,
+    status: KeyStatus,
+    now: Instant
+): Boolean {
+    if (!hadCachedData) return false
+
+    val allowStale = when (freshness) {
+        Freshness.MustBeFresh -> return false
+        Freshness.StaleIfError,
+        Freshness.CachedOrFetch -> true
+        is Freshness.MinAge -> true
+    }
+
+    if (!allowStale) return false
+
+    val window = staleWindow ?: return true
+    val referenceTime = dbMeta.extractUpdatedAt() ?: status.lastSuccessAt ?: return true
+    val age = now - referenceTime
+    return age <= window
 }
 
 /* Helper to extract updatedAt from arbitrary meta objects */

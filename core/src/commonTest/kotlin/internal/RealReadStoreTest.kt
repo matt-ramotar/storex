@@ -163,6 +163,80 @@ class RealReadStoreTest {
     }
 
     @Test
+    fun stream_staleIfError_respectsBookkeeperStaleWindowWhenMetaMissing() = runTest {
+        // Given
+        val staleWindow = 5.minutes
+        var currentTime = Instant.fromEpochSeconds(10_000)
+        val timeSource = TimeSource { currentTime }
+
+        val sot = FakeSourceOfTruth<StoreKey, TestUser>()
+        sot.emit(TEST_KEY_1, TEST_USER_1)
+
+        val fetcher = FakeFetcher<StoreKey, TestUser>()
+        fetcher.respondWithError(TEST_KEY_1, TestNetworkException())
+
+        val bookkeeper = FakeBookkeeper<StoreKey>()
+        val validator = DefaultFreshnessValidator<StoreKey>(
+            ttl = 5.minutes,
+            staleIfErrorDuration = staleWindow
+        ) as FreshnessValidator<StoreKey, Any?>
+
+        val store = createStore(
+            scope = backgroundScope,
+            sot = sot,
+            fetcher = fetcher,
+            converter = IdentityTestConverter(),
+            bookkeeper = bookkeeper,
+            validator = validator,
+            timeSource = timeSource
+        )
+
+        val lastSuccessInsideWindow = currentTime - (staleWindow / 2)
+        bookkeeper.setStatus(
+            TEST_KEY_1,
+            KeyStatus(
+                lastSuccessAt = lastSuccessInsideWindow,
+                lastFailureAt = null,
+                lastEtag = null,
+                backoffUntil = null
+            )
+        )
+
+        // When/Then - inside stale window serves stale data on error
+        store.stream(TEST_KEY_1, Freshness.StaleIfError).test {
+            awaitItem() // Cached data
+
+            val error = awaitItem()
+            assertIs<StoreResult.Error>(error)
+            assertTrue(error.servedStale)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+
+        // Advance time beyond the stale window and ensure stale data is not served
+        currentTime = lastSuccessInsideWindow + staleWindow + 1.minutes
+        bookkeeper.setStatus(
+            TEST_KEY_1,
+            KeyStatus(
+                lastSuccessAt = lastSuccessInsideWindow,
+                lastFailureAt = null,
+                lastEtag = null,
+                backoffUntil = null
+            )
+        )
+
+        store.stream(TEST_KEY_1, Freshness.StaleIfError).test {
+            awaitItem() // Cached data
+
+            val error = awaitItem()
+            assertIs<StoreResult.Error>(error)
+            assertFalse(error.servedStale)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun stream_fetcherNotModified_thenDoesNotWriteToSOT() = runTest {
         // Given
         val sot = FakeSourceOfTruth<StoreKey, TestUser>()

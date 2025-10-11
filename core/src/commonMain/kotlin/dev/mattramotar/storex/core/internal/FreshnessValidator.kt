@@ -4,6 +4,7 @@ import dev.mattramotar.storex.core.Freshness
 import dev.mattramotar.storex.core.StoreKey
 import kotlinx.datetime.Instant
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.minutes
 
 /**
  * Inputs to decide whether a fetch is necessary and whether it can be conditional.
@@ -50,6 +51,14 @@ fun interface FreshnessValidator<K : StoreKey, DbMeta> {
 }
 
 /**
+ * Optional policy describing how long cached data may be served when a fetch fails.
+ */
+interface StaleIfErrorPolicy {
+    /** Duration window during which stale data can be served when fetch fails. */
+    val staleIfErrorDuration: Duration?
+}
+
+/**
  * Default database metadata with updatedAt timestamp and optional etag.
  */
 data class DefaultDbMeta(
@@ -61,11 +70,12 @@ data class DefaultDbMeta(
  * Default freshness validator using TTL-based caching.
  *
  * @param ttl Time-to-live for cached data (e.g., 5.minutes)
- * @param staleIfError Duration to allow stale data on error (default: 10.minutes)
+ * @param staleIfErrorDuration Duration window to allow serving stale data on error (default: 10.minutes)
  */
 class DefaultFreshnessValidator<K : StoreKey>(
     private val ttl: Duration,
-) : FreshnessValidator<K, DefaultDbMeta> {
+    override val staleIfErrorDuration: Duration? = 10.minutes,
+) : FreshnessValidator<K, DefaultDbMeta>, StaleIfErrorPolicy {
 
     override fun plan(ctx: FreshnessContext<K, DefaultDbMeta>): FetchPlan {
         val age = ctx.sotMeta?.let { ctx.now - it.updatedAt }
