@@ -27,7 +27,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 
@@ -190,6 +193,7 @@ private class SimpleSot<K : StoreKey, V : Any>(
     private val transactional: suspend (suspend () -> Unit) -> Unit
 ) : SourceOfTruth<K, V, V> {
     private val flows = mutableMapOf<K, MutableSharedFlow<V?>>()
+    private val initMutexes = mutableMapOf<K, Mutex>()
 
     override fun reader(key: K): Flow<V?> {
         val sharedFlow = flows.getOrPut(key) {
@@ -198,16 +202,19 @@ private class SimpleSot<K : StoreKey, V : Any>(
                 onBufferOverflow = BufferOverflow.DROP_OLDEST
             )
         }
+        val mutex = initMutexes.getOrPut(key) { Mutex() }
 
         // Return a flow that emits from shared flow (initialized if needed)
         return flow {
-            // Initialize shared flow if needed
-            if (sharedFlow.replayCache.isEmpty()) {
-                val initial = readFn(key)
-                sharedFlow.emit(initial)
+            // Atomically initialize shared flow if needed
+            mutex.withLock {
+                if (sharedFlow.replayCache.isEmpty()) {
+                    val initial = readFn(key)
+                    sharedFlow.emit(initial)
+                }
             }
-            // Collect from shared flow (will emit replay cache + future updates)
-            sharedFlow.collect { emit(it) }
+            // Emit all values from shared flow (replay cache + future updates)
+            emitAll(sharedFlow)
         }
     }
 
