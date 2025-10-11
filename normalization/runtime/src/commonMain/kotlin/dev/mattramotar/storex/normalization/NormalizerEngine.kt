@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 
 
 class NormalizerEngine(
@@ -47,7 +49,9 @@ class NormalizerEngine(
                     val (rec, mask) = adapter.normalize(entity, this)
                     upserts[key] = rec
                     masks[key] = mask
-                    metas[key] = EntityMeta() // default meta; adapter can augment via a decorator
+                    metas[key] = EntityMeta(
+                        updatedAt = Clock.System.now(),
+                    ) // default meta; adapter can augment via a decorator
                 }
                 return key
             }
@@ -211,7 +215,7 @@ class InMemoryNormalizationBackend : NormalizationBackend {
             // 3) Deletes (tombstone meta retained)
             for (key in changeSet.deletes) {
                 records.remove(key)
-                metas[key] = (metas[key] ?: EntityMeta()).copy(tombstone = true)
+                metas[key] = (metas[key] ?: EntityMeta(updatedAt = Clock.System.now())).copy(tombstone = true)
 
                 depToRoots[key]?.let { impactedRoots.addAll(it) }
                 val roots = depToRoots.remove(key).orEmpty()
