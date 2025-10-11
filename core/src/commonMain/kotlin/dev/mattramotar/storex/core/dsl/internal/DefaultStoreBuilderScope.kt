@@ -68,7 +68,8 @@ internal class DefaultStoreBuilderScope<K : StoreKey, V : Any> : StoreBuilderSco
         val cache = createMemoryCache()
         val sot = createSourceOfTruth()
         val converter = createConverter()
-        val validator = createFreshnessValidator()
+        val freshness = freshnessConfig ?: FreshnessConfig()
+        val validator = createFreshnessValidator(freshness)
         val bookkeeper = createBookkeeper()
 
         @Suppress("UNCHECKED_CAST")
@@ -78,6 +79,7 @@ internal class DefaultStoreBuilderScope<K : StoreKey, V : Any> : StoreBuilderSco
             converter = converter as Converter<K, V, V, V, V>,
             bookkeeper = bookkeeper,
             validator = validator as FreshnessValidator<K, Any?>,
+            staleIfErrorWindow = freshness.staleIfError,
             memory = cache,
             scope = actualScope,
             timeSource = timeSource
@@ -111,8 +113,7 @@ internal class DefaultStoreBuilderScope<K : StoreKey, V : Any> : StoreBuilderSco
         return SimpleConverterAdapter(IdentityConverter<K, V>())
     }
 
-    private fun createFreshnessValidator(): FreshnessValidator<K, DefaultDbMeta> {
-        val config = freshnessConfig ?: FreshnessConfig()
+    private fun createFreshnessValidator(config: FreshnessConfig): FreshnessValidator<K, DefaultDbMeta> {
         return DefaultFreshnessValidator(
             ttl = config.ttl
         )

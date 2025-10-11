@@ -6,6 +6,7 @@ import dev.mattramotar.storex.core.StoreResult
 import dev.mattramotar.storex.core.utils.TEST_KEY_1
 import dev.mattramotar.storex.core.utils.TEST_USER_1
 import dev.mattramotar.storex.core.utils.TestUser
+import dev.mattramotar.storex.core.utils.TestNetworkException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.flow
@@ -16,6 +17,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
 
@@ -134,6 +137,69 @@ class StoreBuilderTest {
 
         // Then - only one fetch
         assertEquals(1, fetchCount)
+    }
+
+    @Test
+    fun store_givenStaleIfErrorWindow_thenDoesNotServeStaleOnErrorBeyondWindow() = runTest {
+        // Given
+        val persistedData = mutableMapOf<dev.mattramotar.storex.core.StoreKey, TestUser>(
+            TEST_KEY_1 to TEST_USER_1
+        )
+        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser>(scope = backgroundScope) {
+            fetcher { throw TestNetworkException("network failure") }
+
+            persistence {
+                reader = { key -> persistedData[key] }
+                writer = { key, value -> persistedData.put(key, value) }
+            }
+
+            freshness {
+                staleIfError = 5.minutes
+            }
+        }
+
+        // When/Then
+        store.stream(TEST_KEY_1, Freshness.StaleIfError).test {
+            val cached = awaitItem()
+            assertIs<StoreResult.Data<TestUser>>(cached)
+            assertEquals(TEST_USER_1, cached.value)
+
+            val error = awaitItem()
+            assertIs<StoreResult.Error>(error)
+            assertFalse(error.servedStale)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun store_givenDefaultStaleIfError_thenServesStaleOnError() = runTest {
+        // Given
+        val persistedData = mutableMapOf<dev.mattramotar.storex.core.StoreKey, TestUser>(
+            TEST_KEY_1 to TEST_USER_1
+        )
+        val store = store<dev.mattramotar.storex.core.StoreKey, TestUser>(scope = backgroundScope) {
+            fetcher { throw TestNetworkException("network failure") }
+
+            persistence {
+                reader = { key -> persistedData[key] }
+                writer = { key, value -> persistedData.put(key, value) }
+            }
+            // No staleIfError configured
+        }
+
+        // When/Then
+        store.stream(TEST_KEY_1, Freshness.StaleIfError).test {
+            val cached = awaitItem()
+            assertIs<StoreResult.Data<TestUser>>(cached)
+            assertEquals(TEST_USER_1, cached.value)
+
+            val error = awaitItem()
+            assertIs<StoreResult.Error>(error)
+            assertTrue(error.servedStale)
+
+            cancelAndIgnoreRemainingEvents()
+        }
     }
 
     @Test

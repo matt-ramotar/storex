@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Instant
+import kotlin.time.Duration
 
 /**
  * Read-only store implementation.
@@ -60,6 +61,7 @@ class RealReadStore<
     private val converter: Converter<Key, Domain, ReadEntity, NetworkResponse, WriteEntity>,
     private val bookkeeper: Bookkeeper<Key>,
     private val validator: FreshnessValidator<Key, Any?>,
+    private val staleIfErrorWindow: Duration? = null,
     private val memory: MemoryCache<Key, Domain>,
     scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     private val timeSource: TimeSource = TimeSource.SYSTEM
@@ -107,7 +109,12 @@ class RealReadStore<
                     } catch (e: kotlinx.coroutines.CancellationException) {
                         throw e
                     } catch (t: Throwable) {
-                        errorEvents.send(StoreResult.Error(t, servedStale = hadCachedData))
+                        val servedStale = shouldServeStaleOnError(
+                            freshness = freshness,
+                            hadCachedData = hadCachedData,
+                            dbMeta = dbMeta
+                        )
+                        errorEvents.send(StoreResult.Error(t, servedStale = servedStale))
                     }
                 }
             }
@@ -203,6 +210,27 @@ class RealReadStore<
                 }
             }
         }.await()
+    }
+
+    private fun shouldServeStaleOnError(
+        freshness: Freshness,
+        hadCachedData: Boolean,
+        dbMeta: Any?
+    ): Boolean {
+        if (!hadCachedData) return false
+
+        return when (freshness) {
+            Freshness.MustBeFresh -> false
+            Freshness.StaleIfError -> {
+                val window = staleIfErrorWindow ?: return true
+                val updatedAt = dbMeta.extractUpdatedAt() ?: return false
+                val age = now() - updatedAt
+                age <= window
+            }
+
+            Freshness.CachedOrFetch,
+            is Freshness.MinAge -> true
+        }
     }
 }
 
