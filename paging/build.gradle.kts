@@ -2,14 +2,14 @@
 
 import dev.mattramotar.storex.tooling.extensions.android
 
+group = "dev.mattramotar.storex"
+version = libs.versions.storex.paging.get()
+
 plugins {
     id("plugin.storex.android.library")
     id("plugin.storex.kotlin.multiplatform")
     id("plugin.storex.maven.publish")
 }
-
-group = "dev.mattramotar.storex"
-version = "1.0.0"
 
 android {
     namespace = "dev.mattramotar.storex.paging"

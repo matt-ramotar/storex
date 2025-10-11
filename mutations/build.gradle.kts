@@ -2,6 +2,9 @@
 
 import dev.mattramotar.storex.tooling.extensions.android
 
+group = "dev.mattramotar.storex"
+version = libs.versions.storex.mutations.get()
+
 plugins {
     id("plugin.storex.android.library")
     id("plugin.storex.kotlin.multiplatform")
@@ -10,9 +13,6 @@ plugins {
     alias(libs.plugins.mokkery)
     alias(libs.plugins.kover)
 }
-
-group = "dev.mattramotar.storex"
-version = "1.0.0"
 
 android {
     namespace = "dev.mattramotar.storex.mutations"

@@ -17,27 +17,18 @@ class MavenPublishConventionPlugin : Plugin<Project> {
             signAllPublications()
 
             pom {
-                name.set(provider { "StoreX ${project.name.capitalize()}" })
+                val moduleName = deriveModuleName(project.group.toString(), project.name)
+                name.set(provider { moduleName })
+
                 description.set(provider {
                     when (project.name) {
-                        "core" -> "Minimal reactive caching library with source of truth pattern"
+                        "core" -> "Reactive caching with Store pattern"
                         "resilience" -> "Fault tolerance patterns for distributed systems"
-                        "mutations" -> "CRUD write operations for StoreX with optimistic updates"
-                        "normalization-runtime" -> "GraphQL-style graph normalization for StoreX"
-                        "normalization-ksp" -> "KSP code generation for @Normalizable types"
-                        "paging" -> "Pagination and infinite scroll support for StoreX"
-                        "interceptors" -> "Middleware pipeline for StoreX operations"
-                        "serialization-kotlinx" -> "Automatic JSON serialization for StoreX with kotlinx.serialization"
-                        "testing" -> "Test utilities and fake implementations for StoreX"
-                        "telemetry" -> "Observability and metrics for StoreX"
-                        "android" -> "Android platform integration for StoreX"
-                        "compose" -> "Jetpack Compose and Compose Multiplatform helpers for StoreX"
-                        "ktor-client" -> "Ktor HTTP client integration for StoreX"
-                        "bundle-graphql" -> "GraphQL use case bundle (core + mutations + normalization + interceptors)"
-                        "bundle-rest" -> "REST API use case bundle (core + mutations + resilience + serialization)"
-                        "bundle-android" -> "Android app bundle (core + mutations + android + compose)"
-                        "bom" -> "Bill of Materials for StoreX - version alignment across all modules"
-                        else -> "StoreX module: ${project.name}"
+                        "mutations" -> "Write operations with optimistic updates"
+                        "runtime" -> "Graph normalization for relational data"
+                        "ksp" -> "Code generation for normalized types"
+                        "paging" -> "Pagination and infinite scroll support"
+                        else -> "StoreX is an extension library built on top of MobileNativeFoundation/Store"
                     }
                 })
                 url.set("https://github.com/matt-ramotar/storex")
@@ -64,7 +55,37 @@ class MavenPublishConventionPlugin : Plugin<Project> {
             }
         }
     }
-}
 
-private fun String.capitalize(): String =
-    replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+    private fun deriveModuleName(group: String, name: String): String {
+        val basePackage = "dev.mattramotar.storex"
+
+        val modulePath = when {
+            group.startsWith("$basePackage.") -> group.removePrefix("$basePackage.")
+            group == basePackage -> ""
+            else -> group
+        }
+
+        val fullModulePath = if (modulePath.isEmpty()) {
+            name
+        } else {
+            "$modulePath.$name"
+        }
+
+        val parts = fullModulePath.split(".")
+        val titleParts = parts.map { it.toTitleCase() }
+
+        return "StoreX ${titleParts.joinToString(" ")}"
+    }
+
+
+    private fun String.toTitleCase(): String {
+        return when (this.lowercase()) {
+            "ksp" -> "KSP"
+            "api" -> "API"
+            "bom" -> "BOM"
+            "dsl" -> "DSL"
+            "ui" -> "UI"
+            else -> this.replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }
+        }
+    }
+}

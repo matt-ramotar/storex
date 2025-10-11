@@ -1,7 +1,7 @@
 @file:Suppress("UnstableApiUsage")
 
-import com.vanniktech.maven.publish.SonatypeHost.Companion.CENTRAL_PORTAL
-
+group = "dev.mattramotar.storex.normalization"
+version = libs.versions.storex.normalization.get()
 
 plugins {
     kotlin("multiplatform")
@@ -25,6 +25,3 @@ kotlin {
         }
     }
 }
-
-group = "dev.mattramotar.storex"
-version = libs.versions.storex.normalization.get()
