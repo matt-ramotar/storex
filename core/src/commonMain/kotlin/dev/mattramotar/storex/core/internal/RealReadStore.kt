@@ -14,15 +14,17 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Instant
+import kotlin.time.Duration
 
 /**
  * Read-only store implementation.
@@ -61,6 +63,7 @@ class RealReadStore<
     private val bookkeeper: Bookkeeper<Key>,
     private val validator: FreshnessValidator<Key, Any?>,
     private val memory: MemoryCache<Key, Domain>,
+    private val staleErrorDuration: Duration? = null,
     scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
     private val timeSource: TimeSource = TimeSource.SYSTEM
 ) : Store<Key, Domain>, AutoCloseable {
@@ -85,13 +88,22 @@ class RealReadStore<
         val dbMeta = initialDb?.let { converter.dbMetaFromProjection(it) }
         val status = bookkeeper.lastStatus(key)
         val plan = validator.plan(FreshnessContext(key, now(), freshness, dbMeta, status))
+        val latestMeta = MutableStateFlow<Any?>(dbMeta)
+
+        fun canServeStaleNow(): Boolean {
+            val window = staleErrorDuration ?: return true
+            val meta = latestMeta.value?.extractUpdatedAt()
+                ?: bookkeeper.lastStatus(key).lastSuccessAt
+                ?: return false
+            return (now() - meta) <= window
+        }
 
         // 3. Execute fetch if needed
         when (freshness) {
             Freshness.MustBeFresh -> {
                 if (plan !is FetchPlan.Skip) {
                     try {
-                        runBlockingFetch(key, plan, errorEvents)
+                        runBlockingFetch(key, plan)
                     } catch (e: kotlinx.coroutines.CancellationException) {
                         throw e
                     } catch (t: Throwable) {
@@ -103,11 +115,12 @@ class RealReadStore<
             else -> if (plan !is FetchPlan.Skip) {
                 launch {
                     try {
-                        runBlockingFetch(key, plan, errorEvents)
+                        runBlockingFetch(key, plan)
                     } catch (e: kotlinx.coroutines.CancellationException) {
                         throw e
                     } catch (t: Throwable) {
-                        errorEvents.send(StoreResult.Error(t, servedStale = hadCachedData))
+                        val servedStale = canServeStaleNow()
+                        errorEvents.send(StoreResult.Error(t, servedStale = servedStale))
                     }
                 }
             }
@@ -123,6 +136,7 @@ class RealReadStore<
                 val meta = converter.dbMetaFromProjection(dbValue)
                 val updatedAt = meta.extractUpdatedAt() ?: Instant.fromEpochMilliseconds(0)
                 val age = now() - updatedAt
+                latestMeta.value = meta
                 memory.put(key, domain)
                 send(StoreResult.Data(domain, origin = Origin.SOT, age = age))
             }
@@ -174,7 +188,7 @@ class RealReadStore<
         storeScope.cancel()
     }
 
-    private suspend fun runBlockingFetch(key: Key, plan: FetchPlan, errorEvents: Channel<StoreResult.Error>) {
+    private suspend fun runBlockingFetch(key: Key, plan: FetchPlan) {
         fetchSingleFlight.launch(storeScope, key) {
             val req = when (plan) {
                 is FetchPlan.Conditional -> FetchRequest(conditional = plan.request)
