@@ -153,6 +153,7 @@ class RealReadStore<
         storeScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
             memory.remove(key)
             sot.clearCache(key)
+            sot.delete(key)
         }
     }
 
