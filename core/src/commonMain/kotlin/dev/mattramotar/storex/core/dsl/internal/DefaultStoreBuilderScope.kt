@@ -113,10 +113,17 @@ internal class DefaultStoreBuilderScope<K : StoreKey, V : Any> : StoreBuilderSco
 
     private fun createFreshnessValidator(): FreshnessValidator<K, DefaultDbMeta> {
         val config = freshnessConfig ?: FreshnessConfig()
-        return DefaultFreshnessValidator(
-            ttl = config.ttl,
-            staleIfErrorDuration = config.staleIfError
-        )
+        val staleIfError = config.staleIfError
+        return if (staleIfError != null) {
+            DefaultFreshnessValidator(
+                ttl = config.ttl,
+                staleIfErrorDuration = staleIfError
+            )
+        } else {
+            DefaultFreshnessValidator(
+                ttl = config.ttl
+            )
+        }
     }
 
     private fun createBookkeeper(): Bookkeeper<K> {

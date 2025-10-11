@@ -191,11 +191,11 @@ class RealReadStoreTest {
             timeSource = timeSource
         )
 
-        val lastSuccessInsideWindow = currentTime - (staleWindow / 2)
+        val lastSuccessWithinWindow = currentTime - (staleWindow / 2)
         bookkeeper.setStatus(
             TEST_KEY_1,
             KeyStatus(
-                lastSuccessAt = lastSuccessInsideWindow,
+                lastSuccessAt = lastSuccessWithinWindow,
                 lastFailureAt = null,
                 lastEtag = null,
                 backoffUntil = null
@@ -214,11 +214,11 @@ class RealReadStoreTest {
         }
 
         // Advance time beyond the stale window and ensure stale data is not served
-        currentTime = lastSuccessInsideWindow + staleWindow + 1.minutes
+        currentTime = lastSuccessWithinWindow + staleWindow + 1.minutes
         bookkeeper.setStatus(
             TEST_KEY_1,
             KeyStatus(
-                lastSuccessAt = lastSuccessInsideWindow,
+                lastSuccessAt = lastSuccessWithinWindow,
                 lastFailureAt = null,
                 lastEtag = null,
                 backoffUntil = null

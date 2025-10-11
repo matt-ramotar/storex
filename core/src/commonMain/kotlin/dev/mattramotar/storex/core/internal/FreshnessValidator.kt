@@ -55,7 +55,7 @@ fun interface FreshnessValidator<K : StoreKey, DbMeta> {
  */
 interface StaleIfErrorPolicy {
     /** Duration window during which stale data can be served when fetch fails. */
-    val staleIfErrorDuration: Duration?
+    val staleIfErrorDuration: Duration
 }
 
 /**
@@ -70,11 +70,12 @@ data class DefaultDbMeta(
  * Default freshness validator using TTL-based caching.
  *
  * @param ttl Time-to-live for cached data (e.g., 5.minutes)
- * @param staleIfErrorDuration Duration window to allow serving stale data on error (default: 10.minutes)
+ * @param staleIfErrorDuration Duration window to allow serving stale data on error (default: 10.minutes).
+ * Pass [Duration.ZERO] to disable stale-on-error behavior.
  */
 class DefaultFreshnessValidator<K : StoreKey>(
     private val ttl: Duration,
-    override val staleIfErrorDuration: Duration? = 10.minutes,
+    override val staleIfErrorDuration: Duration = 10.minutes,
 ) : FreshnessValidator<K, DefaultDbMeta>, StaleIfErrorPolicy {
 
     override fun plan(ctx: FreshnessContext<K, DefaultDbMeta>): FetchPlan {

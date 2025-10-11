@@ -84,18 +84,25 @@ class RealReadStore<
 
         // 2. Determine if we need to fetch
         val dbMeta = initialDb?.let { converter.dbMetaFromProjection(it) }
-        val status = bookkeeper.lastStatus(key)
+        val statusProvider = { bookkeeper.lastStatus(key) }
+        val status = statusProvider()
         val nowInstant = now()
         val plan = validator.plan(FreshnessContext(key, nowInstant, freshness, dbMeta, status))
-        val staleWindow = (validator as? StaleIfErrorPolicy)?.staleIfErrorDuration
-        val serveStaleOnError = shouldServeStale(
-            freshness = freshness,
-            hadCachedData = hadCachedData,
-            staleWindow = staleWindow,
-            dbMeta = dbMeta,
-            status = status,
-            now = nowInstant
-        )
+        val staleWindow = if (validator is StaleIfErrorPolicy) {
+            validator.staleIfErrorDuration.takeIf { it > Duration.ZERO }
+        } else {
+            null
+        }
+        val serveStaleOnError: () -> Boolean = {
+            shouldServeStale(
+                freshness = freshness,
+                hadCachedData = hadCachedData,
+                staleWindow = staleWindow,
+                dbMeta = dbMeta,
+                status = statusProvider(),
+                now = now()
+            )
+        }
 
         // 3. Execute fetch if needed
         when (freshness) {
@@ -118,7 +125,7 @@ class RealReadStore<
                     } catch (e: kotlinx.coroutines.CancellationException) {
                         throw e
                     } catch (t: Throwable) {
-                        errorEvents.send(StoreResult.Error(t, servedStale = serveStaleOnError))
+                        errorEvents.send(StoreResult.Error(t, servedStale = serveStaleOnError()))
                     }
                 }
             }
@@ -237,7 +244,7 @@ private fun shouldServeStale(
     if (!allowStale) return false
 
     val window = staleWindow ?: return true
-    val referenceTime = dbMeta.extractUpdatedAt() ?: status.lastSuccessAt ?: return true
+    val referenceTime = dbMeta.extractUpdatedAt() ?: status.lastSuccessAt ?: return false
     val age = now - referenceTime
     return age <= window
 }
