@@ -255,7 +255,7 @@ class RealMutationStore<
 
     override suspend fun create(draft: Draft, policy: CreatePolicy): CreateResult<Key> {
         if (policy.requireOnline && postClient == null) return CreateResult.Failed(null, IllegalStateException("PostClient not configured"))
-        if (postClient == null) return CreateResult.Failed(null, IllegalStateException("PostClient not configured"))
+        if (postClient == null) return CreateResult.Local(fakeKeyForCreate())
 
         return try {
             when (val response = postClient.post(draft)) {

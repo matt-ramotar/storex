@@ -84,8 +84,6 @@ class NormalizationProcessor(private val env: SymbolProcessorEnvironment) : Symb
             .filterIsInstance<KSClassDeclaration>()
             .toList()
 
-        println("HITTING!!")
-
         annotated.forEach { decl ->
             try {
                 generateAdapterFor(decl)

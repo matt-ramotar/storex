@@ -40,7 +40,7 @@ data class EntityMeta(
     /** ETag from the server for conditional requests. */
     val etag: String? = null,
     /** Timestamp when this entity was last updated. */
-    val updatedAt: Instant = Clock.System.now(),
+    val updatedAt: Instant,
     /** Soft delete marker for anti-resurrection windows; backend may retain tombstones. */
     val tombstone: Boolean = false,
     /** Application-specific tags for garbage collection or filtering. */

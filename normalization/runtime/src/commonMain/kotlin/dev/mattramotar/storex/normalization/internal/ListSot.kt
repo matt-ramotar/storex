@@ -12,6 +12,7 @@ import dev.mattramotar.storex.normalization.NormalizedWrite
 import dev.mattramotar.storex.normalization.Shape
 import dev.mattramotar.storex.normalization.backend.NormalizationBackend
 import dev.mattramotar.storex.normalization.backend.RootRef
+import dev.mattramotar.storex.normalization.internal.composeFromRoot
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.conflate

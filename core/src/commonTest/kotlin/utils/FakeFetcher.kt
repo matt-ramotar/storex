@@ -5,6 +5,7 @@ import dev.mattramotar.storex.core.internal.Fetcher
 import dev.mattramotar.storex.core.internal.FetchRequest
 import dev.mattramotar.storex.core.internal.FetcherResult
 import dev.mattramotar.storex.core.internal.StoreException
+import dev.mattramotar.storex.core.utils.TestException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.datetime.Instant
