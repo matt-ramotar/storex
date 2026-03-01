@@ -383,6 +383,15 @@ class RealMutationStore<
     override fun invalidate(key: Key) { storeScope.launch { memory.remove(key) } }
     override fun invalidateNamespace(ns: StoreNamespace) { storeScope.launch { memory.clear() } }
     override fun invalidateAll() { storeScope.launch { memory.clear() } }
+    override fun clear(key: Key) {
+        storeScope.launch {
+            memory.remove(key)
+            sot.clearCache(key)
+            sot.delete(key)
+        }
+    }
+    override fun clearNamespace(ns: StoreNamespace) { storeScope.launch { memory.clear() } }
+    override fun clearAll() { storeScope.launch { memory.clear() } }
     override fun close() { storeScope.cancel() }
 
     private suspend fun runBlockingFetch(key: Key, plan: FetchPlan, errorEvents: Channel<StoreResult.Error>) {

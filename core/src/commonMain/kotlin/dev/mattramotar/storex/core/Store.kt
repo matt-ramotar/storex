@@ -169,9 +169,10 @@ interface Store<Key : StoreKey, out Domain> {  // Covariant in Domain for read o
     /**
      * Invalidates cached data for a specific [key].
      *
-     * - Evicts from memory cache
+     * - Evicts from in-memory cache
+     * - Clears flow/cache state in Source of Truth
      * - Signals active [stream] observers to refetch
-     * - Does NOT delete from Source of Truth
+     * - MUST NOT delete persisted Source of Truth rows
      *
      * Use this after external changes (e.g., user edited profile in another screen).
      *
@@ -182,7 +183,8 @@ interface Store<Key : StoreKey, out Domain> {  // Covariant in Domain for read o
     /**
      * Invalidates all cached data within a [namespace].
      *
-     * Useful for clearing all data of a certain type (e.g., all users, all articles).
+     * Useful for marking all data of a certain type stale (e.g., all users, all articles)
+     * without deleting persisted rows.
      *
      * @param ns The namespace to invalidate
      */
@@ -194,6 +196,36 @@ interface Store<Key : StoreKey, out Domain> {  // Covariant in Domain for read o
      * Nuclear option - clears memory cache and triggers refetch for all active observers.
      */
     fun invalidateAll()
+
+    /**
+     * Destructively clears data for a specific [key].
+     *
+     * - Evicts from in-memory cache
+     * - Clears Source of Truth cache state
+     * - Deletes persisted Source of Truth row for [key]
+     *
+     * Use this when data must be removed, not just marked stale.
+     *
+     * @param key The key to clear
+     */
+    fun clear(key: Key)
+
+    /**
+     * Destructively clears all data within a [namespace].
+     *
+     * Implementations should remove persisted Source of Truth rows for keys in [ns]
+     * and evict matching in-memory entries.
+     *
+     * @param ns The namespace to clear
+     */
+    fun clearNamespace(ns: StoreNamespace)
+
+    /**
+     * Destructively clears all data in this store.
+     *
+     * This removes persisted Source of Truth rows and clears all in-memory cache entries.
+     */
+    fun clearAll()
 }
 
 /**
