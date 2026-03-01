@@ -10,6 +10,7 @@ import dev.mattramotar.storex.core.TimeSource
 import dev.mattramotar.storex.core.utils.FakeBookkeeper
 import dev.mattramotar.storex.core.utils.FakeFetcher
 import dev.mattramotar.storex.core.utils.FakeSourceOfTruth
+import dev.mattramotar.storex.core.utils.ARTICLE_KEY_1
 import dev.mattramotar.storex.core.utils.TEST_KEY_1
 import dev.mattramotar.storex.core.utils.TEST_KEY_2
 import dev.mattramotar.storex.core.utils.TEST_USER_1
@@ -306,7 +307,7 @@ class RealReadStoreTest {
     }
 
     @Test
-    fun invalidate_givenKey_thenDeletesFromSOT() = runTest {
+    fun invalidate_givenKey_thenDoesNotDeleteFromSOT() = runTest {
         // Given
         val sot = FakeSourceOfTruth<StoreKey, TestUser>()
         sot.emit(TEST_KEY_1, TEST_USER_1)
@@ -318,40 +319,88 @@ class RealReadStoreTest {
         store.invalidate(TEST_KEY_1)
         advanceUntilIdle()
 
-        // Then - memory cleared
+        // Then
         assertNull(memory.get(TEST_KEY_1))
-        // And SoT data deleted
+        assertTrue(sot.deletes.isEmpty())
+        assertEquals(TEST_USER_1, sot.getData(TEST_KEY_1))
+    }
+
+    @Test
+    fun clear_givenKey_thenDeletesFromSOT() = runTest {
+        // Given
+        val sot = FakeSourceOfTruth<StoreKey, TestUser>()
+        sot.emit(TEST_KEY_1, TEST_USER_1)
+        val memory = MemoryCacheImpl<StoreKey, TestUser>(maxSize = 100, ttl = 10.minutes, timeSource = TimeSource.SYSTEM)
+        memory.put(TEST_KEY_1, TEST_USER_1)
+        val store = createStore(scope = backgroundScope, memory = memory, sot = sot)
+
+        // When
+        store.clear(TEST_KEY_1)
+        advanceUntilIdle()
+
+        // Then
+        assertNull(memory.get(TEST_KEY_1))
         assertEquals(1, sot.deletes.size)
         assertEquals(TEST_KEY_1, sot.deletes.first())
-        // Verify data is actually gone from SoT
         assertNull(sot.getData(TEST_KEY_1))
     }
 
     @Test
-    fun invalidateNamespace_thenClearsMemory() = runTest {
+    fun invalidateNamespace_thenClearsOnlyMatchingNamespaceMemory() = runTest {
         // Given
         val memory = MemoryCacheImpl<StoreKey, TestUser>(maxSize = 100, ttl = 10.minutes, timeSource = TimeSource.SYSTEM)
         memory.put(TEST_KEY_1, TEST_USER_1)
         memory.put(TEST_KEY_2, TEST_USER_2)
+        memory.put(ARTICLE_KEY_1, TEST_USER_1)
         val store = createStore(scope = backgroundScope, memory = memory)
 
         // When
         store.invalidateNamespace(TEST_KEY_1.namespace)
-        delay(1)  // Yield to allow launched coroutine to run
+        delay(1)
         advanceUntilIdle()
 
         // Then
         assertNull(memory.get(TEST_KEY_1))
         assertNull(memory.get(TEST_KEY_2))
+        assertEquals(TEST_USER_1, memory.get(ARTICLE_KEY_1))
     }
 
     @Test
-    fun invalidateAll_thenClearsMemory() = runTest {
+    fun clearNamespace_thenDeletesMatchingNamespaceData() = runTest {
         // Given
+        val sot = FakeSourceOfTruth<StoreKey, TestUser>()
+        sot.emit(TEST_KEY_1, TEST_USER_1)
+        sot.emit(TEST_KEY_2, TEST_USER_2)
+        sot.emit(ARTICLE_KEY_1, TEST_USER_1)
         val memory = MemoryCacheImpl<StoreKey, TestUser>(maxSize = 100, ttl = 10.minutes, timeSource = TimeSource.SYSTEM)
         memory.put(TEST_KEY_1, TEST_USER_1)
         memory.put(TEST_KEY_2, TEST_USER_2)
-        val store = createStore(scope = backgroundScope, memory = memory)
+        memory.put(ARTICLE_KEY_1, TEST_USER_1)
+        val store = createStore(scope = backgroundScope, memory = memory, sot = sot)
+
+        // When
+        store.clearNamespace(TEST_KEY_1.namespace)
+        advanceUntilIdle()
+
+        // Then
+        assertNull(memory.get(TEST_KEY_1))
+        assertNull(memory.get(TEST_KEY_2))
+        assertEquals(TEST_USER_1, memory.get(ARTICLE_KEY_1))
+        assertNull(sot.getData(TEST_KEY_1))
+        assertNull(sot.getData(TEST_KEY_2))
+        assertEquals(TEST_USER_1, sot.getData(ARTICLE_KEY_1))
+    }
+
+    @Test
+    fun invalidateAll_thenClearsMemoryWithoutDeletingSot() = runTest {
+        // Given
+        val sot = FakeSourceOfTruth<StoreKey, TestUser>()
+        sot.emit(TEST_KEY_1, TEST_USER_1)
+        sot.emit(TEST_KEY_2, TEST_USER_2)
+        val memory = MemoryCacheImpl<StoreKey, TestUser>(maxSize = 100, ttl = 10.minutes, timeSource = TimeSource.SYSTEM)
+        memory.put(TEST_KEY_1, TEST_USER_1)
+        memory.put(TEST_KEY_2, TEST_USER_2)
+        val store = createStore(scope = backgroundScope, memory = memory, sot = sot)
 
         // When
         store.invalidateAll()
@@ -360,6 +409,30 @@ class RealReadStoreTest {
         // Then
         assertNull(memory.get(TEST_KEY_1))
         assertNull(memory.get(TEST_KEY_2))
+        assertEquals(TEST_USER_1, sot.getData(TEST_KEY_1))
+        assertEquals(TEST_USER_2, sot.getData(TEST_KEY_2))
+    }
+
+    @Test
+    fun clearAll_thenClearsMemoryAndDeletesSot() = runTest {
+        // Given
+        val sot = FakeSourceOfTruth<StoreKey, TestUser>()
+        sot.emit(TEST_KEY_1, TEST_USER_1)
+        sot.emit(TEST_KEY_2, TEST_USER_2)
+        val memory = MemoryCacheImpl<StoreKey, TestUser>(maxSize = 100, ttl = 10.minutes, timeSource = TimeSource.SYSTEM)
+        memory.put(TEST_KEY_1, TEST_USER_1)
+        memory.put(TEST_KEY_2, TEST_USER_2)
+        val store = createStore(scope = backgroundScope, memory = memory, sot = sot)
+
+        // When
+        store.clearAll()
+        advanceUntilIdle()
+
+        // Then
+        assertNull(memory.get(TEST_KEY_1))
+        assertNull(memory.get(TEST_KEY_2))
+        assertNull(sot.getData(TEST_KEY_1))
+        assertNull(sot.getData(TEST_KEY_2))
     }
 
     @Test

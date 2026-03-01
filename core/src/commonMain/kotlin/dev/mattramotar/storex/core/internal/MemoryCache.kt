@@ -45,6 +45,11 @@ interface MemoryCache<Key: Any, Value: Any> {
      * Clears all entries from the cache.
      */
     suspend fun clear()
+
+    /**
+     * Returns a snapshot of keys currently held in memory.
+     */
+    suspend fun keys(): Set<Key>
 }
 
 /**
@@ -123,6 +128,10 @@ internal class MemoryCacheImpl<Key : Any, Value : Any>(
     override suspend fun clear() = mutex.withLock {
         cache.clear()
         accessOrder.clear()
+    }
+
+    override suspend fun keys(): Set<Key> = mutex.withLock {
+        cache.keys.toSet()
     }
 
     private fun isExpired(entry: CacheEntry<Value>): Boolean {

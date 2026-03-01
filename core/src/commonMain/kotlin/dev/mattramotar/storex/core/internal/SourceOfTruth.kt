@@ -184,7 +184,8 @@ interface SourceOfTruth<K : StoreKey, ReadDb, WriteDb> {
      * - Clear any in-memory cached state
      * - NOT delete persisted data (use [delete] for that)
      *
-     * Used by Store.invalidate() to force a fresh fetch on next read.
+     * Used by `Store.invalidate*()` to force a fresh fetch on next read.
+     * Destructive `Store.clear*()` operations call both `clearCache()` and `delete()`.
      *
      * Default implementation does nothing. Override to support cache invalidation.
      *

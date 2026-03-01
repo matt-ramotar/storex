@@ -16,12 +16,15 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Instant
 import kotlin.time.Duration
@@ -71,9 +74,17 @@ class RealReadStore<
     private val storeScope = scope
     private val fetchSingleFlight = SingleFlight<Key, Unit>()
     private val perKeyMutex = KeyMutex<Key>()
+    private val knownKeys = LinkedHashSet<Key>()
+    private val knownKeysMutex = Mutex()
+    private val invalidationSignals = MutableSharedFlow<InvalidationSignal<Key>>(
+        replay = 0,
+        extraBufferCapacity = 64,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
     private fun now(): Instant = timeSource.now()
 
     override fun stream(key: Key, freshness: Freshness): Flow<StoreResult<Domain>> = channelFlow {
+        rememberKey(key)
         val errorEvents = Channel<StoreResult.Error>(capacity = Channel.BUFFERED)
 
         // 1. Read from SoT to check if we have data
@@ -82,7 +93,7 @@ class RealReadStore<
         } catch (e: Exception) {
             null
         }
-        val hadCachedData = initialDb != null
+        val hasCachedData = MutableStateFlow(initialDb != null)
 
         // 2. Determine if we need to fetch
         val dbMeta = initialDb?.let { converter.dbMetaFromProjection(it) }
@@ -91,7 +102,7 @@ class RealReadStore<
         val latestMeta = MutableStateFlow<Any?>(dbMeta)
 
         fun canServeStaleNow(): Boolean {
-            if (!hadCachedData) return false
+            if (!hasCachedData.value) return false
             val window = staleErrorDuration ?: return true
             val meta = latestMeta.value?.extractUpdatedAt()
                 ?: bookkeeper.lastStatus(key).lastSuccessAt
@@ -138,8 +149,30 @@ class RealReadStore<
                 val updatedAt = meta.extractUpdatedAt() ?: Instant.fromEpochMilliseconds(0)
                 val age = now() - updatedAt
                 latestMeta.value = meta
+                hasCachedData.value = true
                 memory.put(key, domain)
                 send(StoreResult.Data(domain, origin = Origin.SOT, age = age))
+            }
+        }
+
+        launch {
+            invalidationSignals.collect { signal ->
+                if (!signal.matches(key)) return@collect
+
+                if (signal.destructive) {
+                    hasCachedData.value = false
+                    latestMeta.value = null
+                    send(StoreResult.Loading(fromCache = false))
+                }
+
+                try {
+                    runBlockingFetch(key, FetchPlan.Unconditional)
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (t: Throwable) {
+                    val servedStale = !signal.destructive && canServeStaleNow()
+                    errorEvents.send(StoreResult.Error(t, servedStale = servedStale))
+                }
             }
         }
 
@@ -167,41 +200,69 @@ class RealReadStore<
 
     override fun invalidate(key: Key) {
         storeScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+            rememberKey(key)
             memory.remove(key)
             sot.clearCache(key)
-            sot.delete(key)
+            invalidationSignals.tryEmit(InvalidationSignal(key = key, destructive = false))
         }
     }
 
     override fun invalidateNamespace(ns: StoreNamespace) {
         storeScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
-            memory.clear()
+            val keys = keysInNamespace(ns)
+            keys.forEach { key ->
+                memory.remove(key)
+                sot.clearCache(key)
+            }
+            invalidationSignals.tryEmit(InvalidationSignal(namespace = ns, destructive = false))
         }
     }
 
     override fun invalidateAll() {
         storeScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+            val keys = keysForMaintenance()
             memory.clear()
+            keys.forEach { key ->
+                sot.clearCache(key)
+            }
+            invalidationSignals.tryEmit(InvalidationSignal(all = true, destructive = false))
         }
     }
 
     override fun clear(key: Key) {
         storeScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+            rememberKey(key)
             memory.remove(key)
             sot.clearCache(key)
             sot.delete(key)
+            forgetKey(key)
+            invalidationSignals.tryEmit(InvalidationSignal(key = key, destructive = true))
         }
     }
 
     override fun clearNamespace(ns: StoreNamespace) {
         storeScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
-            memory.clear()
+            val keys = keysInNamespace(ns)
+            keys.forEach { key ->
+                memory.remove(key)
+                sot.clearCache(key)
+                sot.delete(key)
+                forgetKey(key)
+            }
+            invalidationSignals.tryEmit(InvalidationSignal(namespace = ns, destructive = true))
         }
     }
 
     override fun clearAll() {
         storeScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+            val keys = keysForMaintenance()
             memory.clear()
+            keys.forEach { key ->
+                sot.clearCache(key)
+                sot.delete(key)
+            }
+            clearKnownKeys()
+            invalidationSignals.tryEmit(InvalidationSignal(all = true, destructive = true))
         }
     }
 
@@ -210,6 +271,7 @@ class RealReadStore<
     }
 
     private suspend fun runBlockingFetch(key: Key, plan: FetchPlan) {
+        rememberKey(key)
         fetchSingleFlight.launch(storeScope, key) {
             val req = when (plan) {
                 is FetchPlan.Conditional -> FetchRequest(conditional = plan.request)
@@ -238,6 +300,45 @@ class RealReadStore<
                 }
             }
         }.await()
+    }
+
+    private suspend fun rememberKey(key: Key) {
+        knownKeysMutex.withLock {
+            knownKeys.add(key)
+        }
+    }
+
+    private suspend fun forgetKey(key: Key) {
+        knownKeysMutex.withLock {
+            knownKeys.remove(key)
+        }
+    }
+
+    private suspend fun clearKnownKeys() {
+        knownKeysMutex.withLock {
+            knownKeys.clear()
+        }
+    }
+
+    private suspend fun keysForMaintenance(): List<Key> {
+        val memoryKeys = memory.keys()
+        val known = knownKeysMutex.withLock { knownKeys.toSet() }
+        return (known + memoryKeys).toList()
+    }
+
+    private suspend fun keysInNamespace(namespace: StoreNamespace): List<Key> {
+        return keysForMaintenance().filter { key -> key.namespace == namespace }
+    }
+}
+
+private data class InvalidationSignal<Key : StoreKey>(
+    val key: Key? = null,
+    val namespace: StoreNamespace? = null,
+    val all: Boolean = false,
+    val destructive: Boolean
+) {
+    fun matches(target: Key): Boolean {
+        return all || key == target || namespace == target.namespace
     }
 }
 
