@@ -185,6 +185,26 @@ class RealReadStore<
         }
     }
 
+    override fun clear(key: Key) {
+        storeScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+            memory.remove(key)
+            sot.clearCache(key)
+            sot.delete(key)
+        }
+    }
+
+    override fun clearNamespace(ns: StoreNamespace) {
+        storeScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+            memory.clear()
+        }
+    }
+
+    override fun clearAll() {
+        storeScope.launch(start = kotlinx.coroutines.CoroutineStart.UNDISPATCHED) {
+            memory.clear()
+        }
+    }
+
     override fun close() {
         storeScope.cancel()
     }
