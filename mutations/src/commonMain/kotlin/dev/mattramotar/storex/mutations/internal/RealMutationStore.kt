@@ -40,12 +40,16 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.mapNotNull
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
@@ -142,8 +146,16 @@ class RealMutationStore<
     private val storeScope = scope
     private val fetchSingleFlight = SingleFlight<Key, Unit>()
     private val perKeyMutex = KeyMutex<Key>()
+    private val knownKeys = LinkedHashSet<Key>()
+    private val knownKeysMutex = Mutex()
+    private val invalidationSignals = MutableSharedFlow<InvalidationSignal<Key>>(
+        replay = 0,
+        extraBufferCapacity = 64,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST
+    )
 
     override fun stream(key: Key, freshness: Freshness): Flow<StoreResult<Domain>> = channelFlow {
+        rememberKey(key)
         val errorEvents = Channel<StoreResult.Error>(capacity = Channel.BUFFERED)
 
         val initialDb: ReadEntity? = try {
@@ -151,12 +163,18 @@ class RealMutationStore<
         } catch (e: Exception) {
             null
         }
+        val hasCachedData = MutableStateFlow(initialDb != null)
         val dbMeta = initialDb?.let { converter.dbMetaFromProjection(it) }
         val status = bookkeeper.lastStatus(key)
         val plan = validator.plan(FreshnessContext(key, now(), freshness, dbMeta, status))
+        val latestMeta = MutableStateFlow<Any?>(dbMeta)
 
         suspend fun doFetch() {
             runBlockingFetch(key, plan, errorEvents)
+        }
+
+        fun canServeStaleNow(): Boolean {
+            return hasCachedData.value
         }
 
         when (freshness) {
@@ -181,12 +199,35 @@ class RealMutationStore<
                 val meta = converter.dbMetaFromProjection(dbValue)
                 val updatedAt = meta.extractUpdatedAt() ?: Instant.fromEpochMilliseconds(0)
                 val age = now() - updatedAt
+                latestMeta.value = meta
+                hasCachedData.value = true
                 memory.put(key, domain)
                 send(StoreResult.Data(domain, origin = Origin.SOT, age = age))
             }
         }
+
+        val invalidationJob = launch {
+            invalidationSignals.collect { signal ->
+                if (!signal.matches(key)) return@collect
+
+                if (signal.destructive) {
+                    latestMeta.value = null
+                    hasCachedData.value = false
+                    send(StoreResult.Loading(fromCache = false))
+                }
+
+                try {
+                    runBlockingFetch(key, FetchPlan.Unconditional, errorEvents)
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    throw e
+                } catch (t: Throwable) {
+                    val servedStale = !signal.destructive && canServeStaleNow()
+                    errorEvents.trySend(StoreResult.Error(t, servedStale = servedStale))
+                }
+            }
+        }
         val errJob = launch { for (e in errorEvents) send(e) }
-        joinAll(sotJob, errJob)
+        joinAll(sotJob, errJob, invalidationJob)
     }
 
     override suspend fun get(key: Key, freshness: Freshness): Domain {
@@ -380,21 +421,78 @@ class RealMutationStore<
         }
     }
 
-    override fun invalidate(key: Key) { storeScope.launch { memory.remove(key) } }
-    override fun invalidateNamespace(ns: StoreNamespace) { storeScope.launch { memory.clear() } }
-    override fun invalidateAll() { storeScope.launch { memory.clear() } }
+    override fun invalidate(key: Key) {
+        storeScope.launch {
+            rememberKey(key)
+            memory.remove(key)
+            sot.clearCache(key)
+            invalidationSignals.tryEmit(InvalidationSignal(key = key, destructive = false))
+        }
+    }
+
+    override fun invalidateNamespace(ns: StoreNamespace) {
+        storeScope.launch {
+            val keys = keysInNamespace(ns)
+            keys.forEach { key ->
+                memory.remove(key)
+                sot.clearCache(key)
+            }
+            invalidationSignals.tryEmit(InvalidationSignal(namespace = ns, destructive = false))
+        }
+    }
+
+    override fun invalidateAll() {
+        storeScope.launch {
+            val keys = keysForMaintenance()
+            memory.clear()
+            keys.forEach { key ->
+                sot.clearCache(key)
+            }
+            invalidationSignals.tryEmit(InvalidationSignal(all = true, destructive = false))
+        }
+    }
+
     override fun clear(key: Key) {
         storeScope.launch {
+            rememberKey(key)
             memory.remove(key)
             sot.clearCache(key)
             sot.delete(key)
+            forgetKey(key)
+            invalidationSignals.tryEmit(InvalidationSignal(key = key, destructive = true))
         }
     }
-    override fun clearNamespace(ns: StoreNamespace) { storeScope.launch { memory.clear() } }
-    override fun clearAll() { storeScope.launch { memory.clear() } }
+
+    override fun clearNamespace(ns: StoreNamespace) {
+        storeScope.launch {
+            val keys = keysInNamespace(ns)
+            keys.forEach { key ->
+                memory.remove(key)
+                sot.clearCache(key)
+                sot.delete(key)
+                forgetKey(key)
+            }
+            invalidationSignals.tryEmit(InvalidationSignal(namespace = ns, destructive = true))
+        }
+    }
+
+    override fun clearAll() {
+        storeScope.launch {
+            val keys = keysForMaintenance()
+            memory.clear()
+            keys.forEach { key ->
+                sot.clearCache(key)
+                sot.delete(key)
+            }
+            clearKnownKeys()
+            invalidationSignals.tryEmit(InvalidationSignal(all = true, destructive = true))
+        }
+    }
+
     override fun close() { storeScope.cancel() }
 
     private suspend fun runBlockingFetch(key: Key, plan: FetchPlan, errorEvents: Channel<StoreResult.Error>) {
+        rememberKey(key)
         fetchSingleFlight.launch(storeScope, key) {
             try {
                 val req = when (plan) {
@@ -429,6 +527,34 @@ class RealMutationStore<
         }.await()
     }
 
+    private suspend fun rememberKey(key: Key) {
+        knownKeysMutex.withLock {
+            knownKeys.add(key)
+        }
+    }
+
+    private suspend fun forgetKey(key: Key) {
+        knownKeysMutex.withLock {
+            knownKeys.remove(key)
+        }
+    }
+
+    private suspend fun clearKnownKeys() {
+        knownKeysMutex.withLock {
+            knownKeys.clear()
+        }
+    }
+
+    private suspend fun keysForMaintenance(): List<Key> {
+        val memoryKeys = memory.keys()
+        val known = knownKeysMutex.withLock { knownKeys.toSet() }
+        return (known + memoryKeys).toList()
+    }
+
+    private suspend fun keysInNamespace(namespace: StoreNamespace): List<Key> {
+        return keysForMaintenance().filter { key -> key.namespace == namespace }
+    }
+
     private fun fakeKeyForCreate(): Key {
         @Suppress("UNCHECKED_CAST")
         return ByIdKey(
@@ -442,3 +568,14 @@ class RealMutationStore<
 
 /* helper to extract updatedAt from arbitrary meta objects */
 private fun Any?.extractUpdatedAt(): Instant? = this as? Instant
+
+private data class InvalidationSignal<Key : StoreKey>(
+    val key: Key? = null,
+    val namespace: StoreNamespace? = null,
+    val all: Boolean = false,
+    val destructive: Boolean
+) {
+    fun matches(target: Key): Boolean {
+        return all || key == target || namespace == target.namespace
+    }
+}
