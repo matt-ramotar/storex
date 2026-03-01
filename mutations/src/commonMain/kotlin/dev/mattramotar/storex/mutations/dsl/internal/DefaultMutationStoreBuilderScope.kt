@@ -357,4 +357,8 @@ private class InMemoryCache<K : Any, V : Any>(
     override suspend fun clear() {
         cache.clear()
     }
+
+    override suspend fun keys(): Set<K> {
+        return cache.keys.toSet()
+    }
 }
