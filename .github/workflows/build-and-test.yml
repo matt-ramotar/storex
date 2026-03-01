@@ -9,14 +9,9 @@ on:
       - main
 
 jobs:
-  build-and-test:
+  build-and-test-linux:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        api-level:
-          - 29
     steps:
 
       - name: Checkout
@@ -47,3 +42,36 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: build/reports/kover/coverage.xml
           slug: matt-ramotar/storex
+
+  build-and-test-macos-ios:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref || github.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v2
+
+      - name: Grant execute permission for Gradlew
+        run: chmod +x gradlew
+
+      - name: Run iOS Simulator Contract Suite
+        run: >
+          ./gradlew
+          :core:iosSimulatorArm64Test
+          :mutations:iosSimulatorArm64Test
+          :paging:iosSimulatorArm64Test
+          :resilience:iosSimulatorArm64Test
+          :normalization:runtime:iosSimulatorArm64Test
+          --stacktrace
