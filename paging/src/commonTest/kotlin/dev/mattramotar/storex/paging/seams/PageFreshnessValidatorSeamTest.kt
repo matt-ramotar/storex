@@ -1,6 +1,7 @@
 package dev.mattramotar.storex.paging.seams
 
 import dev.mattramotar.storex.core.Freshness
+import dev.mattramotar.storex.core.StoreKey
 import dev.mattramotar.storex.core.seams.DefaultDbMeta
 import dev.mattramotar.storex.core.seams.FetchPlan
 import dev.mattramotar.storex.core.seams.FreshnessContext
@@ -24,17 +25,25 @@ class PageFreshnessValidatorSeamTest {
         backoffUntil = null
     )
 
+    private fun validator() = PageFreshnessValidator<StoreKey>(pageTtl = 5.minutes)
+
+    private fun context(
+        freshness: Freshness,
+        meta: DefaultDbMeta?
+    ) = FreshnessContext(
+        key = key,
+        now = now,
+        freshness = freshness,
+        sotMeta = meta,
+        status = status
+    )
+
     @Test
     fun cachedOrFetch_withFreshPage_skipsFetch() {
-        val validator = PageFreshnessValidator<dev.mattramotar.storex.core.StoreKey>(pageTtl = 5.minutes)
-
-        val plan = validator.plan(
-            FreshnessContext(
-                key = key,
-                now = now,
+        val plan = validator().plan(
+            context(
                 freshness = Freshness.CachedOrFetch,
-                sotMeta = DefaultDbMeta(updatedAt = now - 1.minutes, etag = "etag-1"),
-                status = status
+                meta = DefaultDbMeta(updatedAt = now - 1.minutes, etag = "etag-1")
             )
         )
 
@@ -42,16 +51,23 @@ class PageFreshnessValidatorSeamTest {
     }
 
     @Test
-    fun minAge_withStalePage_usesConditionalPlan() {
-        val validator = PageFreshnessValidator<dev.mattramotar.storex.core.StoreKey>(pageTtl = 5.minutes)
+    fun cachedOrFetch_withNoMetadata_fetchesUnconditionally() {
+        val plan = validator().plan(
+            context(
+                freshness = Freshness.CachedOrFetch,
+                meta = null
+            )
+        )
 
-        val plan = validator.plan(
-            FreshnessContext(
-                key = key,
-                now = now,
-                freshness = Freshness.MinAge(2.minutes),
-                sotMeta = DefaultDbMeta(updatedAt = now - 10.minutes, etag = "etag-2"),
-                status = status
+        assertEquals(FetchPlan.Unconditional, plan)
+    }
+
+    @Test
+    fun cachedOrFetch_withStalePage_usesConditionalPlan() {
+        val plan = validator().plan(
+            context(
+                freshness = Freshness.CachedOrFetch,
+                meta = DefaultDbMeta(updatedAt = now - 10.minutes, etag = "etag-2")
             )
         )
 
@@ -60,16 +76,73 @@ class PageFreshnessValidatorSeamTest {
     }
 
     @Test
-    fun mustBeFresh_ignoresRecentPageAndFetchesUnconditionally() {
-        val validator = PageFreshnessValidator<dev.mattramotar.storex.core.StoreKey>(pageTtl = 5.minutes)
+    fun minAge_withFreshPage_skipsFetch() {
+        val plan = validator().plan(
+            context(
+                freshness = Freshness.MinAge(2.minutes),
+                meta = DefaultDbMeta(updatedAt = now - 1.minutes, etag = "etag-3")
+            )
+        )
 
-        val plan = validator.plan(
-            FreshnessContext(
-                key = key,
-                now = now,
+        assertEquals(FetchPlan.Skip, plan)
+    }
+
+    @Test
+    fun minAge_withStalePage_usesConditionalPlan() {
+        val plan = validator().plan(
+            context(
+                freshness = Freshness.MinAge(2.minutes),
+                meta = DefaultDbMeta(updatedAt = now - 10.minutes, etag = "etag-4")
+            )
+        )
+
+        val conditional = assertIs<FetchPlan.Conditional>(plan)
+        assertEquals("etag-4", conditional.request.etag)
+    }
+
+    @Test
+    fun minAge_withoutMetadata_fetchesUnconditionally() {
+        val plan = validator().plan(
+            context(
+                freshness = Freshness.MinAge(2.minutes),
+                meta = null
+            )
+        )
+
+        assertEquals(FetchPlan.Unconditional, plan)
+    }
+
+    @Test
+    fun staleIfError_withValidators_usesConditionalPlan() {
+        val plan = validator().plan(
+            context(
+                freshness = Freshness.StaleIfError,
+                meta = DefaultDbMeta(updatedAt = now - 10.minutes, etag = "etag-5")
+            )
+        )
+
+        val conditional = assertIs<FetchPlan.Conditional>(plan)
+        assertEquals("etag-5", conditional.request.etag)
+    }
+
+    @Test
+    fun staleIfError_withoutMetadata_fetchesUnconditionally() {
+        val plan = validator().plan(
+            context(
+                freshness = Freshness.StaleIfError,
+                meta = null
+            )
+        )
+
+        assertEquals(FetchPlan.Unconditional, plan)
+    }
+
+    @Test
+    fun mustBeFresh_ignoresRecentPageAndFetchesUnconditionally() {
+        val plan = validator().plan(
+            context(
                 freshness = Freshness.MustBeFresh,
-                sotMeta = DefaultDbMeta(updatedAt = now - 1.minutes, etag = "etag-3"),
-                status = status
+                meta = DefaultDbMeta(updatedAt = now - 1.minutes, etag = "etag-6")
             )
         )
 
