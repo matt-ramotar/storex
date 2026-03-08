@@ -1,12 +1,12 @@
 package dev.mattramotar.storex.normalization.dsl
 
-// TODO: This file will be completed in Phase 3 (Mutations Module Migration)
-// It requires RealStore and Updater which will be migrated from :store to :mutations
+// TODO: This file will be completed in Phase 4 after Phase 2 seam extraction and
+// Phase 3 sync/write primitives are stable enough to support normalized mutation builders.
 
 /*
 import dev.mattramotar.storex.normalization.schema.SchemaRegistry
 import dev.mattramotar.storex.core.StoreKey
-import dev.mattramotar.storex.core.internal.Fetcher
+import dev.mattramotar.storex.core.seams.Fetcher
 import dev.mattramotar.storex.mutations.MutationStore
 import dev.mattramotar.storex.normalization.NormalizedWrite
 import dev.mattramotar.storex.normalization.Shape

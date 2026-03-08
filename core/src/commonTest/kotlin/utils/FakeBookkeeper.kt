@@ -1,8 +1,8 @@
 package dev.mattramotar.storex.core.utils
 
 import dev.mattramotar.storex.core.StoreKey
-import dev.mattramotar.storex.core.internal.Bookkeeper
-import dev.mattramotar.storex.core.internal.KeyStatus
+import dev.mattramotar.storex.core.seams.Bookkeeper
+import dev.mattramotar.storex.core.seams.KeyStatus
 import kotlinx.datetime.Instant
 
 /**
@@ -49,10 +49,3 @@ class FakeBookkeeper<K : StoreKey> : Bookkeeper<K> {
         recordedFailures.clear()
     }
 }
-
-private fun KeyStatus.copy(
-    lastSuccessAt: Instant? = this.lastSuccessAt,
-    lastFailureAt: Instant? = this.lastFailureAt,
-    lastEtag: String? = this.lastEtag,
-    backoffUntil: Instant? = this.backoffUntil
-) = KeyStatus(lastSuccessAt, lastFailureAt, lastEtag, backoffUntil)

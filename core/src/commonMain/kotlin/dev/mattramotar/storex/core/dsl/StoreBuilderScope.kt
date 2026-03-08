@@ -1,7 +1,7 @@
 package dev.mattramotar.storex.core.dsl
 
 import dev.mattramotar.storex.core.StoreKey
-import dev.mattramotar.storex.core.internal.Fetcher
+import dev.mattramotar.storex.core.seams.Fetcher
 import kotlinx.coroutines.CoroutineScope
 
 /**

@@ -4,7 +4,7 @@ package dev.mattramotar.storex.normalization.internal
 import dev.mattramotar.storex.normalization.keys.EntityKey
 import dev.mattramotar.storex.normalization.schema.SchemaRegistry
 import dev.mattramotar.storex.core.StoreKey
-import dev.mattramotar.storex.core.internal.SourceOfTruth
+import dev.mattramotar.storex.core.seams.SourceOfTruth
 import dev.mattramotar.storex.normalization.GraphProjection
 import dev.mattramotar.storex.normalization.NormalizedWrite
 import dev.mattramotar.storex.normalization.Shape

@@ -176,6 +176,10 @@ typealias CqrsReadStore<Key, Domain, ReadEntity, WriteEntity, NetworkResponse> =
  * @param WriteEntity The database write model type
  * @param NetworkResponse The type returned from network fetch operations
  */
+@Deprecated(
+    message = "Concrete runtime access is not a stable seam. Depend on Store and core.seams contracts instead.",
+    level = DeprecationLevel.WARNING
+)
 @Suppress("UNCHECKED_CAST")
 fun <Key : StoreKey, Domain : Any, ReadEntity, WriteEntity, NetworkResponse : Any>
     Store<Key, Domain>.asRealReadStore(): RealReadStore<Key, Domain, ReadEntity, WriteEntity, NetworkResponse> {
