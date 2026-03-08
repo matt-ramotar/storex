@@ -17,6 +17,9 @@ class PageFreshnessValidator<K : StoreKey>(
         val meta = ctx.sotMeta
         val age = meta?.let { ctx.now - it.updatedAt }
         val freshness = ctx.freshness
+        val backoffActive = ctx.status.backoffUntil?.let { ctx.now < it } == true
+
+        if (backoffActive) return FetchPlan.Skip
 
         return when (freshness) {
             Freshness.CachedOrFetch -> {

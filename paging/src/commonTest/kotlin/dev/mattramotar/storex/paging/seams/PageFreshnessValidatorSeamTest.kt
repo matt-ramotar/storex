@@ -29,7 +29,8 @@ class PageFreshnessValidatorSeamTest {
 
     private fun context(
         freshness: Freshness,
-        meta: DefaultDbMeta?
+        meta: DefaultDbMeta?,
+        status: KeyStatus = this.status
     ) = FreshnessContext(
         key = key,
         now = now,
@@ -123,6 +124,19 @@ class PageFreshnessValidatorSeamTest {
 
         val conditional = assertIs<FetchPlan.Conditional>(plan)
         assertEquals("etag-5", conditional.request.etag)
+    }
+
+    @Test
+    fun backoffActive_skipsFetch_beforeEvaluatingFreshness() {
+        val plan = validator().plan(
+            context(
+                freshness = Freshness.MustBeFresh,
+                meta = DefaultDbMeta(updatedAt = now - 10.minutes, etag = "etag-backoff"),
+                status = status.copy(backoffUntil = now + 1.minutes)
+            )
+        )
+
+        assertEquals(FetchPlan.Skip, plan)
     }
 
     @Test
