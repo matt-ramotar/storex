@@ -8,3 +8,4 @@ comment:
 
 ignore:
   - "**/*Test/**/*.kt"
+  - "core/src/commonMain/kotlin/dev/mattramotar/storex/core/internal/Fetcher.kt"

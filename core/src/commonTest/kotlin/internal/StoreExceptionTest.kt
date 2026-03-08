@@ -125,6 +125,16 @@ class StoreExceptionTest {
     }
 
     @Test
+    fun httpError_given600_thenIsNotRetryable() {
+        // Given / When
+        val exception = StoreException.NetworkException.HttpError(600)
+
+        // Then
+        assertFalse(exception.isRetryable)
+        assertEquals("HTTP 600", exception.message)
+    }
+
+    @Test
     fun httpError_given400_thenIsNotRetryable() {
         // Given / When
         val exception = StoreException.NetworkException.HttpError(400)
@@ -1072,6 +1082,7 @@ class StoreExceptionTest {
 
         // Then
         assertIs<StoreException.RateLimited>(result)
+        assertEquals("Rate limited", result.message)
         assertNull(result.retryAfter)
         assertNull(result.cause)
     }
@@ -1086,6 +1097,7 @@ class StoreExceptionTest {
 
         // Then
         assertIs<StoreException.RateLimited>(result)
+        assertEquals("Rate limited (retry after 5m)", result.message)
         assertEquals(retryAfter, result.retryAfter)
         assertNull(result.cause)
     }

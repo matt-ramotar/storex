@@ -13,8 +13,14 @@ typealias FetcherResult<T> = dev.mattramotar.storex.core.seams.FetcherResult<T>
 
 fun <Key : StoreKey, Network : Any> fetcherOf(
     fetch: suspend (Key) -> Network
-): Fetcher<Key, Network> = seamFetcherOf(fetch)
+): Fetcher<Key, Network> {
+    val delegate = seamFetcherOf(fetch)
+    return delegate
+}
 
 fun <Key : StoreKey, Network : Any> streamingFetcherOf(
     fetch: (Key) -> Flow<Network>
-): Fetcher<Key, Network> = seamStreamingFetcherOf(fetch)
+): Fetcher<Key, Network> {
+    val delegate = seamStreamingFetcherOf(fetch)
+    return delegate
+}

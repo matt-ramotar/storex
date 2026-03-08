@@ -77,6 +77,21 @@ class PageFreshnessValidatorSeamTest {
     }
 
     @Test
+    fun cachedOrFetch_withStalePageAndNoEtag_usesLastModifiedConditionalPlan() {
+        val updatedAt = now - 10.minutes
+        val plan = validator().plan(
+            context(
+                freshness = Freshness.CachedOrFetch,
+                meta = DefaultDbMeta(updatedAt = updatedAt, etag = null)
+            )
+        )
+
+        val conditional = assertIs<FetchPlan.Conditional>(plan)
+        assertEquals(null, conditional.request.etag)
+        assertEquals(updatedAt, conditional.request.lastModified)
+    }
+
+    @Test
     fun minAge_withFreshPage_skipsFetch() {
         val plan = validator().plan(
             context(
@@ -137,6 +152,19 @@ class PageFreshnessValidatorSeamTest {
         )
 
         assertEquals(FetchPlan.Skip, plan)
+    }
+
+    @Test
+    fun backoffExpired_allowsFetchPlanningToProceed() {
+        val plan = validator().plan(
+            context(
+                freshness = Freshness.MustBeFresh,
+                meta = DefaultDbMeta(updatedAt = now - 10.minutes, etag = "etag-expired"),
+                status = status.copy(backoffUntil = now - 1.minutes)
+            )
+        )
+
+        assertEquals(FetchPlan.Unconditional, plan)
     }
 
     @Test

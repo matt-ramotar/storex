@@ -33,24 +33,16 @@ class DefaultFreshnessValidator<K : StoreKey>(
 ) : FreshnessValidator<K, DefaultDbMeta> {
 
     override fun plan(ctx: FreshnessContext<K, DefaultDbMeta>): FetchPlan {
-        val age = ctx.sotMeta?.let { ctx.now - it.updatedAt }
-        val backoffActive = ctx.status.backoffUntil?.let { ctx.now < it } == true
-
-        if (backoffActive) return FetchPlan.Skip
+        val backoffUntil = ctx.status.backoffUntil
+        if (backoffUntil != null) {
+            if (ctx.now < backoffUntil) return FetchPlan.Skip
+        }
 
         return when (ctx.freshness) {
-            Freshness.CachedOrFetch -> {
-                when {
-                    ctx.sotMeta == null -> unconditional()
-                    age != null && age <= ttl -> FetchPlan.Skip
-                    else -> conditional(ctx.sotMeta.etag, ctx.sotMeta.updatedAt)
-                }
-            }
+            Freshness.CachedOrFetch -> cachedOrFetch(ctx)
 
             is Freshness.MinAge -> {
-                val maxAge = ctx.freshness.notOlderThan
-                if (age == null || age > maxAge) conditional(ctx.sotMeta?.etag, ctx.sotMeta?.updatedAt)
-                else FetchPlan.Skip
+                minAge(ctx, ctx.freshness.notOlderThan)
             }
 
             Freshness.MustBeFresh -> unconditional()
@@ -58,12 +50,25 @@ class DefaultFreshnessValidator<K : StoreKey>(
         }
     }
 
+    private fun cachedOrFetch(ctx: FreshnessContext<K, DefaultDbMeta>): FetchPlan {
+        val meta = ctx.sotMeta ?: return unconditional()
+        val age = ctx.now - meta.updatedAt
+        return if (age <= ttl) FetchPlan.Skip else conditional(meta.etag, meta.updatedAt)
+    }
+
+    private fun minAge(
+        ctx: FreshnessContext<K, DefaultDbMeta>,
+        maxAge: Duration
+    ): FetchPlan {
+        val meta = ctx.sotMeta ?: return unconditional()
+        val age = ctx.now - meta.updatedAt
+        return if (age > maxAge) conditional(meta.etag, meta.updatedAt) else FetchPlan.Skip
+    }
+
     private fun unconditional() = FetchPlan.Unconditional
 
-    private fun conditional(etag: String?, lastModified: Instant?) =
-        if (etag != null || lastModified != null) {
-            FetchPlan.Conditional(ConditionalRequest(etag = etag, lastModified = lastModified))
-        } else {
-            FetchPlan.Unconditional
-        }
+    private fun conditional(etag: String?, lastModified: Instant?): FetchPlan {
+        if (etag == null && lastModified == null) return FetchPlan.Unconditional
+        return FetchPlan.Conditional(ConditionalRequest(etag = etag, lastModified = lastModified))
+    }
 }

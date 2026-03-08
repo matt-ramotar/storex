@@ -123,7 +123,7 @@ sealed class StoreException(
     class RateLimited(
         val retryAfter: Duration? = null,
         cause: Throwable? = null
-    ) : StoreException("Rate limited${retryAfter?.let { " (retry after $it)" } ?: ""}", cause) {
+    ) : StoreException(rateLimitedMessage(retryAfter), cause) {
         override val isRetryable: Boolean = true
     }
 
@@ -135,6 +135,12 @@ sealed class StoreException(
     }
 
     companion object {
+        private fun String.containsText(fragment: String): Boolean =
+            contains(fragment, ignoreCase = true)
+
+        private fun rateLimitedMessage(retryAfter: Duration?): String =
+            if (retryAfter != null) "Rate limited (retry after $retryAfter)" else "Rate limited"
+
         fun from(throwable: Throwable): StoreException {
             if (throwable is kotlinx.coroutines.CancellationException) {
                 throw throwable
@@ -145,56 +151,54 @@ sealed class StoreException(
                 is kotlinx.serialization.SerializationException ->
                     SerializationError("Serialization failed: ${throwable.message}", throwable)
 
-                else -> when {
-                    throwable.message?.contains("timeout", ignoreCase = true) == true ->
-                        NetworkException.Timeout(throwable)
+                else -> {
+                    val message = throwable.message ?: return Unknown("Unknown error", throwable)
+                    when {
+                        message.containsText("timeout") ->
+                            NetworkException.Timeout(throwable)
 
-                    throwable.message?.contains("connection", ignoreCase = true) == true ->
-                        NetworkException.NoConnection(throwable)
+                        message.containsText("connection") ->
+                            NetworkException.NoConnection(throwable)
 
-                    throwable.message?.contains("not found", ignoreCase = true) == true ->
-                        NotFound(throwable.message ?: "Unknown", throwable)
+                        message.containsText("not found") ->
+                            NotFound(message, throwable)
 
-                    throwable.message?.contains("permission", ignoreCase = true) == true ||
-                        throwable.message?.contains("access denied", ignoreCase = true) == true ->
-                        PersistenceException.PermissionDenied(throwable)
+                        message.containsText("permission") || message.containsText("access denied") ->
+                            PersistenceException.PermissionDenied(throwable)
 
-                    throwable.message?.contains("disk full", ignoreCase = true) == true ||
-                        throwable.message?.contains("no space", ignoreCase = true) == true ->
-                        PersistenceException.DiskFull(throwable)
+                        message.containsText("disk full") || message.containsText("no space") ->
+                            PersistenceException.DiskFull(throwable)
 
-                    throwable.message?.contains("rate limit", ignoreCase = true) == true ||
-                        throwable.message?.contains("too many requests", ignoreCase = true) == true ->
-                        RateLimited(retryAfter = null, cause = throwable)
+                        message.containsText("rate limit") || message.containsText("too many requests") ->
+                            RateLimited(retryAfter = null, cause = throwable)
 
-                    throwable.message?.contains("validation", ignoreCase = true) == true ||
-                        throwable.message?.contains("invalid", ignoreCase = true) == true ->
-                        ValidationError(throwable.message ?: "Validation failed", throwable)
+                        message.containsText("validation") || message.containsText("invalid") ->
+                            ValidationError(message, throwable)
 
-                    throwable.message?.contains("serialization", ignoreCase = true) == true ||
-                        throwable.message?.contains("deserialization", ignoreCase = true) == true ||
-                        throwable.message?.contains("parse", ignoreCase = true) == true ->
-                        SerializationError(throwable.message ?: "Serialization error", throwable)
+                        message.containsText("serialization") ||
+                            message.containsText("deserialization") ||
+                            message.containsText("parse") ->
+                            SerializationError(message, throwable)
 
-                    throwable.message?.contains("configuration", ignoreCase = true) == true ||
-                        throwable.message?.contains("misconfigured", ignoreCase = true) == true ->
-                        ConfigurationError(throwable.message ?: "Configuration error", throwable)
+                        message.containsText("configuration") || message.containsText("misconfigured") ->
+                            ConfigurationError(message, throwable)
 
-                    throwable.message?.contains("lock", ignoreCase = true) == true ->
-                        PersistenceException.DatabaseLocked(throwable)
+                        message.containsText("lock") ->
+                            PersistenceException.DatabaseLocked(throwable)
 
-                    throwable.message?.contains("conflict", ignoreCase = true) == true ->
-                        PersistenceException.TransactionConflict(throwable)
+                        message.containsText("conflict") ->
+                            PersistenceException.TransactionConflict(throwable)
 
-                    throwable.message?.contains("dns", ignoreCase = true) == true ->
-                        NetworkException.DnsError(throwable)
+                        message.containsText("dns") ->
+                            NetworkException.DnsError(throwable)
 
-                    throwable.message?.contains("ssl", ignoreCase = true) == true ||
-                        throwable.message?.contains("tls", ignoreCase = true) == true ||
-                        throwable.message?.contains("certificate", ignoreCase = true) == true ->
-                        NetworkException.SslError(throwable)
+                        message.containsText("ssl") ||
+                            message.containsText("tls") ||
+                            message.containsText("certificate") ->
+                            NetworkException.SslError(throwable)
 
-                    else -> Unknown(throwable.message ?: "Unknown error", throwable)
+                        else -> Unknown(message, throwable)
+                    }
                 }
             }
         }

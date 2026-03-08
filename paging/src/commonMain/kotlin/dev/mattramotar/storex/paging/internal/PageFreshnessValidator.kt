@@ -14,37 +14,42 @@ class PageFreshnessValidator<K : StoreKey>(
     private val pageTtl: Duration
 ) : FreshnessValidator<K, DefaultDbMeta> {
     override fun plan(ctx: FreshnessContext<K, DefaultDbMeta>): FetchPlan {
-        val meta = ctx.sotMeta
-        val age = meta?.let { ctx.now - it.updatedAt }
         val freshness = ctx.freshness
-        val backoffActive = ctx.status.backoffUntil?.let { ctx.now < it } == true
+        val backoffUntil = ctx.status.backoffUntil
 
-        if (backoffActive) return FetchPlan.Skip
+        if (backoffUntil != null) {
+            if (ctx.now < backoffUntil) return FetchPlan.Skip
+        }
 
         return when (freshness) {
-            Freshness.CachedOrFetch -> {
-                when {
-                    meta == null -> FetchPlan.Unconditional
-                    age != null && age <= pageTtl -> FetchPlan.Skip
-                    else -> conditional(meta.etag, meta.updatedAt)
-                }
-            }
+            Freshness.CachedOrFetch -> cachedOrFetch(ctx)
 
             is Freshness.MinAge -> {
-                val maxAge = freshness.notOlderThan
-                if (age == null || age > maxAge) conditional(meta?.etag, meta?.updatedAt)
-                else FetchPlan.Skip
+                minAge(ctx, freshness.notOlderThan)
             }
 
             Freshness.MustBeFresh -> FetchPlan.Unconditional
-            Freshness.StaleIfError -> conditional(meta?.etag, meta?.updatedAt)
+            Freshness.StaleIfError -> conditional(ctx.sotMeta?.etag, ctx.sotMeta?.updatedAt)
         }
     }
 
-    private fun conditional(etag: String?, lastModified: Instant?) =
-        if (etag != null || lastModified != null) {
-            FetchPlan.Conditional(ConditionalRequest(etag = etag, lastModified = lastModified))
-        } else {
-            FetchPlan.Unconditional
-        }
+    private fun cachedOrFetch(ctx: FreshnessContext<K, DefaultDbMeta>): FetchPlan {
+        val meta = ctx.sotMeta ?: return FetchPlan.Unconditional
+        val age = ctx.now - meta.updatedAt
+        return if (age <= pageTtl) FetchPlan.Skip else conditional(meta.etag, meta.updatedAt)
+    }
+
+    private fun minAge(
+        ctx: FreshnessContext<K, DefaultDbMeta>,
+        maxAge: Duration
+    ): FetchPlan {
+        val meta = ctx.sotMeta ?: return FetchPlan.Unconditional
+        val age = ctx.now - meta.updatedAt
+        return if (age > maxAge) conditional(meta.etag, meta.updatedAt) else FetchPlan.Skip
+    }
+
+    private fun conditional(etag: String?, lastModified: Instant?): FetchPlan {
+        if (etag == null && lastModified == null) return FetchPlan.Unconditional
+        return FetchPlan.Conditional(ConditionalRequest(etag = etag, lastModified = lastModified))
+    }
 }
