@@ -4,7 +4,7 @@ import dev.mattramotar.storex.core.StoreKey
 import dev.mattramotar.storex.core.dsl.CacheConfig
 import dev.mattramotar.storex.core.dsl.FreshnessConfig
 import dev.mattramotar.storex.core.dsl.PersistenceConfig
-import dev.mattramotar.storex.core.internal.Fetcher
+import dev.mattramotar.storex.core.seams.Fetcher
 import kotlinx.coroutines.CoroutineScope
 
 /**

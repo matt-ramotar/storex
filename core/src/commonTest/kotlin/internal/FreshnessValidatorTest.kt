@@ -1,4 +1,4 @@
-package dev.mattramotar.storex.core.internal
+package dev.mattramotar.storex.core.seams
 
 import dev.mattramotar.storex.core.Freshness
 import dev.mattramotar.storex.core.utils.TEST_KEY_1

@@ -1,56 +1,13 @@
 package dev.mattramotar.storex.core.internal
 
+import dev.mattramotar.storex.core.seams.MemoryCache
 import dev.mattramotar.storex.core.TimeSource
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.Instant
 import kotlin.time.Duration
 
-/**
- * In-memory cache interface for Store.
- *
- * Provides fast, ephemeral storage for frequently accessed data.
- * Data stored here does not survive app restarts.
- *
- * @param Key The key type (typically [StoreKey])
- * @param Value The cached value type (typically the domain model)
- */
-interface MemoryCache<Key: Any, Value: Any> {
-    /**
-     * Retrieves a value from the cache.
-     *
-     * @param key The key to lookup
-     * @return The cached value, or null if not found or expired
-     */
-    suspend fun get(key: Key): Value?
-
-    /**
-     * Stores a value in the cache.
-     *
-     * @param key The key to store under
-     * @param value The value to cache
-     * @return true if this was a new entry, false if it replaced an existing entry
-     */
-    suspend fun put(key: Key, value: Value): Boolean
-
-    /**
-     * Removes a value from the cache.
-     *
-     * @param key The key to remove
-     * @return true if a value was removed, false if key didn't exist
-     */
-    suspend fun remove(key: Key): Boolean
-
-    /**
-     * Clears all entries from the cache.
-     */
-    suspend fun clear()
-
-    /**
-     * Returns a snapshot of keys currently held in memory.
-     */
-    suspend fun keys(): Set<Key>
-}
+typealias MemoryCache<Key, Value> = dev.mattramotar.storex.core.seams.MemoryCache<Key, Value>
 
 /**
  * In-memory cache with LRU eviction and TTL support.

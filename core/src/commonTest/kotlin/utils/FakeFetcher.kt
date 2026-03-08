@@ -1,10 +1,10 @@
 package dev.mattramotar.storex.core.utils
 
 import dev.mattramotar.storex.core.StoreKey
-import dev.mattramotar.storex.core.internal.FetchRequest
-import dev.mattramotar.storex.core.internal.Fetcher
-import dev.mattramotar.storex.core.internal.FetcherResult
-import dev.mattramotar.storex.core.internal.StoreException
+import dev.mattramotar.storex.core.seams.FetchRequest
+import dev.mattramotar.storex.core.seams.Fetcher
+import dev.mattramotar.storex.core.seams.FetcherResult
+import dev.mattramotar.storex.core.seams.StoreException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.datetime.Instant

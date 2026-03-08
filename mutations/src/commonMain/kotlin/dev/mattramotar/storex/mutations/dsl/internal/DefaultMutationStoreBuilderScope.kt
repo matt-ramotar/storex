@@ -6,15 +6,15 @@ import dev.mattramotar.storex.core.StoreKey
 import dev.mattramotar.storex.core.dsl.CacheConfig
 import dev.mattramotar.storex.core.dsl.FreshnessConfig
 import dev.mattramotar.storex.core.dsl.PersistenceConfig
-import dev.mattramotar.storex.core.internal.Bookkeeper
-import dev.mattramotar.storex.core.internal.DefaultDbMeta
-import dev.mattramotar.storex.core.internal.DefaultFreshnessValidator
-import dev.mattramotar.storex.core.internal.Fetcher
-import dev.mattramotar.storex.core.internal.FreshnessValidator
-import dev.mattramotar.storex.core.internal.KeyStatus
-import dev.mattramotar.storex.core.internal.MemoryCache
-import dev.mattramotar.storex.core.internal.SourceOfTruth
-import dev.mattramotar.storex.core.internal.fetcherOf
+import dev.mattramotar.storex.core.seams.Bookkeeper
+import dev.mattramotar.storex.core.seams.DefaultDbMeta
+import dev.mattramotar.storex.core.seams.DefaultFreshnessValidator
+import dev.mattramotar.storex.core.seams.Fetcher
+import dev.mattramotar.storex.core.seams.FreshnessValidator
+import dev.mattramotar.storex.core.seams.KeyStatus
+import dev.mattramotar.storex.core.seams.MemoryCache
+import dev.mattramotar.storex.core.seams.SourceOfTruth
+import dev.mattramotar.storex.core.seams.fetcherOf
 import dev.mattramotar.storex.mutations.DeleteClient
 import dev.mattramotar.storex.mutations.MutationEncoder
 import dev.mattramotar.storex.mutations.MutationStore
@@ -309,13 +309,6 @@ private class InMemoryBookkeeper<K : StoreKey> : Bookkeeper<K> {
         return status[key] ?: KeyStatus(null, null, null, null)
     }
 }
-
-private fun KeyStatus.copy(
-    lastSuccessAt: Instant? = this.lastSuccessAt,
-    lastFailureAt: Instant? = this.lastFailureAt,
-    lastEtag: String? = this.lastEtag,
-    backoffUntil: Instant? = this.backoffUntil
-) = KeyStatus(lastSuccessAt, lastFailureAt, lastEtag, backoffUntil)
 
 /**
  * In-memory cache implementation

@@ -1,8 +1,8 @@
-# Store6 Read-Core Stability Notes (Phase 1)
+# Store6 Read-Core Stability Notes
 
 ## Milestone
 - Linear issue: `STOREX-1`
-- Phase: `Phase 1 - Freeze Store6 Read Core`
+- Phase: `Phase 1 complete`, `Phase 2 in progress`
 
 ## Frozen Surface
 The following API surface is frozen for the first 6.0 alpha contract:
@@ -38,6 +38,10 @@ The following API surface is frozen for the first 6.0 alpha contract:
   - macOS: iOS simulator test lane for core + extension modules.
 
 ## Known Limitations Carried Forward
-- Some extension modules still depend on `core.internal` and are addressed in `STOREX-2`.
 - `StoreResult.Loading(fromCache=true)` remains unexercised in read-core runtime.
 - Full upstream migration narrative remains phase-gated to `STOREX-5`.
+
+## Phase 2 Seam Note
+- Stable extension contracts now live in `dev.mattramotar.storex.core.seams`.
+- Public builder surfaces may expose seam types, but concrete runtimes remain internal implementation details.
+- `STOREX-2` migrates mutations first, then paging and normalization, without changing the frozen read-core semantics above.

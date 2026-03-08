@@ -1,4 +1,4 @@
-package dev.mattramotar.storex.core.internal
+package dev.mattramotar.storex.core.seams
 
 import kotlinx.coroutines.CancellationException
 import kotlin.test.Test

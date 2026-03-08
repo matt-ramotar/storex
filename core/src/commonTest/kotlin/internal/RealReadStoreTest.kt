@@ -7,6 +7,8 @@ import dev.mattramotar.storex.core.Origin
 import dev.mattramotar.storex.core.StoreKey
 import dev.mattramotar.storex.core.StoreResult
 import dev.mattramotar.storex.core.TimeSource
+import dev.mattramotar.storex.core.seams.DefaultDbMeta
+import dev.mattramotar.storex.core.seams.StoreException as SeamStoreException
 import dev.mattramotar.storex.core.utils.FakeBookkeeper
 import dev.mattramotar.storex.core.utils.FakeFetcher
 import dev.mattramotar.storex.core.utils.FakeSourceOfTruth
@@ -15,7 +17,6 @@ import dev.mattramotar.storex.core.utils.TEST_KEY_1
 import dev.mattramotar.storex.core.utils.TEST_KEY_2
 import dev.mattramotar.storex.core.utils.TEST_USER_1
 import dev.mattramotar.storex.core.utils.TEST_USER_2
-import dev.mattramotar.storex.core.internal.StoreException
 import dev.mattramotar.storex.core.utils.TestException
 import dev.mattramotar.storex.core.utils.TestNetworkException
 import dev.mattramotar.storex.core.utils.TestUser
@@ -27,7 +28,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.Instant
-import dev.mattramotar.storex.core.internal.DefaultDbMeta
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -284,10 +284,10 @@ class RealReadStoreTest {
         val store = createStore(fetcher = fetcher)
 
         // When/Then
-        val thrown = assertFailsWith<StoreException> {
+        val thrown = assertFailsWith<SeamStoreException> {
             store.get(TEST_KEY_1, Freshness.CachedOrFetch)
         }
-        assertIs<StoreException.Unknown>(thrown)
+        assertIs<SeamStoreException.Unknown>(thrown)
         assertEquals("Network error", thrown.cause?.message)
     }
 
@@ -588,7 +588,7 @@ class RealReadStoreTest {
         val (key, recordedError, _) = bookkeeper.recordedFailures.first()
         assertEquals(TEST_KEY_1, key)
         // FakeFetcher wraps errors in StoreException.from(), so TestNetworkException becomes StoreException.Unknown
-        assertIs<StoreException.Unknown>(recordedError)
+        assertIs<SeamStoreException.Unknown>(recordedError)
         assertEquals("Failure", recordedError.cause?.message)
     }
 

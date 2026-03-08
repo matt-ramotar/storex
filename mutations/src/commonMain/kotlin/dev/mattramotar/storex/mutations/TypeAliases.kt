@@ -221,6 +221,10 @@ typealias CqrsMutationStore<Key, Domain, ReadEntity, WriteEntity, NetworkRespons
  * @param NetworkDraft The network DTO for POST/create requests
  * @param NetworkPut The network DTO for PUT/upsert requests
  */
+@Deprecated(
+    message = "Concrete runtime access is not a stable seam. Depend on MutationStore and core.seams contracts instead.",
+    level = DeprecationLevel.WARNING
+)
 @Suppress("UNCHECKED_CAST")
 fun <Key : StoreKey, Domain : Any, ReadEntity, WriteEntity, NetworkResponse : Any, Patch, Draft, NetworkPatch, NetworkDraft, NetworkPut>
     MutationStore<Key, Domain, Patch, Draft>.asRealMutationStore(): RealMutationStore<Key, Domain, ReadEntity, WriteEntity, NetworkResponse, Patch, Draft, NetworkPatch, NetworkDraft, NetworkPut> {

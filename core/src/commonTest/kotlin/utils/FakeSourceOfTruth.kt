@@ -1,7 +1,7 @@
 package dev.mattramotar.storex.core.utils
 
 import dev.mattramotar.storex.core.StoreKey
-import dev.mattramotar.storex.core.internal.SourceOfTruth
+import dev.mattramotar.storex.core.seams.SourceOfTruth
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
