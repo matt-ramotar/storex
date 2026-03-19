@@ -77,7 +77,7 @@ class NormalizationProcessor(private val env: SymbolProcessorEnvironment) : Symb
         }
     )
 
-    private val entityAdapters = mutableListOf<Pair<String, ClassName>>() // (typeName, adapterClass)
+    private val entityAdapters = mutableListOf<Triple<String, ClassName, ClassName>>() // (typeName, adapterClass, entityClass)
 
     override fun process(resolver: Resolver): List<KSAnnotated> {
         val annotated = resolver.getSymbolsWithAnnotation(Normalizable::class.qualifiedName!!)
@@ -161,7 +161,7 @@ class NormalizationProcessor(private val env: SymbolProcessorEnvironment) : Symb
             .build()
             .writeTo(codegen, aggregating = true)
 
-        entityAdapters += canonicalTypeName to adapterClass
+        entityAdapters += Triple(canonicalTypeName, adapterClass, className)
     }
 
     private fun generateRegistry() {
@@ -181,16 +181,25 @@ class NormalizationProcessor(private val env: SymbolProcessorEnvironment) : Symb
 
         val mapEntries = CodeBlock.Companion.builder()
         mapEntries.add("mapOf(\n")
-        entityAdapters.forEachIndexed { idx, (typeName, adapterClass) ->
+        entityAdapters.forEachIndexed { idx, (typeName, adapterClass, _) ->
             mapEntries.add("  %S to %T", typeName, adapterClass)
             if (idx != entityAdapters.lastIndex) mapEntries.add(",\n") else mapEntries.add("\n")
         }
         mapEntries.add(")")
 
+        val classMapEntries = CodeBlock.Companion.builder()
+        classMapEntries.add("mapOf(\n")
+        entityAdapters.forEachIndexed { idx, (_, adapterClass, entityClass) ->
+            classMapEntries.add("  %T::class to %T", entityClass, adapterClass)
+            if (idx != entityAdapters.lastIndex) classMapEntries.add(",\n") else classMapEntries.add("\n")
+        }
+        classMapEntries.add(")")
+
         val registryType = TypeSpec.Companion.classBuilder("SchemaRegistry_Generated")
             .superclass(SchemaRegistryClass)
             .primaryConstructor(FunSpec.Companion.constructorBuilder().build())
             .addSuperclassConstructorParameter(mapEntries.build())
+            .addSuperclassConstructorParameter(classMapEntries.build())
             .build()
 
         FileSpec.Companion.builder(pkgGenerated, "SchemaRegistry_Generated")

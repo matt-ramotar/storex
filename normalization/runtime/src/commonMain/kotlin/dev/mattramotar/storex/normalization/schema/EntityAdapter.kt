@@ -30,11 +30,19 @@ interface DenormalizationContext {
     suspend fun resolveReference(key: EntityKey): Any?
 }
 
-open class SchemaRegistry(private val byType: Map<String, EntityAdapter<*>>) {
+open class SchemaRegistry(
+    private val byType: Map<String, EntityAdapter<*>>,
+    private val byClass: Map<KClass<*>, EntityAdapter<*>> = emptyMap(),
+) {
     @Suppress("UNCHECKED_CAST")
-    fun <T : Any> getAdapter(typeName: String): EntityAdapter<T> = byType[typeName] as EntityAdapter<T>
+    fun <T : Any> getAdapter(typeName: String): EntityAdapter<T> =
+        byType[typeName] as EntityAdapter<T>
 
     @Suppress("UNCHECKED_CAST")
-    fun <T : Any> getAdapter(k: KClass<T>): EntityAdapter<T> =
-        byType.values.first { it is EntityAdapter<*> && it.typeName == k.simpleName } as EntityAdapter<T>
+    fun <T : Any> getAdapter(k: KClass<T>): EntityAdapter<T> {
+        val adapter = byClass[k]
+            ?: k.simpleName?.let { byType[it] }
+            ?: error("No EntityAdapter registered for ${k.qualifiedName ?: k.toString()}")
+        return adapter as EntityAdapter<T>
+    }
 }
